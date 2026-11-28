@@ -246,6 +246,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_create_activity_type` | **Write.** Creates an activity type: `name`, `key`, `timing`, `default_duration_minutes`. Staff only. |
 | `foresi_update_activity_type` | **Write.** Changes a type (`type_id`): `name`, `timing`, `default_duration_minutes`. Staff only. |
 | `foresi_archive_activity_type` | **Write, destructive.** Archives a type (`type_id`). Staff only. |
+| `foresi_list_currencies` | The ISO 4217 currencies a money input takes: code, name, minor units, numeric code and whether it is withdrawn (`historic: true` lists those too). Every amount a tool returns carries its `minor_units`. |
 | `foresi_list_fields` | The custom fields modules add to contacts, deals, tasks, projects and products, or of one record kind (`record`): key, kind, label, options and flags. The get and search tools of these records return the values under `custom_fields`, their create and update tools take `custom_fields`, and a filterable field is a `filter` field by its key; see [Custom fields](api.md#custom-fields). |
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |

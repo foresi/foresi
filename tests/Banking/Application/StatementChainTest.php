@@ -31,8 +31,8 @@ final class StatementChainTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, 'Main', 1);
-        $this->other = FirmBankAccount::open(Iban::fromString('CZ5508000000001234567899'), Currency::CZK, 'Savings', 2);
+        $this->account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::of('CZK'), 'Main', 1);
+        $this->other = FirmBankAccount::open(Iban::fromString('CZ5508000000001234567899'), Currency::of('CZK'), 'Savings', 2);
     }
 
     public function testStatementsThatFollowOnHaveNoGap(): void
@@ -68,8 +68,8 @@ final class StatementChainTest extends TestCase
 
         self::assertCount(1, $gaps);
         self::assertSame([StatementGapKind::Balance, $later, $earlier], $this->described($gaps)[0]);
-        self::assertTrue(Money::of('1000.00', Currency::CZK)->equals($gaps[0]->expected ?? self::fail()));
-        self::assertTrue(Money::of('1400.00', Currency::CZK)->equals($gaps[0]->actual ?? self::fail()));
+        self::assertTrue(Money::of('1000.00', Currency::of('CZK'))->equals($gaps[0]->expected ?? self::fail()));
+        self::assertTrue(Money::of('1400.00', Currency::of('CZK'))->equals($gaps[0]->actual ?? self::fail()));
     }
 
     public function testANumberGapIsTheOneSaidWhenTheBalanceDiffersToo(): void
@@ -96,8 +96,8 @@ final class StatementChainTest extends TestCase
         $gaps = StatementChain::gaps([$cut]);
 
         self::assertSame([[StatementGapKind::Inner, $cut, null]], $this->described($gaps));
-        self::assertTrue(Money::of('950.00', Currency::CZK)->equals($gaps[0]->expected ?? self::fail()));
-        self::assertTrue(Money::of('1000.00', Currency::CZK)->equals($gaps[0]->actual ?? self::fail()));
+        self::assertTrue(Money::of('950.00', Currency::of('CZK'))->equals($gaps[0]->expected ?? self::fail()));
+        self::assertTrue(Money::of('1000.00', Currency::of('CZK'))->equals($gaps[0]->actual ?? self::fail()));
         self::assertSame('inner::'.$cut->id(), $gaps[0]->key());
     }
 
@@ -196,7 +196,7 @@ final class StatementChainTest extends TestCase
         $from = new \DateTimeImmutable($month.'-01');
         $parsed = array_map(static fn (string $amount): ParsedMovement => new ParsedMovement(
             str_starts_with($amount, '-') ? MovementDirection::Outgoing : MovementDirection::Incoming,
-            Money::of(ltrim($amount, '-'), Currency::CZK),
+            Money::of(ltrim($amount, '-'), Currency::of('CZK')),
             $account->iban(),
             null,
             null,
@@ -208,13 +208,13 @@ final class StatementChainTest extends TestCase
             null,
             null,
         ), $entries);
-        $money = static fn (?string $amount): ?Money => null === $amount ? null : Money::of($amount, Currency::CZK);
+        $money = static fn (?string $amount): ?Money => null === $amount ? null : Money::of($amount, Currency::of('CZK'));
 
         return new ReceivedStatement(
             $account,
             new BankStatement(
                 $account->iban(),
-                Currency::CZK,
+                Currency::of('CZK'),
                 $parsed,
                 sequence: null === $number ? null : StatementSequence::withinYear($number, $year ?? (int) $from->format('Y')),
                 from: $from,

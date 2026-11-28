@@ -251,7 +251,7 @@ final class MarginTableTest extends KernelTestCase
     {
         $this->costSource->documents['rate1'] = $this->costDocument('rate1', '2026-11-12', [new CostLine('line-1', 'Voice API', null)]);
         $this->costSource->documents['rate2'] = $this->costDocument('rate2', '2026-05-12', [new CostLine('line-1', 'Voice API', null)]);
-        $this->costSource->documents['fine'] = $this->costDocument('fine', '2026-11-12', [new CostLine('line-1', 'Hosting', Money::ofMinor(100, Currency::CZK))]);
+        $this->costSource->documents['fine'] = $this->costDocument('fine', '2026-11-12', [new CostLine('line-1', 'Hosting', Money::ofMinor(100, Currency::of('CZK')))]);
 
         $view = $this->table->of('2026-11', '2026-11');
 
@@ -262,7 +262,7 @@ final class MarginTableTest extends KernelTestCase
     public function testAnUnaffectedDocumentIsNotLoadedToLookForGaps(): void
     {
         $this->costSource->documents['rate1'] = $this->costDocument('rate1', '2026-11-12', [new CostLine('line-1', 'Voice API', null)]);
-        $this->costSource->documents['fine'] = $this->costDocument('fine', '2026-11-12', [new CostLine('line-1', 'Hosting', Money::ofMinor(100, Currency::CZK))]);
+        $this->costSource->documents['fine'] = $this->costDocument('fine', '2026-11-12', [new CostLine('line-1', 'Hosting', Money::ofMinor(100, Currency::of('CZK')))]);
         $this->costSource->requested = [];
 
         $this->table->of('2026-11', '2026-11');
@@ -297,7 +297,7 @@ final class MarginTableTest extends KernelTestCase
         $cell = MarginJson::cellDetail($this->cell->of('client:'.$this->clientA, '2026-11'));
 
         self::assertSame(['client:'.$this->clientA, 'client', 'Client A'], [$this->in($table, 'rows', 0, 'row'), $this->in($table, 'rows', 0, 'kind'), $this->in($table, 'rows', 0, 'label')]);
-        self::assertSame(['month' => '2026-11', 'revenue' => ['amount_minor' => 3_000_000, 'currency' => 'CZK'], 'costs' => ['amount_minor' => 50_820, 'currency' => 'CZK'], 'margin' => ['amount_minor' => 2_949_180, 'currency' => 'CZK'], 'unrebilled' => 0], $this->in($table, 'rows', 0, 'cells', 0));
+        self::assertSame(['month' => '2026-11', 'revenue' => ['amount_minor' => 3_000_000, 'currency' => 'CZK', 'minor_units' => 2], 'costs' => ['amount_minor' => 50_820, 'currency' => 'CZK', 'minor_units' => 2], 'margin' => ['amount_minor' => 2_949_180, 'currency' => 'CZK', 'minor_units' => 2], 'unrebilled' => 0], $this->in($table, 'rows', 0, 'cells', 0));
         self::assertSame('2026-12', $this->in($table, 'rows', 0, 'cells', 1, 'month'), 'A month with nothing is still there.');
         self::assertSame(['own', 'unassigned'], [$this->in($table, 'rows', 1, 'row'), $this->in($table, 'rows', 2, 'row')]);
         self::assertSame([2_939_180, -10_000], [$this->in($table, 'total', 'margin', 'amount_minor'), $this->in($table, 'month_totals', 1, 'margin', 'amount_minor')]);
@@ -331,8 +331,8 @@ final class MarginTableTest extends KernelTestCase
         $this->invoice('i2', $this->clientA, '2026-11-02', 981_500);
         $this->invoice('i3', $this->clientB, '2026-11-02', 1_000);
         $this->invoice('i4', $this->clientA, '2026-12-02', 5_000);
-        $this->costSource->documents[self::VOICE] = $this->costDocument(self::VOICE, '2026-11-05', [new CostLine('line-1', 'Voice API usage', Money::ofMinor(50_820, Currency::CZK))]);
-        $this->costSource->documents[self::CLOUD] = $this->costDocument(self::CLOUD, '2026-11-06', [new CostLine('line-1', 'Hosting', Money::ofMinor(73_920, Currency::CZK))]);
+        $this->costSource->documents[self::VOICE] = $this->costDocument(self::VOICE, '2026-11-05', [new CostLine('line-1', 'Voice API usage', Money::ofMinor(50_820, Currency::of('CZK')))]);
+        $this->costSource->documents[self::CLOUD] = $this->costDocument(self::CLOUD, '2026-11-06', [new CostLine('line-1', 'Hosting', Money::ofMinor(73_920, Currency::of('CZK')))]);
         $this->share(self::VOICE, '2026-11', $this->clientA, 50_820, CostShareSource::Document);
         $this->share(self::CLOUD, '2026-11', $this->clientA, 22_176, CostShareSource::Line);
         $this->share(self::CLOUD, '2026-11', 'own', 51_744, CostShareSource::Line);
@@ -404,7 +404,7 @@ final class MarginTableTest extends KernelTestCase
 
     private function invoice(string $id, string $customerId, string $taxPoint, int $minor): void
     {
-        $this->revenue->documents[] = new RevenueDocument($id, 'EN-'.$id, 'invoice', $customerId, new \DateTimeImmutable($taxPoint, new \DateTimeZone('Europe/Prague')), Money::ofMinor($minor, Currency::CZK), '/invoices/'.$id, [new RevenueLine($id.'-line', null, Money::ofMinor($minor, Currency::CZK))]);
+        $this->revenue->documents[] = new RevenueDocument($id, 'EN-'.$id, 'invoice', $customerId, new \DateTimeImmutable($taxPoint, new \DateTimeZone('Europe/Prague')), Money::ofMinor($minor, Currency::of('CZK')), '/invoices/'.$id, [new RevenueLine($id.'-line', null, Money::ofMinor($minor, Currency::of('CZK')))]);
     }
 
     private function share(string $documentId, string $month, ?string $recipient, int $minor, CostShareSource $source = CostShareSource::Document): void

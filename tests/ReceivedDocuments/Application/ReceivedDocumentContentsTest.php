@@ -39,7 +39,7 @@ final class ReceivedDocumentContentsTest extends TestCase
     {
         $this->rates->set('USD', '20.918', publishedOn: '2026-11-06');
 
-        $content = $this->contents->of($this->input(Currency::USD, taxPoint: '2026-11-08'), null, true);
+        $content = $this->contents->of($this->input(Currency::of('USD'), taxPoint: '2026-11-08'), null, true);
 
         self::assertSame('20.918', $content->exchangeRate?->toString());
         self::assertSame('2026-11-06', $content->exchangeRateDate?->format('Y-m-d'));
@@ -50,7 +50,7 @@ final class ReceivedDocumentContentsTest extends TestCase
     {
         $this->rates->set('EUR', '24.335');
 
-        $this->contents->of($this->input(Currency::EUR, taxPoint: null), null, false);
+        $this->contents->of($this->input(Currency::of('EUR'), taxPoint: null), null, false);
 
         self::assertSame([['EUR', '2026-10-28']], $this->rates->asked);
     }
@@ -59,24 +59,24 @@ final class ReceivedDocumentContentsTest extends TestCase
     {
         $this->rates->set('USD', '2091.8', 100);
 
-        self::assertSame('20.918', $this->contents->of($this->input(Currency::USD), null, true)->exchangeRate?->toString());
+        self::assertSame('20.918', $this->contents->of($this->input(Currency::of('USD')), null, true)->exchangeRate?->toString());
     }
 
     public function testATypedRateWinsAndACzkDocumentAsksForNone(): void
     {
         $this->rates->set('EUR', '24.335');
 
-        self::assertSame('25', $this->contents->of($this->input(Currency::EUR, rate: ExchangeRate::of('25')), null, true)->exchangeRate?->toString());
-        self::assertNull($this->contents->of($this->input(Currency::CZK), null, true)->exchangeRate);
+        self::assertSame('25', $this->contents->of($this->input(Currency::of('EUR'), rate: ExchangeRate::of('25')), null, true)->exchangeRate?->toString());
+        self::assertNull($this->contents->of($this->input(Currency::of('CZK')), null, true)->exchangeRate);
         self::assertSame([], $this->rates->asked);
     }
 
     public function testADraftWithoutAPublishedRateStaysWithoutOne(): void
     {
-        self::assertNull($this->contents->of($this->input(Currency::USD), null, false)->exchangeRate);
+        self::assertNull($this->contents->of($this->input(Currency::of('USD')), null, false)->exchangeRate);
 
         try {
-            $this->contents->of($this->input(Currency::USD), null, true);
+            $this->contents->of($this->input(Currency::of('USD')), null, true);
             self::fail('A document to record took no rate.');
         } catch (ReceivedDocumentRefused $refused) {
             self::assertSame(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, $refused->reason);
@@ -86,7 +86,7 @@ final class ReceivedDocumentContentsTest extends TestCase
     public function testAnUnknownSupplierIsRefused(): void
     {
         $this->expectException(ReceivedDocumentRefused::class);
-        $this->contents->of($this->input(Currency::CZK, supplierId: '0190b4a1-0000-7000-8000-000000000000'), null, false);
+        $this->contents->of($this->input(Currency::of('CZK'), supplierId: '0190b4a1-0000-7000-8000-000000000000'), null, false);
     }
 
     private function input(Currency $currency, ?string $taxPoint = '2026-10-28', ?ExchangeRate $rate = null, ?string $supplierId = null): ReceivedDocumentInput

@@ -62,7 +62,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
     public function testNumberAndDatesStartOver(): void
     {
         $source = $this->source();
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(21, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(21, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->em->flush();
 
         $draft = $this->copy->valuesFrom($source);
@@ -90,7 +90,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
         self::assertSame(PaymentMethod::Cash, $draft->paymentMethod);
         self::assertSame(self::IBAN, $draft->bankAccount);
         self::assertSame(VatRegime::Payer, $draft->regime);
-        self::assertSame(Currency::CZK, $draft->currency);
+        self::assertSame(Currency::of('CZK'), $draft->currency);
         self::assertSame([], $draft->notices);
         self::assertCount(2, $draft->lines);
         $first = $draft->lines[0];
@@ -273,7 +273,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
     private function source(array $overrides = []): Invoice
     {
         $lines = [
-            new LineInput('First', Quantity::fromString('2.5'), 'ks', Money::ofMinor(12345, Currency::CZK), PriceType::WithVat, TaxTreatment::Standard, VatRateKind::Reduced, null, Percent::fromString('10')),
+            new LineInput('First', Quantity::fromString('2.5'), 'ks', Money::ofMinor(12345, Currency::of('CZK')), PriceType::WithVat, TaxTreatment::Standard, VatRateKind::Reduced, null, Percent::fromString('10')),
             $this->line(text: 'Second'),
         ];
 

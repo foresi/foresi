@@ -354,7 +354,7 @@ final class InvoiceExportControllerTest extends WebTestCase
 
     private function issue(string $issueDate, ?string $taxPoint = null): Invoice
     {
-        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $input = new InvoiceInput($this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable($issueDate), new \DateTimeImmutable($taxPoint ?? $issueDate), new \DateTimeImmutable('2026-12-31'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Work', '', '', DocumentLanguage::Czech, [$line], true);
 
         return $this->scoped(static fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue($input));

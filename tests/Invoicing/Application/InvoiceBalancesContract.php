@@ -45,7 +45,7 @@ abstract class InvoiceBalancesContract extends InvoiceTestCase
         self::assertEqualsCanonicalizing([$first->id(), $second->id()], array_keys($outstanding));
         self::assertSame(121000, $outstanding[$first->id()]->minor());
         self::assertSame(30300, $outstanding[$second->id()]->minor());
-        self::assertSame(Currency::CZK, $outstanding[$first->id()]->currency());
+        self::assertSame(Currency::of('CZK'), $outstanding[$first->id()]->currency());
     }
 
     public function testNoIdsNoAnswers(): void
@@ -65,7 +65,7 @@ abstract class InvoiceBalancesContract extends InvoiceTestCase
         self::assertSame(121000, $outstanding[$open->id()]->minor());
         self::assertArrayHasKey($settled->id(), $outstanding);
         self::assertSame(0, $outstanding[$settled->id()]->minor());
-        self::assertSame(Currency::CZK, $outstanding[$settled->id()]->currency());
+        self::assertSame(Currency::of('CZK'), $outstanding[$settled->id()]->currency());
     }
 
     public function testATrashedInvoiceIsZero(): void
@@ -80,7 +80,7 @@ abstract class InvoiceBalancesContract extends InvoiceTestCase
         self::assertSame(121000, $outstanding[$open->id()]->minor());
         self::assertArrayHasKey($trashed->id(), $outstanding);
         self::assertSame(0, $outstanding[$trashed->id()]->minor());
-        self::assertSame(Currency::CZK, $outstanding[$trashed->id()]->currency());
+        self::assertSame(Currency::of('CZK'), $outstanding[$trashed->id()]->currency());
     }
 
     public function testOneQueryForManyIds(): void

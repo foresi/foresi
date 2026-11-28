@@ -30,7 +30,7 @@ final class BankLevyPaymentsTest extends TestCase
     public function testAMovementPaysTheFirstAuthorityItMeetsAndADocumentNone(): void
     {
         $day = new \DateTimeImmutable('2026-10-30');
-        $money = Money::ofMinor(500_500, Currency::CZK);
+        $money = Money::ofMinor(500_500, Currency::of('CZK'));
         $bank = new FakeActualSource('banking.movements', [
             new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm1'), FlowDirection::Out, $money, $day, counterpartyAccount: '123/0100', variableSymbol: '42'),
             new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm2'), FlowDirection::In, $money, $day, counterpartyAccount: '777/0300', variableSymbol: '9'),
@@ -53,7 +53,7 @@ final class BankLevyPaymentsTest extends TestCase
     public function testAFailingBankSourceIsSaidAndGivesNoPayment(): void
     {
         $day = new \DateTimeImmutable('2026-10-30');
-        $movement = new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm1'), FlowDirection::Out, Money::ofMinor(500_500, Currency::CZK), $day, counterpartyAccount: '123/0100', variableSymbol: '42');
+        $movement = new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm1'), FlowDirection::Out, Money::ofMinor(500_500, Currency::of('CZK')), $day, counterpartyAccount: '123/0100', variableSymbol: '42');
         $finder = new RuleMovements([new FakeActualSource('banking.movements', [$movement], fails: true)]);
 
         $found = new BankLevyPayments($finder)->paymentsBetween($day, $day, [new AuthorityAccountView('social', '123/0100', '42')]);

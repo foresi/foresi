@@ -70,7 +70,7 @@ final class DealLineInvoicedRateTest extends SalesTestCase
         $this->em->flush();
         $project = $container->get(ManageProjects::class)->create('DUD', $this->client->id());
         $time = $container->get(ManageTime::class);
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($project->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($project->id(), Money::of('1000', Currency::of('CZK')));
         $deal = $this->deal('DUD');
         $line = $this->lines()->add(new AddDealLineInput($deal->id(), name: 'DUD development', unitPrice: '1200.00', billingKind: 'time_based', projectId: $project->id()));
         $entry = $time->log($project->id(), null, new \DateTimeImmutable('2026-11-16'), 60, billable: true)->id();
@@ -105,8 +105,8 @@ final class DealLineInvoicedRateTest extends SalesTestCase
         $this->em->clear();
         $entry = $this->em->find(TimeEntry::class, $entryId) ?? throw new \LogicException('Entry.');
         self::assertSame($invoiceId, $entry->invoiceId());
-        self::assertTrue(Money::of($rate, Currency::CZK)->equals($entry->invoicedRate() ?? Money::ofMinor(0, Currency::EUR)));
+        self::assertTrue(Money::of($rate, Currency::of('CZK'))->equals($entry->invoicedRate() ?? Money::ofMinor(0, Currency::of('EUR'))));
         $row = $this->em->getRepository(InvoiceLine::class)->findOneBy(['invoice' => $invoiceId]) ?? throw new \LogicException('Line.');
-        self::assertTrue(Money::of($rate, Currency::CZK)->equals($row->price()));
+        self::assertTrue(Money::of($rate, Currency::of('CZK'))->equals($row->price()));
     }
 }

@@ -48,7 +48,7 @@ class Payment implements Audited
     #[ORM\Column(name: 'amount_minor', type: 'bigint')]
     private int $amountMinor;
 
-    #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
     private Currency $currency;
 
     #[ORM\Column(name: 'cancelled_at', type: 'datetime_immutable', nullable: true)]

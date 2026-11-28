@@ -34,7 +34,7 @@ final class VatPeriodsTest extends VatTestCase
         self::assertSame(['2026-11', '2026-11-12', '2026-11-30', '2026-12-28', '2027-01-27'], $this->row($first));
         self::assertSame(VatPeriodLength::Month, $first->period->length);
         self::assertSame([0, 0, 0], [$first->output->minor(), $first->input->minor(), $first->result->minor()]);
-        self::assertSame('CZK', $first->result->currency()->value);
+        self::assertSame('CZK', $first->result->currency()->code());
         // Every month to the twelfth after this one, November 2027.
         self::assertCount(13, $list->periods);
         self::assertSame(['2027-11', '2027-11-01', '2027-11-30', '2027-12-27', '2028-01-26'], $this->row($list->periods[12]));

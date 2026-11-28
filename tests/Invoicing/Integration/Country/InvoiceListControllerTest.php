@@ -295,7 +295,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['Number', 'Tax point', 'VAT', 'Variable symbol'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
         self::assertSame(['20260002', '20260001'], $this->numbers($crawler));
         $cells = $crawler->filter('main tbody tr')->first()->filter('td')->each(static fn (Crawler $td): string => trim($td->text()));
-        self::assertSame(['2026-11-02', "63.00\u{a0}Kč", '222'], \array_slice($cells, 1, 3));
+        self::assertSame(['2026-11-02', "63.00\u{a0}CZK", '222'], \array_slice($cells, 1, 3));
         self::assertSelectorExists('th[aria-sort="descending"] a[href*="sort=vat"]');
         self::assertSame(['20260001', '20260002'], $this->numbers($this->client->request('GET', '/invoices?cols=number,vat&sort=vat')));
     }
@@ -346,7 +346,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(1, $page->filter('[data-invoice-lines-stacked] li'), 'a phone stacks the same line');
         // Whom it bills and how much is due by when lead, the status next to the amount.
         self::assertSame('Example Customer a.s.', $page->filter('[data-invoice-summary] [data-invoice-customer]')->text());
-        self::assertSame($this->nbsp('1,210.00 Kč'), $page->filter('[data-invoice-summary] [data-invoice-payable]')->text());
+        self::assertSame($this->nbsp('1,210.00 CZK'), $page->filter('[data-invoice-summary] [data-invoice-payable]')->text());
         self::assertCount(1, $page->filter('[data-invoice-summary] [data-invoice-status]'));
         self::assertStringContainsString('2026-12-01', $page->filter('[data-invoice-summary]')->text());
         // The dates and symbols as label and value.
@@ -381,7 +381,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertStringContainsString('Example Customer a.s.', $row->text());
         self::assertStringContainsString('2026-11-01', $row->text());
         self::assertStringContainsString('2026-12-01', $row->text());
-        self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $row->text());
+        self::assertStringContainsString($this->nbsp('1,210.00 CZK'), $row->text());
     }
 
     public function testEachStateShowsItsBadge(): void
@@ -408,14 +408,14 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([
             $overpaid->number() => 'Overpaid',
             $paid->number() => 'Paid',
-            $partlyOverdue->number() => 'Overdue · 210.00 Kč left to pay',
-            $partly->number() => 'Partly paid · 1,000.00 Kč left to pay',
+            $partlyOverdue->number() => 'Overdue · 210.00 CZK left to pay',
+            $partly->number() => 'Partly paid · 1,000.00 CZK left to pay',
             $overdue->number() => 'Overdue',
             $issued->number() => 'Issued',
         ], array_map($this->nbspless(...), $badges));
         $partlyRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $partly->number()));
-        self::assertSame('1,000.00 Kč left to pay', $this->nbspless((string) $partlyRow->filter('td')->eq(5)->filter('span')->first()->attr('title')));
-        self::assertStringContainsString('Partly paid · 1,000.00 Kč left to pay', $this->nbspless($partlyRow->filter('[data-row-secondary]')->text()));
+        self::assertSame('1,000.00 CZK left to pay', $this->nbspless((string) $partlyRow->filter('td')->eq(5)->filter('span')->first()->attr('title')));
+        self::assertStringContainsString('Partly paid · 1,000.00 CZK left to pay', $this->nbspless($partlyRow->filter('[data-row-secondary]')->text()));
     }
 
     public function testThePaidTabListsPaidAndOverpaidOnly(): void
@@ -1232,7 +1232,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $sums = $this->sumsOf(new InvoiceFilter('all', '', '-issueDate', 1));
         self::assertSame([2, 421250, 79763, 501013], [$sums->count, $sums->base->minor(), $sums->vat->minor(), $sums->total->minor()]);
-        self::assertSame(Currency::CZK, $sums->total->currency());
+        self::assertSame(Currency::of('CZK'), $sums->total->currency());
         self::assertSame([
             ['standard', '21.00', 351250, 73763, 425013],
             ['standard', '12.00', 50000, 6000, 56000],
@@ -1843,7 +1843,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
     private function line(string $price, ?VatRateKind $kind = VatRateKind::Base, TaxTreatment $treatment = TaxTreatment::Standard): LineInput
     {
-        return new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, $treatment, $kind, null, Percent::fromString('0'));
+        return new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, $treatment, $kind, null, Percent::fromString('0'));
     }
 
     /**
@@ -1957,7 +1957,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
     private function input(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = ''): InvoiceInput
     {
-        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return new InvoiceInput(
             $this->series->id(),
@@ -1984,7 +1984,7 @@ final class InvoiceListControllerTest extends WebTestCase
     private function pay(Invoice $invoice, string $amount): void
     {
         $this->scoped(function () use ($invoice, $amount): void {
-            $money = Money::of($amount, Currency::CZK);
+            $money = Money::of($amount, Currency::of('CZK'));
             self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
         });
     }

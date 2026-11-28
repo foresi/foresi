@@ -138,7 +138,7 @@ final class QrPlatbaTest extends TestCase
 
     public function testNoCodeInForeignCurrency(): void
     {
-        self::assertNull($this->qr(currency: Currency::EUR));
+        self::assertNull($this->qr(currency: Currency::of('EUR')));
     }
 
     public function testReverseChargeSetsTp1AndNtb(): void
@@ -239,11 +239,12 @@ final class QrPlatbaTest extends TestCase
         string $order = '',
         string $customerNumber = '87654321',
         PaymentMethod $method = PaymentMethod::BankTransfer,
-        Currency $currency = Currency::CZK,
+        ?Currency $currency = null,
         VatRegime $regime = VatRegime::Payer,
         ?array $summaries = null,
         ?string $leftToPay = null,
     ): ?string {
+        $currency ??= Currency::of('CZK');
         $money = fn (string $amount): Money => Money::of($amount, $currency);
         $summaries ??= [new RateSummary(TaxTreatment::Standard, Percent::fromString('21.00'), $money('3100.00'), $money('651.00'), $money('3751.00'))];
 
@@ -288,6 +289,6 @@ final class QrPlatbaTest extends TestCase
 
     private function money(string $amount): Money
     {
-        return Money::of($amount, Currency::CZK);
+        return Money::of($amount, Currency::of('CZK'));
     }
 }

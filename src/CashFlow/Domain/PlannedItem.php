@@ -51,7 +51,7 @@ class PlannedItem implements Audited
     #[ORM\Column(name: 'amount_minor', type: 'bigint')]
     private int $amountMinor;
 
-    #[ORM\Column(type: 'string', length: 3, enumType: Currency::class)]
+    #[ORM\Column(type: 'currency', length: 3)]
     private Currency $currency;
 
     #[ORM\ManyToOne(targetEntity: Party::class)]

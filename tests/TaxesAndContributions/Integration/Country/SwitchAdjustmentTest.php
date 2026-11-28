@@ -149,8 +149,8 @@ final class SwitchAdjustmentTest extends TaxesTestCase
         $rates->publish('2026-12-31', '25.000', '15.000');
         self::getContainer()->set(RateSource::class, $rates);
         $container = self::getContainer();
-        $open = static fn (Currency $currency, int $gross, int $net): OpenAmount => new OpenAmount('invoicing.payments', new Subject('invoice', $currency->value, null), AmountKind::Income, Money::ofMinor($gross, $currency), Money::ofMinor($net, $currency), Money::ofMinor($gross - $net, $currency));
-        $source = new DatedAmountSource('invoicing.payments', [], ['2026-12-31' => [$open(Currency::USD, 10_00, 10_00), $open(Currency::EUR, 121_00, 100_00)]]);
+        $open = static fn (Currency $currency, int $gross, int $net): OpenAmount => new OpenAmount('invoicing.payments', new Subject('invoice', $currency->code(), null), AmountKind::Income, Money::ofMinor($gross, $currency), Money::ofMinor($net, $currency), Money::ofMinor($gross - $net, $currency));
+        $source = new DatedAmountSource('invoicing.payments', [], ['2026-12-31' => [$open(Currency::of('USD'), 10_00, 10_00), $open(Currency::of('EUR'), 121_00, 100_00)]]);
 
         $view = new Amounts($container->get(ProfileReads::class), [$source], $container->get(ExchangeRates::class), $container->get(InstanceClock::class), new NullLogger())
             ->openAt(new \DateTimeImmutable('2026-12-31 23:30:00', new \DateTimeZone('UTC')), $container->get(ProfileReads::class)->profile());
@@ -168,8 +168,8 @@ final class SwitchAdjustmentTest extends TaxesTestCase
     private function sources(): array
     {
         $zone = new \DateTimeZone('Europe/Prague');
-        $paid = static fn (string $source, AmountKind $kind, int $czk): ActualAmount => new ActualAmount($source, new Subject('invoice', $source, null), $kind, new \DateTimeImmutable('2026-06-10', $zone), Money::ofMinor($czk * 100, Currency::CZK), Money::ofMinor($czk * 100, Currency::CZK), Money::ofMinor(0, Currency::CZK), null, false);
-        $open = static fn (string $source, AmountKind $kind, int $gross, int $net): OpenAmount => new OpenAmount($source, new Subject('document', $source.'-open', null), $kind, Money::ofMinor($gross * 100, Currency::CZK), Money::ofMinor($net * 100, Currency::CZK), Money::ofMinor(($gross - $net) * 100, Currency::CZK));
+        $paid = static fn (string $source, AmountKind $kind, int $czk): ActualAmount => new ActualAmount($source, new Subject('invoice', $source, null), $kind, new \DateTimeImmutable('2026-06-10', $zone), Money::ofMinor($czk * 100, Currency::of('CZK')), Money::ofMinor($czk * 100, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')), null, false);
+        $open = static fn (string $source, AmountKind $kind, int $gross, int $net): OpenAmount => new OpenAmount($source, new Subject('document', $source.'-open', null), $kind, Money::ofMinor($gross * 100, Currency::of('CZK')), Money::ofMinor($net * 100, Currency::of('CZK')), Money::ofMinor(($gross - $net) * 100, Currency::of('CZK')));
 
         return [
             new DatedAmountSource('invoicing.payments', [$paid('invoicing.payments', AmountKind::Income, 500_000)], ['2026-12-31' => [$open('invoicing.payments', AmountKind::Income, 121_000, 100_000)]]),

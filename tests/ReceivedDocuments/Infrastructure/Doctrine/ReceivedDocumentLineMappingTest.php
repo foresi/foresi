@@ -118,11 +118,11 @@ final class ReceivedDocumentLineMappingTest extends PurchasingTestCase
      */
     private function stored(ReceivedDocument $document): array
     {
-        return array_map(static fn (ReceivedDocumentLine $line): array => [$line->position(), $line->text(), $line->base()->minor(), $line->base()->currency()->value, $line->vatRate()], $document->lines());
+        return array_map(static fn (ReceivedDocumentLine $line): array => [$line->position(), $line->text(), $line->base()->minor(), $line->base()->currency()->code(), $line->vatRate()], $document->lines());
     }
 
     private function line(string $text, int $base, ?string $id = null): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), '21', $id);
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::of('CZK')), '21', $id);
     }
 }

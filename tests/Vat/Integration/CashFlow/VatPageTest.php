@@ -100,14 +100,14 @@ final class VatPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('November 2026', $crawler->filter('dialog#sheet-page')->text());
         self::assertSame('Paid', $this->text($crawler, '[data-vat-sheet-state]'));
-        self::assertSame('Paid 1,500 Kč, expected 1,890 Kč, difference −390 Kč. The period is paid; the difference is for information.', $this->text($crawler, '[data-vat-difference]'));
-        self::assertStringContainsString('Paid · Account and variable symbol 1,500 Kč', $this->text($crawler, '[data-vat-payment="m1"]'));
+        self::assertSame('Paid 1,500 CZK, expected 1,890 CZK, difference −390 CZK. The period is paid; the difference is for information.', $this->text($crawler, '[data-vat-difference]'));
+        self::assertStringContainsString('Paid · Account and variable symbol 1,500 CZK', $this->text($crawler, '[data-vat-payment="m1"]'));
         self::assertSame('/vat/payments/m1/move?back=2026-11', $crawler->filter('[data-vat-payment-move]')->attr('href'));
         self::assertCount(1, $crawler->filter('[data-vat-payment-unpair]'));
         self::assertCount(0, $crawler->filter('[data-vat-payment-reset], [data-vat-settle], [data-vat-reopen]'));
         self::assertSame(['documents', 'schedules', 'plans'], $crawler->filter('[data-vat-part]')->each(static fn (Crawler $row): string => (string) $row->attr('data-vat-part')));
         self::assertCount(0, $crawler->filter('[data-vat-part-empty]'));
-        self::assertSame('Plans 0 Kč 0 Kč', $this->text($crawler, '[data-vat-part="plans"]'));
+        self::assertSame('Plans 0 CZK 0 CZK', $this->text($crawler, '[data-vat-part="plans"]'));
         self::assertCount(2, $crawler->filter('[data-vat-document]'));
         self::assertSame(['output', 'input', 'result'], $crawler->filter('[data-vat-step]')->each(static fn (Crawler $row): string => (string) $row->attr('data-vat-step')));
         self::assertStringNotContainsStringIgnoringCase('overdue', (string) $this->client->getResponse()->getContent());
@@ -133,7 +133,7 @@ final class VatPageTest extends WebTestCase
         $this->signedIn();
 
         $crawler = $this->client->request('GET', '/vat?year=2026');
-        self::assertStringContainsString('Dec 27, 2026 Paid · Other variable symbol 1,890 Kč', $this->text($crawler, '[data-vat-unassigned-payment="m2"]'));
+        self::assertStringContainsString('Dec 27, 2026 Paid · Other variable symbol 1,890 CZK', $this->text($crawler, '[data-vat-unassigned-payment="m2"]'));
         self::assertSame('/vat/payments/m2/move', $crawler->filter('[data-vat-place]')->attr('href'));
 
         $crawler = $this->client->request('GET', '/vat/payments/m2/move', server: [$this->dialogHeader() => '1']);
@@ -159,7 +159,7 @@ final class VatPageTest extends WebTestCase
         self::assertSame('2026-11', $dialog->filter('select#period option[selected]')->attr('value'));
         self::assertSame('2026-11', $dialog->filter('input[name="back"]')->attr('value'));
         self::assertCount(1, $crawler->filter('[data-vat-payment-reset]'));
-        self::assertSame('Paid 1,890 Kč, as expected.', $this->text($crawler, '[data-vat-difference]'));
+        self::assertSame('Paid 1,890 CZK, as expected.', $this->text($crawler, '[data-vat-difference]'));
 
         $this->client->request('POST', '/vat/payments/m2/move', ['_token' => $this->token($crawler), 'period' => 'none']);
         self::assertResponseRedirects('/vat');
@@ -175,7 +175,7 @@ final class VatPageTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/vat/periods/2026-12/return-amount', server: [$this->dialogHeader() => '1']);
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('The amount of the filed return replaces the estimate of 3,000 Kč as what the period expects.', $this->plain($crawler->text()));
+        self::assertStringContainsString('The amount of the filed return replaces the estimate of 3,000 CZK as what the period expects.', $this->plain($crawler->text()));
         self::assertSame('refund', $crawler->filter('select#direction option[selected]')->attr('value'));
 
         $this->client->request('POST', '/vat/periods/2026-12/return-amount', ['_token' => $this->token($crawler), 'amount' => 'lots', 'direction' => 'refund']);
@@ -185,13 +185,13 @@ final class VatPageTest extends WebTestCase
         $this->client->request('POST', '/vat/periods/2026-12/return-amount', ['_token' => $this->token($crawler), 'amount' => '2 800', 'direction' => 'refund']);
         self::assertResponseRedirects('/vat/periods/2026-12');
         $crawler = $this->client->followRedirect();
-        self::assertSame('Amount from the return: 2,800 Kč, the estimate was 3,000 Kč.', $this->text($crawler, '[data-vat-return-amount-text]'));
+        self::assertSame('Amount from the return: 2,800 CZK, the estimate was 3,000 CZK.', $this->text($crawler, '[data-vat-return-amount-text]'));
         self::assertStringContainsString('The amount from the return is saved.', $this->plain($crawler->text()));
         self::assertStringContainsString('Refund 2,800', $this->text($crawler, '[data-vat-summary]'));
         self::assertSame('Amount from the return', $this->text($crawler, '[data-vat-sheet-state]'));
 
         $this->client->request('POST', '/vat/periods/2026-12/return-amount', ['_token' => $this->token($crawler), 'amount' => '-2 700', 'direction' => 'refund']);
-        self::assertSame('Amount from the return: 2,700 Kč, the estimate was 3,000 Kč.', $this->text($this->client->followRedirect(), '[data-vat-return-amount-text]'));
+        self::assertSame('Amount from the return: 2,700 CZK, the estimate was 3,000 CZK.', $this->text($this->client->followRedirect(), '[data-vat-return-amount-text]'));
 
         $this->client->request('POST', '/vat/periods/2026-11/return-amount', ['_token' => $this->token($crawler), 'amount' => '1500', 'direction' => 'payable']);
         self::assertResponseRedirects('/vat/periods/2026-11');

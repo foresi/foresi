@@ -40,14 +40,14 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertIsString($id);
         self::assertResponseHeaderSame('Location', '/api/v1/received-documents/'.$id);
         self::assertSame('recorded', $this->at('data', 'state'));
-        self::assertSame(['amount_minor' => 121_000, 'currency' => 'CZK'], $this->at('data', 'total'));
-        self::assertSame(['amount_minor' => 121_000, 'currency' => 'CZK'], $this->at('data', 'remaining'));
+        self::assertSame(['amount_minor' => 121_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'total'));
+        self::assertSame(['amount_minor' => 121_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'remaining'));
         self::assertFalse($this->at('data', 'has_original_file'));
         self::assertSame('21', $this->at('data', 'vat_recap', 0, 'rate'));
         self::assertSame($this->customerId, $this->at('data', 'supplier', 'id'));
         self::assertSame('2026-11-03', $this->at('data', 'received_date'));
-        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK'], $this->at('data', 'vat_recap', 0, 'base'));
-        self::assertSame(['amount_minor' => 21_000, 'currency' => 'CZK'], $this->at('data', 'vat_recap', 0, 'vat'));
+        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'vat_recap', 0, 'base'));
+        self::assertSame(['amount_minor' => 21_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'vat_recap', 0, 'vat'));
         $created = $this->json()['data'];
 
         $this->get('/api/v1/received-documents/'.$id, secret: $this->writer);
@@ -63,8 +63,8 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertSame([[
             'key' => 'rate:21',
             'text' => 'Tax invoice',
-            'base' => ['amount_minor' => 100_000, 'currency' => 'CZK'],
-            'base_czk' => ['amount_minor' => 100_000, 'currency' => 'CZK'],
+            'base' => ['amount_minor' => 100_000, 'currency' => 'CZK', 'minor_units' => 2],
+            'base_czk' => ['amount_minor' => 100_000, 'currency' => 'CZK', 'minor_units' => 2],
             'vat_rate' => '21',
             'implicit' => true,
         ]], $this->at('data', 'lines'));
@@ -84,7 +84,7 @@ final class ReceivedDocumentApiTest extends ApiTestCase
             [$this->at('data', 'lines', 0, 'text'), $this->at('data', 'lines', 0, 'base', 'amount_minor'), $this->at('data', 'lines', 0, 'implicit')],
             [$this->at('data', 'lines', 1, 'text'), $this->at('data', 'lines', 1, 'base', 'amount_minor'), $this->at('data', 'lines', 1, 'implicit')],
         ]);
-        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK'], $this->at('data', 'base'), 'The lines leave the recap as it is.');
+        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'base'), 'The lines leave the recap as it is.');
 
         $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => []]);
         self::assertResponseIsSuccessful();
@@ -227,8 +227,8 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/received-documents', ['currency' => 'EUR', 'exchange_rate' => '25', 'total' => '121.00', 'vat_recap' => ['21:100.00:21.00:530.00']] + $this->fields());
 
         self::assertResponseStatusCodeSame(201);
-        self::assertSame(['amount_minor' => 10_000, 'currency' => 'EUR'], $this->at('data', 'vat_recap', 0, 'base'));
-        self::assertSame(['amount_minor' => 53_000, 'currency' => 'CZK'], $this->at('data', 'vat_recap', 0, 'vat_czk'));
+        self::assertSame(['amount_minor' => 10_000, 'currency' => 'EUR', 'minor_units' => 2], $this->at('data', 'vat_recap', 0, 'base'));
+        self::assertSame(['amount_minor' => 53_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'vat_recap', 0, 'vat_czk'));
     }
 
     public function testTheSchemaTellsTheLengthsOfTheShortFields(): void
@@ -240,7 +240,7 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $currency = $properties['currency'];
         self::assertIsArray($symbol);
         self::assertIsArray($currency);
-        self::assertSame([10, 3], [$symbol['maxLength'] ?? null, $currency['maxLength'] ?? null]);
+        self::assertSame([10, null, '^[A-Z]{3}$'], [$symbol['maxLength'] ?? null, $currency['maxLength'] ?? null, $currency['pattern'] ?? null]);
     }
 
     public function testPaymentsAndMarkAsPaidOverRestAndTheUnpaidList(): void
@@ -250,7 +250,7 @@ final class ReceivedDocumentApiTest extends ApiTestCase
 
         $this->send('POST', '/api/v1/received-documents/'.$paid.'/payments', ['paid_on' => '2026-11-12', 'amount' => '210.00', 'method' => 'card']);
         self::assertResponseStatusCodeSame(201);
-        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK'], $this->at('data', 'remaining'));
+        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'remaining'));
         $this->send('POST', '/api/v1/received-documents/'.$paid.'/payments', ['paid_on' => '2026-11-12', 'amount' => '1000.01']);
         $this->assertProblem(409, 'overpaid');
 

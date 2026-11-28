@@ -36,19 +36,19 @@ final class TypedAmountTest extends TestCase
     #[DataProvider('amounts')]
     public function testReadsAnAmountAsPeopleTypeIt(string $typed, string $locale, int|false|null $minor): void
     {
-        $read = TypedAmount::read($typed, Currency::EUR, $locale);
+        $read = TypedAmount::read($typed, Currency::of('EUR'), $locale);
 
         self::assertSame($minor, $read instanceof Money ? $read->minor() : $read);
         if ($read instanceof Money) {
-            self::assertSame(Currency::EUR, $read->currency());
+            self::assertSame(Currency::of('EUR'), $read->currency());
         }
     }
 
     public function testWritesAnAmountForAFieldInTheUsersLanguage(): void
     {
-        self::assertSame('1500,50', TypedAmount::field(Money::ofMinor(150050, Currency::CZK), 'cs'));
-        self::assertSame('1500.05', TypedAmount::field(Money::ofMinor(150005, Currency::USD), 'en'));
-        self::assertSame('0,00', TypedAmount::field(Money::ofMinor(0, Currency::CZK), 'cs'));
+        self::assertSame('1500,50', TypedAmount::field(Money::ofMinor(150050, Currency::of('CZK')), 'cs'));
+        self::assertSame('1500.05', TypedAmount::field(Money::ofMinor(150005, Currency::of('USD')), 'en'));
+        self::assertSame('0,00', TypedAmount::field(Money::ofMinor(0, Currency::of('CZK')), 'cs'));
         self::assertSame('', TypedAmount::field(null, 'cs'));
     }
 }

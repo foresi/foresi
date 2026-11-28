@@ -67,7 +67,7 @@ final class ShareSplitterTest extends TestCase
     public function testFixedAmountOnALineCapsAndGivesTheRest(): void
     {
         $allocation = new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('800', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('800', Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]);
 
@@ -78,9 +78,9 @@ final class ShareSplitterTest extends TestCase
     public function testFixedAmountsAreTakenInOrderEachCappedAtWhatIsLeft(): void
     {
         $allocation = new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('400', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('400', Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
-            new AllocationShare(Recipient::client(self::CLIENT_B), null, Money::of('400', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_B), null, Money::of('400', Currency::of('CZK'))),
         ]);
 
         self::assertSame([self::CLIENT_A.'=40000', 'own=0', self::CLIENT_B.'=25000'], $this->split($allocation, '650'));
@@ -95,7 +95,7 @@ final class ShareSplitterTest extends TestCase
             new AllocationShare(Recipient::own(), '20'),
         ]);
         $fixed = new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('800', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('800', Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]);
         $whole = new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own())]);
@@ -115,8 +115,8 @@ final class ShareSplitterTest extends TestCase
         ]);
 
         foreach (['0.01', '0.07', '1234.56', '99999999.99', '-0.03'] as $base) {
-            $sum = array_sum(array_map(static fn (array $part): int => $part[1]->minor(), new ShareSplitter()->split($allocation, Money::of($base, Currency::CZK))));
-            self::assertSame(Money::of($base, Currency::CZK)->minor(), $sum, $base);
+            $sum = array_sum(array_map(static fn (array $part): int => $part[1]->minor(), new ShareSplitter()->split($allocation, Money::of($base, Currency::of('CZK')))));
+            self::assertSame(Money::of($base, Currency::of('CZK'))->minor(), $sum, $base);
         }
     }
 
@@ -127,7 +127,7 @@ final class ShareSplitterTest extends TestCase
     {
         return array_map(
             static fn (array $part): string => $part[0]->toString().'='.$part[1]->minor(),
-            new ShareSplitter()->split($allocation, Money::of($base, Currency::CZK)),
+            new ShareSplitter()->split($allocation, Money::of($base, Currency::of('CZK'))),
         );
     }
 }

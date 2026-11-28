@@ -102,8 +102,8 @@ final class ReceivedDocumentCostsTest extends PurchasingTestCase
     {
         $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: '2026-11-24'))->document->id();
         $this->editing()->edit($id, $this->input(issue: '2026-11-24', taxPoint: '2026-11-24', lines: [
-            new ReceivedDocumentLineInput('Hosting', Money::ofMinor(70_000, Currency::CZK), '21'),
-            new ReceivedDocumentLineInput('Domain', Money::ofMinor(30_000, Currency::CZK), '21'),
+            new ReceivedDocumentLineInput('Hosting', Money::ofMinor(70_000, Currency::of('CZK')), '21'),
+            new ReceivedDocumentLineInput('Domain', Money::ofMinor(30_000, Currency::of('CZK')), '21'),
         ]));
 
         $shares = $this->shares();
@@ -115,7 +115,7 @@ final class ReceivedDocumentCostsTest extends PurchasingTestCase
 
     public function testAForeignDocumentWithoutARateIsAKnownGap(): void
     {
-        $id = $this->recording()->create($this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::EUR, base: 10_000, rate: ExchangeRate::of('25')))->document->id();
+        $id = $this->recording()->create($this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::of('EUR'), base: 10_000, rate: ExchangeRate::of('25')))->document->id();
         self::assertSame(['rate:21 - 250000 unassigned 2026-10-01'], $this->shares());
 
         // The rate is gone, as in a document recorded before it was published.

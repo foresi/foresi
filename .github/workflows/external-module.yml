@@ -92,13 +92,13 @@ jobs:
       - name: Module API
         run: |
           bin/console app:modules:check
-          # Module API 3.0 would leave every module behind, acme/fleet too: the check must fail.
-          if bin/console app:modules:check --api=3.0 > api-3.0.log 2>&1; then
-            cat api-3.0.log
-            echo "app:modules:check --api=3.0 passed, but no installed module is written for 3.0."
+          # Module API 4.0 would leave every module behind, acme/fleet too: the check must fail.
+          if bin/console app:modules:check --api=4.0 > api-4.0.log 2>&1; then
+            cat api-4.0.log
+            echo "app:modules:check --api=4.0 passed, but no installed module is written for 4.0."
             exit 1
           fi
-          grep -F 'acme-fleet (acme/fleet) requires foresi/module-api ^2.0.' api-3.0.log
+          grep -F 'acme-fleet (acme/fleet) requires foresi/module-api ^3.0.' api-4.0.log
 
       - name: Container and routes
         run: |

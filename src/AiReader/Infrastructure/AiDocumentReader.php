@@ -11,7 +11,6 @@ namespace Foresi\AiReader\Infrastructure;
 use Foresi\AiReader\Application\AiProvider;
 use Foresi\AiReader\Application\AiReaderSettings;
 use Foresi\AiReader\Application\ExtractionSchema;
-use Foresi\AiReader\Application\Iso4217;
 use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
 use Foresi\ReceivedDocuments\Contract\Reading\FallbackReader;
 use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
@@ -19,6 +18,7 @@ use Foresi\ReceivedDocuments\Contract\Reading\ReadField;
 use Foresi\ReceivedDocuments\Contract\Reading\ReadFormat;
 use Foresi\ReceivedDocuments\Contract\Reading\Reading;
 use Foresi\ReceivedDocuments\Contract\Reading\ReadValue;
+use Foresi\Shared\Domain\Currencies;
 use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
 
 /**
@@ -71,6 +71,8 @@ final readonly class AiDocumentReader implements FallbackReader
             throw new ReaderFailed('invalid_answer');
         }
 
+        $currency = $this->currency($answer['currency'] ?? null);
+        $minorUnits = ReadFormat::minorUnits($currency);
         $values = [
             $this->value(ReadField::Kind, $this->kind($answer['kind'] ?? null)),
             $this->value(ReadField::SupplierName, $this->text($answer['supplier_name'] ?? null, 255)),
@@ -82,9 +84,9 @@ final readonly class AiDocumentReader implements FallbackReader
             $this->value(ReadField::IssueDate, $this->date($answer['issue_date'] ?? null)),
             $this->value(ReadField::TaxPointDate, $this->date($answer['tax_point_date'] ?? null)),
             $this->value(ReadField::DueDate, $this->date($answer['due_date'] ?? null)),
-            $this->value(ReadField::Currency, $this->currency($answer['currency'] ?? null)),
-            $this->value(ReadField::Total, $this->amount($answer['total'] ?? null)),
-            $this->value(ReadField::VatRecap, $this->recap($answer['vat_recap'] ?? null)),
+            $this->value(ReadField::Currency, $currency),
+            $this->value(ReadField::Total, $this->amount($answer['total'] ?? null, $minorUnits)),
+            $this->value(ReadField::VatRecap, $this->recap($answer['vat_recap'] ?? null, $minorUnits)),
             $this->value(ReadField::BankAccount, $this->bankAccount($answer['bank_account'] ?? null)),
         ];
         $reading = new Reading(array_filter($values));
@@ -121,7 +123,7 @@ final readonly class AiDocumentReader implements FallbackReader
 
     private function currency(mixed $value): ?string
     {
-        return \is_string($value) && Iso4217::has($value) ? $value : null;
+        return \is_string($value) && Currencies::isKnown($value) ? $value : null;
     }
 
     private function date(mixed $value): ?string
@@ -129,9 +131,9 @@ final readonly class AiDocumentReader implements FallbackReader
         return \is_string($value) && 1 === preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value) ? ReadFormat::date($value) : null;
     }
 
-    private function amount(mixed $value): ?int
+    private function amount(mixed $value, int $minorUnits): ?int
     {
-        return \is_string($value) ? ReadFormat::minor($value) : null;
+        return \is_string($value) ? ReadFormat::minor($value, $minorUnits) : null;
     }
 
     private function bankAccount(mixed $value): ?string
@@ -150,7 +152,7 @@ final readonly class AiDocumentReader implements FallbackReader
      *
      * @return list<array{rate: string, baseMinor: int, vatMinor: int}>|null
      */
-    private function recap(mixed $value): ?array
+    private function recap(mixed $value, int $minorUnits): ?array
     {
         if (!\is_array($value) || !array_is_list($value)) {
             return null;
@@ -161,8 +163,8 @@ final readonly class AiDocumentReader implements FallbackReader
                 return null;
             }
             $rate = ReadFormat::rate($entry['rate']);
-            $base = ReadFormat::minor($entry['base']);
-            $vat = ReadFormat::minor($entry['vat']);
+            $base = ReadFormat::minor($entry['base'], $minorUnits);
+            $vat = ReadFormat::minor($entry['vat'], $minorUnits);
             if (in_array(null, [$rate, $base, $vat], true)) {
                 return null;
             }

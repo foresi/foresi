@@ -38,7 +38,7 @@ final class BillingPlanScreenTest extends SalesScreenTestCase
         $table = $crawler->filter('[data-deal-billing] table');
         self::assertStringContainsString('No date', $table->text());
         self::assertStringContainsString('Planned', $table->text());
-        self::assertStringContainsString("10,000.00\u{a0}Kč", $table->text());
+        self::assertStringContainsString("10,000.00\u{a0}CZK", $table->text());
         self::assertCount(1, $crawler->filter('[data-billing-entry-new]'), 'Plan invoice is in the header of a won deal.');
 
         // The starting entry lowered to the rest, a deposit of 40 % planned beside it.

@@ -29,7 +29,6 @@ final readonly class ProductRules
     public const array BILLING_KINDS = ['one_off', 'recurring', 'time_based'];
     public const string HOUR = 'h';
     public const array UNITS = ['day', 'week', 'month', 'year'];
-    public const array CURRENCIES = ['CZK', 'EUR', 'USD'];
 
     /**
      * @throws CatalogRefused invalid
@@ -85,7 +84,7 @@ final readonly class ProductRules
         if (null === $draft->unitPrice) {
             return null;
         }
-        $currency = Currency::tryFrom($draft->currency) ?? throw CatalogRefused::invalid('currency_unknown', 'currency', 'The currency is one of '.implode(', ', self::CURRENCIES).'.');
+        $currency = Currency::tryFrom($draft->currency) ?? throw CatalogRefused::invalid('currency_unknown', 'currency', 'The currency is not an ISO 4217 code; GET /api/v1/currencies lists them.');
         $value = trim($draft->unitPrice);
         if (1 !== preg_match('/^-?[0-9]{1,13}(\.[0-9]{1,2})?\z/', $value)) {
             throw CatalogRefused::invalid('unit_price_invalid', 'unitPrice', 'A price is a decimal number with at most two decimals, such as "1500.00".');

@@ -70,19 +70,19 @@ final class DealValueTest extends TestCase
     public function testTotalsPerCurrencyNeverMixed(): void
     {
         $value = DealValues::of([
-            $this->line('Travel', '200.00', currency: Currency::EUR),
-            $this->line('Audit', '1000.00', currency: Currency::CZK),
-            $this->line('Report', '0.005', '1', currency: Currency::EUR),
-            $this->line('Workshop', '500.00', '2', currency: Currency::CZK),
-            $this->line('Support', '50.00', unit: RecurrenceUnit::Month, currency: Currency::EUR),
-            $this->line('Hosting', '100.00', unit: RecurrenceUnit::Month, currency: Currency::CZK),
+            $this->line('Travel', '200.00', currency: Currency::of('EUR')),
+            $this->line('Audit', '1000.00', currency: Currency::of('CZK')),
+            $this->line('Report', '0.005', '1', currency: Currency::of('EUR')),
+            $this->line('Workshop', '500.00', '2', currency: Currency::of('CZK')),
+            $this->line('Support', '50.00', unit: RecurrenceUnit::Month, currency: Currency::of('EUR')),
+            $this->line('Hosting', '100.00', unit: RecurrenceUnit::Month, currency: Currency::of('CZK')),
         ]);
 
         // One sum per currency, never a converted one, in the order of the codes.
         self::assertSame(['CZK' => 200_000, 'EUR' => 20_001], $this->minor($value->oneOff));
         self::assertSame(['CZK' => 10_000, 'EUR' => 5_000], $this->minor($value->monthly));
-        self::assertSame(Currency::EUR, $value->oneOff['EUR']->currency());
-        self::assertSame(Currency::CZK, $value->oneOff['CZK']->currency());
+        self::assertSame(Currency::of('EUR'), $value->oneOff['EUR']->currency());
+        self::assertSame(Currency::of('CZK'), $value->oneOff['CZK']->currency());
     }
 
     public function testEachLineIsRoundedHalfUpBeforeTheSum(): void
@@ -113,7 +113,7 @@ final class DealValueTest extends TestCase
         self::assertTrue($mixed->hasValue());
         self::assertSame(['CZK' => 1_000], $this->minor($mixed->oneOff));
 
-        $monthlyOnly = new DealValue([], ['CZK' => Money::ofMinor(1, Currency::CZK)], false);
+        $monthlyOnly = new DealValue([], ['CZK' => Money::ofMinor(1, Currency::of('CZK'))], false);
         self::assertTrue($monthlyOnly->hasValue());
     }
 
@@ -170,7 +170,7 @@ final class DealValueTest extends TestCase
             $name,
             'h',
             $hours,
-            Money::of($rate, Currency::CZK),
+            Money::of($rate, Currency::of('CZK')),
             BillingKind::TimeBased,
             null,
             null,
@@ -192,8 +192,9 @@ final class DealValueTest extends TestCase
      * A line with a price that may have more decimals than the currency, as an
      * exact price of a product never has: the value still rounds once per line.
      */
-    private function line(string $name, ?string $price, string $quantity = '1', ?RecurrenceUnit $unit = null, int $interval = 1, Currency $currency = Currency::CZK): DealLine
+    private function line(string $name, ?string $price, string $quantity = '1', ?RecurrenceUnit $unit = null, int $interval = 1, ?Currency $currency = null): DealLine
     {
+        $currency ??= Currency::of('CZK');
         $money = null === $price ? null : Money::of($price, $currency);
 
         return new DealLine('0192f1a4-0000-7000-8000-000000000001', 0, null, new DealLineTerms(

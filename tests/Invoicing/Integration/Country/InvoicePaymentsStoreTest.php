@@ -168,7 +168,7 @@ final class InvoicePaymentsStoreTest extends InvoiceTestCase
 
     private function czk(string $amount): Money
     {
-        return Money::of($amount, Currency::CZK);
+        return Money::of($amount, Currency::of('CZK'));
     }
 
     private function page(string $tab): InvoicePage

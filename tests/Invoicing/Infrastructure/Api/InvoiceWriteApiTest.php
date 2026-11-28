@@ -43,7 +43,7 @@ final class InvoiceWriteApiTest extends ApiTestCase
     {
         $texts = ['bank_account' => 34, 'variable_symbol' => 10, 'constant_symbol' => Invoice::MAX_CONSTANT_SYMBOL_LENGTH, 'order_number' => Invoice::MAX_ORDER_NUMBER_LENGTH, 'description' => 2000, 'text_before' => 2000, 'text_after' => 2000];
 
-        self::assertSame(['number' => Invoice::MAX_NUMBER_LENGTH, 'currency' => 3] + $texts, $this->lengths('invoices.create'));
+        self::assertSame(['number' => Invoice::MAX_NUMBER_LENGTH] + $texts, $this->lengths('invoices.create'));
         self::assertSame(['number' => Invoice::MAX_NUMBER_LENGTH] + $texts, $this->lengths('invoices.update'));
     }
 

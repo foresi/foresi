@@ -93,12 +93,12 @@ final class ProductRulesTest extends TestCase
         self::assertNull($rules->terms($this->draft())->unitPrice);
 
         $priced = $rules->terms($this->draft(unitPrice: '1500.50', currency: 'EUR'))->unitPrice;
-        self::assertSame([150050, 'EUR'], [$priced?->minor(), $priced?->currency()->value]);
+        self::assertSame([150050, 'EUR'], [$priced?->minor(), $priced?->currency()->code()]);
         self::assertSame(0, $rules->terms($this->draft(unitPrice: '0'))->unitPrice?->minor());
 
         $this->assertRefused('unit_price_invalid', 'unitPrice', $this->draft(unitPrice: '12,5'));
         $this->assertRefused('unit_price_negative', 'unitPrice', $this->draft(unitPrice: '-1'));
-        $this->assertRefused('currency_unknown', 'currency', $this->draft(unitPrice: '10', currency: 'GBP'));
+        $this->assertRefused('currency_unknown', 'currency', $this->draft(unitPrice: '10', currency: 'XYZ'));
     }
 
     public function testNameUnitAndDescriptionAreTrimmedAndBounded(): void
@@ -123,7 +123,7 @@ final class ProductRulesTest extends TestCase
 
     public function testRefusalsNameTheAllowedValues(): void
     {
-        self::assertSame('The currency is one of CZK, EUR, USD.', $this->refusal($this->draft(unitPrice: '10', currency: 'GBP'))->getMessage());
+        self::assertSame('The currency is not an ISO 4217 code; GET /api/v1/currencies lists them.', $this->refusal($this->draft(unitPrice: '10', currency: 'XYZ'))->getMessage());
         self::assertSame('The billing kind is one of one_off, recurring, time_based.', $this->refusal($this->draft(billingKind: 'weekly'))->getMessage());
         self::assertSame('The recurrence unit is one of day, week, month, year.', $this->refusal($this->draft(billingKind: 'recurring', recurrenceUnit: 'fortnight', interval: 1))->getMessage());
     }

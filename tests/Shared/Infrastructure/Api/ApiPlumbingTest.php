@@ -303,6 +303,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/vat/settings' => ['get' => '200', 'put' => '200'],
             ],
             'shared' => [
+                '/api/v1/currencies' => ['get' => '200'],
                 '/api/v1/fields' => ['get' => '200'],
                 '/api/v1/lists' => ['get' => '200'],
                 '/api/v1/views' => ['get' => '200', 'post' => '201'],

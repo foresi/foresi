@@ -31,7 +31,7 @@ final readonly class ShareSplitter
      */
     public function split(Allocation $allocation, Money $baseCzk): array
     {
-        if (Currency::CZK !== $baseCzk->currency()) {
+        if (Currency::of('CZK') !== $baseCzk->currency()) {
             throw new \InvalidArgumentException('The base of a share is in CZK.');
         }
         $minor = $baseCzk->minor();
@@ -46,7 +46,7 @@ final readonly class ShareSplitter
 
         $parts = [];
         foreach ($allocation->shares as $index => $share) {
-            $parts[] = [$share->recipient, Money::ofMinor($sign * $amounts[$index], Currency::CZK)];
+            $parts[] = [$share->recipient, Money::ofMinor($sign * $amounts[$index], Currency::of('CZK'))];
         }
 
         return $parts;

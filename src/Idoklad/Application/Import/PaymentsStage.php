@@ -131,16 +131,16 @@ final readonly class PaymentsStage implements ImportStage
         $method = $this->method($context, $payload['PaymentOptionId'] ?? null, $values);
         $amount = \is_array($payload['Prices'] ?? null) ? $payload['Prices']['PaymentAmount'] ?? null : null;
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $this->day($record));
-        if ($home->value !== $currency) {
+        if ($home->code() !== $currency) {
             $values['currency'] = \is_string($currency) ? $currency : null;
         }
         $reasons = [
             ...null === $invoiceId ? [self::DOCUMENT_NOT_LINKED] : [],
-            ...$home->value === $currency ? [] : [self::CURRENCY_NOT_HOME],
+            ...$home->code() === $currency ? [] : [self::CURRENCY_NOT_HOME],
             ...$method instanceof PaymentMethod ? [] : [self::PAYMENT_OPTION_UNSUPPORTED],
             ...(\is_int($amount) || \is_float($amount)) && false !== $date ? [] : [self::INVALID_VALUE],
         ];
-        if (null === $invoiceId || $home->value !== $currency || !$method instanceof PaymentMethod || !\is_int($amount) && !\is_float($amount) || false === $date) {
+        if (null === $invoiceId || $home->code() !== $currency || !$method instanceof PaymentMethod || !\is_int($amount) && !\is_float($amount) || false === $date) {
             return null;
         }
 

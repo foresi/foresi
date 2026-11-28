@@ -14,7 +14,7 @@ class_alias(\Foresi\Shared\Contract\Event\DomainEventListener::class, DomainEven
 
 if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @deprecated since module API 1.0, removed in 3.0, use \Foresi\Shared\Contract\Event\DomainEventListener instead
+     * @deprecated since module API 1.0, removed in 4.0, use \Foresi\Shared\Contract\Event\DomainEventListener instead
      */
     interface DomainEventListener extends \Foresi\Shared\Contract\Event\DomainEventListener
     {

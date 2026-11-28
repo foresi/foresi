@@ -52,7 +52,7 @@ class PeriodEntry implements Audited
 
     public function returnAmount(): ?Money
     {
-        return null === $this->returnAmountMinor ? null : Money::ofMinor($this->returnAmountMinor, Currency::CZK);
+        return null === $this->returnAmountMinor ? null : Money::ofMinor($this->returnAmountMinor, Currency::of('CZK'));
     }
 
     public function enterReturnAmount(?Money $amount): void

@@ -389,7 +389,7 @@ final class IsdocWriterTest extends InvoiceTestCase
             'awkwardText' => $this->issued([$this->line(text: 'A&B <b>příliš</b> žluťoučký')], ['description' => 'R&D <i>ěšč</i>']),
             'exempt' => $this->issued([$this->line(treatment: TaxTreatment::Exempt, kind: null)]),
             'cash' => $this->issued([$this->line()], ['paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null]),
-            'discount' => $this->issued([new LineInput('Work', Quantity::fromString('2'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('10'))]),
+            'discount' => $this->issued([new LineInput('Work', Quantity::fromString('2'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('10'))]),
             'negativeLine' => $this->issued([$this->line('1000.00'), $this->line('-100.00')]),
             default => throw new \LogicException('No scenario '.$name),
         };

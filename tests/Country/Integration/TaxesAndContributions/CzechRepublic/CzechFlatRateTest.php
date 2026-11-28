@@ -80,7 +80,7 @@ final class CzechFlatRateTest extends TestCase
 
     public function testFlatRateMonthsHaveNoSocialHealthOrIncomeTaxSteps(): void
     {
-        $inputs = new YearInputsView(2026, [ExpenseMethod::Actual, ExpenseMethod::Lump60], children: [new ChildInput('', new \DateTimeImmutable('2020-05-01'), 1, false, 12)], employmentBase: Money::ofMinor(10_000_000, Currency::CZK));
+        $inputs = new YearInputsView(2026, [ExpenseMethod::Actual, ExpenseMethod::Lump60], children: [new ChildInput('', new \DateTimeImmutable('2020-05-01'), 1, false, 12)], employmentBase: Money::ofMinor(10_000_000, Currency::of('CZK')));
         $profile = new ProfileView([...$this->band('1', 2026)->statuses, new StatusPeriod('s', StatusKind::SicknessInsurance, 'on', new \DateTimeImmutable('2026-01-01'))], [2026 => $inputs], []);
 
         $result = $this->compute(2026, $profile, 600_000, 100_000);
@@ -206,7 +206,7 @@ final class CzechFlatRateTest extends TestCase
 
     public function testFlatRatePaymentsAreDueOnThe20th(): void
     {
-        $profile = new ProfileView($this->band('1', 2026)->statuses, [2026 => new YearInputsView(2026, [ExpenseMethod::Actual], lastKnownTax: Money::ofMinor(10_000_000, Currency::CZK))], []);
+        $profile = new ProfileView($this->band('1', 2026)->statuses, [2026 => new YearInputsView(2026, [ExpenseMethod::Actual], lastKnownTax: Money::ofMinor(10_000_000, Currency::of('CZK')))], []);
 
         $result = $this->compute(2026, $profile, 600_000);
         $flat = $this->ofAuthority($result, Authority::FlatRate);
@@ -250,7 +250,7 @@ final class CzechFlatRateTest extends TestCase
             $profile = new ProfileView($profile->statuses, [...$profile->years, $year => new YearInputsView($year, [ExpenseMethod::Actual, ExpenseMethod::Lump60])], []);
         }
         $end = new \DateTimeImmutable(\sprintf('%04d-12-31', $year));
-        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::CZK);
+        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::of('CZK'));
         $totals = static fn (int $czk): AmountTotals => new AmountTotals($money($czk), $money($czk), $money(0), $money($czk));
         $amounts = new AmountsView(new \DateTimeImmutable(\sprintf('%04d-01-01', $year)), $end, [], [AmountKind::Income->value => $totals($income), AmountKind::Cost->value => $totals($costs)], [], [], [], [], [], []);
 

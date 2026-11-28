@@ -90,7 +90,7 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
 
     public function testARateIsTakenFromThePublishedRatesOfTheTaxPoint(): void
     {
-        $document = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, taxPoint: '2026-11-08', currency: Currency::EUR, base: 10_000))->document;
+        $document = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, taxPoint: '2026-11-08', currency: Currency::of('EUR'), base: 10_000))->document;
 
         self::assertSame('24.3', $document->exchangeRate()?->toString(), 'Sunday has the rate of Friday.');
         self::assertSame('2026-11-06', $document->exchangeRateDate()?->format('Y-m-d'));
@@ -100,7 +100,7 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
 
     public function testATypedRateWins(): void
     {
-        $document = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::EUR, base: 10_000, rate: ExchangeRate::of('25.1')))->document;
+        $document = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::of('EUR'), base: 10_000, rate: ExchangeRate::of('25.1')))->document;
 
         self::assertSame('25.1', $document->exchangeRate()?->toString());
         self::assertSame([], $this->rates->asked, 'No rate was looked up.');
@@ -110,7 +110,7 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
     {
         $draft = $this->draft();
 
-        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->recording()->record($draft, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::USD, base: 10_000)));
+        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->recording()->record($draft, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::of('USD'), base: 10_000)));
         self::assertSame(ReceivedDocumentState::Draft, $this->document($draft)->state());
     }
 

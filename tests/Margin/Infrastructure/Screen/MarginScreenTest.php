@@ -47,7 +47,7 @@ final class MarginScreenTest extends KernelTestCase
     public function testADocumentIdThatIsNoUuidGetsNoAssignLinkInsteadOfAnError(): void
     {
         $none = MarginFigures::none();
-        $item = new MarginCellItem('not-a-uuid', 'Cloud Host', null, Money::ofMinor(100, Currency::CZK), 'unassigned', null, null);
+        $item = new MarginCellItem('not-a-uuid', 'Cloud Host', null, Money::ofMinor(100, Currency::of('CZK')), 'unassigned', null, null);
 
         $page = $this->screen(new FixedCostSource())->cell(new MarginCellView('unassigned', null, '2026-11', $none, [], [$item]));
 

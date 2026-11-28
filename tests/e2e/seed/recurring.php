@@ -74,7 +74,7 @@ $recurring = static fn (string $description, string $price, Recurrence $recurren
     '',
     '',
     DocumentLanguage::Czech,
-    [new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+    [new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
     $recurrence,
     TaxPointRule::IssueDate,
     14,

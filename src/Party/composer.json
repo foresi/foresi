@@ -14,7 +14,7 @@
         "doctrine/orm": "^3.7.5",
         "foresi/audit": "self.version",
         "foresi/instance": "self.version",
-        "foresi/module-api": "^2.0",
+        "foresi/module-api": "^3.0",
         "foresi/shared": "self.version",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",

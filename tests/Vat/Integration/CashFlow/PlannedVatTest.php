@@ -98,8 +98,8 @@ final class PlannedVatTest extends VatTestCase
             'subject' => ['type' => 'planned_item', 'id' => $consulting->id(), 'url' => null],
             'label' => 'Consulting',
             'on' => '2026-12-10',
-            'output' => ['amount_minor' => 210_000, 'currency' => 'CZK'],
-            'input' => ['amount_minor' => 0, 'currency' => 'CZK'],
+            'output' => ['amount_minor' => 210_000, 'currency' => 'CZK', 'minor_units' => 2],
+            'input' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2],
         ]], $detail['plans']);
     }
 
@@ -117,8 +117,8 @@ final class PlannedVatTest extends VatTestCase
             'subject' => ['type' => 'planned_item', 'id' => $hosting->id(), 'url' => null],
             'label' => 'Cloud hosting',
             'on' => '2026-12-10',
-            'output' => ['amount_minor' => 21_000, 'currency' => 'CZK'],
-            'input' => ['amount_minor' => 21_000, 'currency' => 'CZK'],
+            'output' => ['amount_minor' => 21_000, 'currency' => 'CZK', 'minor_units' => 2],
+            'input' => ['amount_minor' => 21_000, 'currency' => 'CZK', 'minor_units' => 2],
         ]], VatJson::detail($this->periods()->get('2026-12'))['plans']);
     }
 
@@ -139,7 +139,7 @@ final class PlannedVatTest extends VatTestCase
     {
         self::getContainer()->get(PlannedItemWrites::class)->create(new CreatePlannedItemInput('in', 'Retainer', 'revenue', '12100.00', '2026-11-25', repeat: 'month', matchVariableSymbol: '2026001', vatMode: 'included', vatRate: '21'));
         $this->em->flush();
-        $bank = new FakeActualSource('test.bank', [new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::In, Money::of('12100.00', Currency::CZK), new \DateTimeImmutable('2026-11-18', new \DateTimeZone('Europe/Prague')), variableSymbol: '2026001')]);
+        $bank = new FakeActualSource('test.bank', [new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::In, Money::of('12100.00', Currency::of('CZK')), new \DateTimeImmutable('2026-11-18', new \DateTimeZone('Europe/Prague')), variableSymbol: '2026001')]);
         $container = self::getContainer();
         $reads = new ForecastReads($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(InstanceClock::class), $container->get(ExchangeRates::class), sources: [new PlannedItemFlows($container->get(CashFlowStore::class), $container->get(PlannedItemVatRule::class))], actualSources: [$bank]);
 
@@ -159,8 +159,8 @@ final class PlannedVatTest extends VatTestCase
                 $this->queries[] = $query;
 
                 return new ForecastRead([
-                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-1'), FlowDirection::Out, Money::ofMinor(12_100, Currency::EUR), Money::ofMinor(296_450, Currency::CZK), $query->from, FlowCategory::Software, FlowCertainty::Plan, [], 'Hosting', Money::ofMinor(2_100, Currency::EUR)),
-                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-2'), FlowDirection::Out, Money::ofMinor(10_000, Currency::CZK), Money::ofMinor(10_000, Currency::CZK), $query->from, FlowCategory::Rent, FlowCertainty::Plan, [], 'Rent'),
+                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-1'), FlowDirection::Out, Money::ofMinor(12_100, Currency::of('EUR')), Money::ofMinor(296_450, Currency::of('CZK')), $query->from, FlowCategory::Software, FlowCertainty::Plan, [], 'Hosting', Money::ofMinor(2_100, Currency::of('EUR'))),
+                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-2'), FlowDirection::Out, Money::ofMinor(10_000, Currency::of('CZK')), Money::ofMinor(10_000, Currency::of('CZK')), $query->from, FlowCategory::Rent, FlowCertainty::Plan, [], 'Rent'),
                 ], [], [], false);
             }
         };
@@ -183,7 +183,7 @@ final class PlannedVatTest extends VatTestCase
             public function read(ForecastQuery $query): ForecastRead
             {
                 return new ForecastRead([
-                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-1'), FlowDirection::In, Money::ofMinor(12_100, Currency::CZK), Money::ofMinor(12_100, Currency::CZK), $query->from, FlowCategory::Revenue, FlowCertainty::Plan, [], 'Consulting', Money::ofMinor(2_100, Currency::CZK)),
+                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-1'), FlowDirection::In, Money::ofMinor(12_100, Currency::of('CZK')), Money::ofMinor(12_100, Currency::of('CZK')), $query->from, FlowCategory::Revenue, FlowCertainty::Plan, [], 'Consulting', Money::ofMinor(2_100, Currency::of('CZK'))),
                 ], [], [], false);
             }
         };
@@ -278,7 +278,7 @@ final class PlannedVatTest extends VatTestCase
                     throw new \RuntimeException('The plans could not be read.');
                 }
 
-                return array_map(fn (array $plan): PlannedVatAmount => new PlannedVatAmount($this->key, null, null, new \DateTimeImmutable($plan[0], new \DateTimeZone('Europe/Prague')), Money::ofMinor($plan[1], Currency::CZK), Money::ofMinor($plan[2], Currency::CZK)), $this->plans);
+                return array_map(fn (array $plan): PlannedVatAmount => new PlannedVatAmount($this->key, null, null, new \DateTimeImmutable($plan[0], new \DateTimeZone('Europe/Prague')), Money::ofMinor($plan[1], Currency::of('CZK')), Money::ofMinor($plan[2], Currency::of('CZK'))), $this->plans);
             }
         };
     }

@@ -107,7 +107,7 @@ final class ApiLines
             return null === $value ? null : trim($value);
         };
         $price = $text('unit_price') ?? throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field('unit_price'), 'Every line needs a unit_price, such as "1500.00".');
-        if (1 !== preg_match('/^-?\d{1,13}(\.\d{1,'.$currency->minorUnits().'})?$/D', $price)) {
+        if (1 !== preg_match('/^-?\d{1,13}'.(0 === $currency->minorUnits() ? '' : '(\.\d{1,'.$currency->minorUnits().'})?').'$/D', $price)) {
             throw InvoicingRefused::unreadable(InvoicingRefused::NUMBER, $field('unit_price'), \sprintf('The price must be a decimal with at most %d places, such as "1500.00".', $currency->minorUnits()));
         }
         $quantity = $text('quantity') ?? '1';

@@ -69,7 +69,7 @@ final readonly class ReceivedDocumentForm
             'taxPointDate' => '',
             'dueDate' => '',
             'receivedDate' => $today->format('Y-m-d'),
-            'currency' => Currency::CZK->value,
+            'currency' => Currency::of('CZK')->code(),
             'total' => '',
             'exchangeRate' => '',
             'rateShown' => '',
@@ -87,7 +87,7 @@ final readonly class ReceivedDocumentForm
      */
     public function of(ReceivedDocument $document): array
     {
-        $rate = Currency::CZK === $document->currency() ? '' : $this->text->decimal($document->exchangeRate()?->toString() ?? '');
+        $rate = Currency::of('CZK') === $document->currency() ? '' : $this->text->decimal($document->exchangeRate()?->toString() ?? '');
         $rows = [];
         foreach ($document->vatRecap()->rows() as $row) {
             $rows[] = [
@@ -109,11 +109,11 @@ final readonly class ReceivedDocumentForm
             'taxPointDate' => $document->taxPointDate()?->format('Y-m-d') ?? '',
             'dueDate' => $document->dueDate()?->format('Y-m-d') ?? '',
             'receivedDate' => $document->receivedDate()?->format('Y-m-d') ?? '',
-            'currency' => $document->currency()->value,
+            'currency' => $document->currency()->code(),
             'total' => $this->text->field($document->total()),
             'exchangeRate' => $rate,
             'rateShown' => $rate,
-            'rateFor' => self::rateFor($document->currency()->value, $document->taxPointDate()?->format('Y-m-d') ?? '', $document->issueDate()?->format('Y-m-d') ?? ''),
+            'rateFor' => self::rateFor($document->currency()->code(), $document->taxPointDate()?->format('Y-m-d') ?? '', $document->issueDate()?->format('Y-m-d') ?? ''),
             'rateDate' => $document->exchangeRateDate()?->format('Y-m-d') ?? '',
             'supplyCode' => $document->supplyCode() ?? '',
             'originalDocumentId' => $document->originalDocumentId() ?? '',
@@ -232,7 +232,7 @@ final readonly class ReceivedDocumentForm
      */
     public function remaining(array $values): array
     {
-        $currency = Currency::tryFrom($values['currency']) ?? Currency::CZK;
+        $currency = Currency::tryFrom($values['currency']) ?? Currency::of('CZK');
         $left = [];
         foreach ($values['recap'] as $row) {
             $rate = $this->rateOf($row['rate']);
@@ -277,7 +277,7 @@ final readonly class ReceivedDocumentForm
         $errors = [];
         $kind = ReceivedDocumentKind::tryFrom($values['kind']) ?? ReceivedDocumentKind::TaxInvoice;
         $treatment = PurchaseTaxTreatment::tryFrom($values['treatment']) ?? PurchaseTaxTreatment::Domestic;
-        $currency = Currency::tryFrom($values['currency']) ?? Currency::CZK;
+        $currency = Currency::tryFrom($values['currency']) ?? Currency::of('CZK');
         $dates = [];
         foreach (['issueDate', 'taxPointDate', 'dueDate', 'receivedDate'] as $field) {
             $dates[$field] = $this->date($values[$field]);
@@ -371,11 +371,11 @@ final readonly class ReceivedDocumentForm
     private function rate(array $values, Currency $currency): array
     {
         $typed = $values['exchangeRate'];
-        if (Currency::CZK === $currency || '' === $typed) {
+        if (Currency::of('CZK') === $currency || '' === $typed) {
             return [null, null, null];
         }
         $unchanged = $typed === $values['rateShown'];
-        if ($unchanged && $values['rateFor'] !== self::rateFor($currency->value, $values['taxPointDate'], $values['issueDate'])) {
+        if ($unchanged && $values['rateFor'] !== self::rateFor($currency->code(), $values['taxPointDate'], $values['issueDate'])) {
             // Shown for another day or currency: the use case takes the published rate of the new one.
             return [null, null, null];
         }
@@ -435,7 +435,7 @@ final readonly class ReceivedDocumentForm
         if (false === $vat) {
             $errors[$id.'vat'] = 'received_documents.form.error.amount';
         }
-        $stated = $this->text->typedAmount($row['statedVatCzk'], Currency::CZK);
+        $stated = $this->text->typedAmount($row['statedVatCzk'], Currency::of('CZK'));
         if (false === $stated) {
             $errors[$id.'statedVatCzk'] = 'received_documents.form.error.amount';
         }

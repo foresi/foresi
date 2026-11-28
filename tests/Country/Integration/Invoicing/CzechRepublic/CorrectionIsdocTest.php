@@ -282,7 +282,7 @@ final class CorrectionIsdocTest extends AdvanceTestCase
 
     private function credit(string $price, VatRateKind $kind = VatRateKind::Base): LineInput
     {
-        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, $kind, null, Percent::fromString('0'));
+        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, $kind, null, Percent::fromString('0'));
     }
 
     private function invoice(): Invoice

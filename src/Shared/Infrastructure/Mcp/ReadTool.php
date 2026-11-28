@@ -14,7 +14,7 @@ class_alias(\Foresi\Shared\Contract\Mcp\ReadTool::class, ReadTool::class);
 
 if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @deprecated since module API 1.0, removed in 3.0, use \Foresi\Shared\Contract\Mcp\ReadTool instead
+     * @deprecated since module API 1.0, removed in 4.0, use \Foresi\Shared\Contract\Mcp\ReadTool instead
      */
     interface ReadTool extends \Foresi\Shared\Contract\Mcp\ReadTool
     {

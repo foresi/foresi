@@ -14,7 +14,7 @@ class_alias(\Foresi\Shared\Contract\Operation\OperationHandler::class, Operation
 
 if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @deprecated since module API 1.0, removed in 3.0, use \Foresi\Shared\Contract\Operation\OperationHandler instead
+     * @deprecated since module API 1.0, removed in 4.0, use \Foresi\Shared\Contract\Operation\OperationHandler instead
      */
     interface OperationHandler extends \Foresi\Shared\Contract\Operation\OperationHandler
     {

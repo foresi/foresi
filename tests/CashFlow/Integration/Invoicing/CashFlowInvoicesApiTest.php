@@ -49,10 +49,10 @@ final class CashFlowInvoicesApiTest extends ApiTestCase
             'source' => 'invoicing.invoices',
             'direction' => 'in',
             'category' => 'revenue',
-            'amount_czk' => ['amount_minor' => 242000, 'currency' => 'CZK'],
+            'amount_czk' => ['amount_minor' => 242000, 'currency' => 'CZK', 'minor_units' => 2],
             'count' => 1,
         ]], $this->at('data', 'periods', 0, 'hidden_items'));
-        self::assertSame(['amount_minor' => 242000, 'currency' => 'CZK'], $this->at('data', 'periods', 0, 'inflows', 'total'));
+        self::assertSame(['amount_minor' => 242000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'periods', 0, 'inflows', 'total'));
 
         $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('cashflow:read'), ApiScope::from('invoices:read')]));
 

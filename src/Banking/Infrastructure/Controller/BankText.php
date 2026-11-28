@@ -15,6 +15,7 @@ use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -46,7 +47,7 @@ final readonly class BankText
 
     public function unit(Currency $currency): string
     {
-        return Currency::CZK === $currency ? 'Kč' : $currency->value;
+        return Currency::of('CZK') === $currency ? 'Kč' : $currency->code();
     }
 
     /**
@@ -54,9 +55,7 @@ final readonly class BankText
      */
     public function plain(Money $money): string
     {
-        $symbol = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL)->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
-
-        return \sprintf('%s%d%s%02d', $money->isNegative() ? '-' : '', intdiv(abs($money->minor()), 100), $symbol, abs($money->minor()) % 100);
+        return MoneyFormat::field($money, $this->locales->getLocale());
     }
 
     /**
@@ -66,7 +65,8 @@ final readonly class BankText
     public function typed(string $typed, Currency $currency): ?Money
     {
         $decimal = TypedNumber::decimal(trim($typed), $this->locales->getLocale());
-        if (1 !== preg_match('/^\d{1,13}(?:\.\d{1,2})?$/D', $decimal)) {
+        $digits = $currency->minorUnits();
+        if (1 !== preg_match(0 === $digits ? '/^\d{1,13}$/D' : \sprintf('/^\d{1,13}(?:\.\d{1,%d})?$/D', $digits), $decimal)) {
             return null;
         }
         $money = Money::of($decimal, $currency);
@@ -160,11 +160,7 @@ final readonly class BankText
 
     private function grouped(Money $money): string
     {
-        $minor = abs($money->minor());
-        $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
-        $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
-
-        return \sprintf('%s%s%s%02d', $money->isNegative() ? '-' : '', $whole, $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100);
+        return MoneyFormat::grouped($money, $this->locales->getLocale());
     }
 
     private function countryCode(): string

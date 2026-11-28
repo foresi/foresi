@@ -46,6 +46,6 @@ $entityManager->persist(new PartyEmail($buyer, 'buyer@example.com', EmailPurpose
 $entityManager->flush();
 foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'] as $description => $price) {
     $issueInvoice->issue(new InvoiceInput($dialogSeries->id(), null, $buyer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
-        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }

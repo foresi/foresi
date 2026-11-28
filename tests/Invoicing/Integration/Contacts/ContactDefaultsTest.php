@@ -40,7 +40,7 @@ final class ContactDefaultsTest extends InvoiceTestCase
 
     public function testTheDefaultsAreKeptAndShowInTheContactsHistory(): void
     {
-        $defaults = new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true);
+        $defaults = new InvoicingDefaults(30, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Card, true);
         $this->defaults()->change($this->customer->id(), $defaults);
         $this->em->flush();
         $this->em->clear();
@@ -60,7 +60,7 @@ final class ContactDefaultsTest extends InvoiceTestCase
         $later = new Party(PartyKind::Person, 'Example Later Payer', null, null, '');
         $this->em->persist($later);
         $this->em->flush();
-        $this->defaults()->change($later->id(), new InvoicingDefaults(60, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+        $this->defaults()->change($later->id(), new InvoicingDefaults(60, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->em->flush();
 
         $query = self::getContainer()->get(PartyQuery::class);

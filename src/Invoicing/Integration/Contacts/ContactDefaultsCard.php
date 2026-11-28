@@ -35,7 +35,7 @@ final readonly class ContactDefaultsCard implements SlotProvider
 
         return [new SlotItem('@Invoicing/contact/_defaults_card.html.twig', ['items' => [
             ['label' => $label('due_days'), 'value' => $this->translator->trans('invoice.contact_defaults.days', ['count' => $defaults->dueDays])],
-            ['label' => $label('currency'), 'value' => $defaults->currency->value],
+            ['label' => $label('currency'), 'value' => $defaults->currency->code()],
             ['label' => $label('language'), 'value' => $this->translator->trans('locale.'.$defaults->language->value)],
             ['label' => $label('reverse_charge'), 'value' => $label($defaults->reverseCharge ? 'yes' : 'no')],
         ]])];

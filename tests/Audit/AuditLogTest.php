@@ -214,7 +214,7 @@ final class AuditLogTest extends KernelTestCase
             'Register entry 1',
         );
         $this->em->persist($firm);
-        $this->em->persist(FirmBankAccount::open(Iban::fromString('DE89 3704 0044 0532 0130 00'), Currency::EUR, '', 0));
+        $this->em->persist(FirmBankAccount::open(Iban::fromString('DE89 3704 0044 0532 0130 00'), Currency::of('EUR'), '', 0));
         $this->em->persist(new Membership($user, Role::Owner, $party));
         $this->em->flush();
 

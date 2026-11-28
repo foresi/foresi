@@ -76,7 +76,7 @@ final class TransactionalWorkTest extends KernelTestCase
 
     private function price(string $amount): TestPrice
     {
-        return new TestPrice(Money::of($amount, Currency::CZK));
+        return new TestPrice(Money::of($amount, Currency::of('CZK')));
     }
 
     private function work(): TransactionalWork

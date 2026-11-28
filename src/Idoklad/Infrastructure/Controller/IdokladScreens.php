@@ -26,6 +26,7 @@ use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -244,7 +245,7 @@ final readonly class IdokladScreens
                 $year = substr(\is_string($payload['DateOfIssue'] ?? null) ? $payload['DateOfIssue'] : '', 0, 4);
                 $years[$year] ??= self::YEAR;
                 $currency = $currencies[\is_int($payload['CurrencyId'] ?? null) ? $payload['CurrencyId'] : 0] ?? null;
-                if (null !== $currency && $home->value !== $currency) {
+                if (null !== $currency && $home->code() !== $currency) {
                     // Refused anyway: only counted, as no sum in the home currency holds them.
                     ++$years[$year]['foreign'];
                     $foreign[$resource->value][$record->externalId()] = true;
@@ -252,10 +253,10 @@ final readonly class IdokladScreens
                     continue;
                 }
                 $documentYears[$resource->value][$record->externalId()] = $year;
-                $total = $this->minor(\is_array($payload['Prices'] ?? null) ? ($payload['Prices']['TotalWithVat'] ?? null) : null);
+                $total = $this->minor(\is_array($payload['Prices'] ?? null) ? ($payload['Prices']['TotalWithVat'] ?? null) : null, $home);
                 ++$years[$year]['idoklad'];
                 $years[$year]['idokladSum'] += $total;
-                if (IdokladResource::IssuedInvoices === $resource && isset($imported[$resource->value][$record->externalId()]) && $this->isOverdue($payload, $total, $today)) {
+                if (IdokladResource::IssuedInvoices === $resource && isset($imported[$resource->value][$record->externalId()]) && $this->isOverdue($payload, $total, $today, $home)) {
                     ++$overdue;
                 }
             }
@@ -464,8 +465,8 @@ final readonly class IdokladScreens
             if (\is_int($expected) && \is_int($computed) && $expected !== $computed) {
                 $lines[] = $this->trans('idoklad.report.difference', [
                     'total' => $this->trans('idoklad.report.total.'.$total),
-                    'expected' => $this->format->money(Money::ofMinor($expected, Currency::CZK), $language),
-                    'computed' => $this->format->money(Money::ofMinor($computed, Currency::CZK), $language),
+                    'expected' => $this->format->money(Money::ofMinor($expected, Currency::of('CZK')), $language),
+                    'computed' => $this->format->money(Money::ofMinor($computed, Currency::of('CZK')), $language),
                 ]);
             }
         }
@@ -494,17 +495,17 @@ final readonly class IdokladScreens
     /**
      * @param array<mixed> $payload
      */
-    private function isOverdue(array $payload, int $total, \DateTimeImmutable $today): bool
+    private function isOverdue(array $payload, int $total, \DateTimeImmutable $today, Currency $currency): bool
     {
         $due = $payload['DateOfMaturity'] ?? null;
-        $paid = $this->minor(\is_array($payload['Prices'] ?? null) ? ($payload['Prices']['TotalPaid'] ?? null) : null);
+        $paid = $this->minor(\is_array($payload['Prices'] ?? null) ? ($payload['Prices']['TotalPaid'] ?? null) : null, $currency);
 
         return \is_string($due) && substr($due, 0, 10) < $today->format('Y-m-d') && $paid < $total;
     }
 
-    private function minor(mixed $amount): int
+    private function minor(mixed $amount, Currency $currency): int
     {
-        return \is_int($amount) || \is_float($amount) ? (int) round($amount * 100) : 0;
+        return \is_int($amount) || \is_float($amount) ? (int) round($amount * MoneyFormat::factor($currency)) : 0;
     }
 
     private function dateTime(\DateTimeImmutable $at): string

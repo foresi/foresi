@@ -171,7 +171,7 @@ final class ReceivedPaymentAmountsTest extends PurchasingTestCase
 
     private function pay(string $document, string $amount, string $on): void
     {
-        self::getContainer()->get(PayReceivedDocument::class)->pay($document, new \DateTimeImmutable($on), Money::of($amount, Currency::CZK), PaymentMethod::BankTransfer);
+        self::getContainer()->get(PayReceivedDocument::class)->pay($document, new \DateTimeImmutable($on), Money::of($amount, Currency::of('CZK')), PaymentMethod::BankTransfer);
     }
 
     private function source(?ApiTokenContext $tokens = null): ReceivedPaymentAmounts

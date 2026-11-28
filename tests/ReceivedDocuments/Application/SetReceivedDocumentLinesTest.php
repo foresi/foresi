@@ -134,6 +134,6 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
 
     private function line(string $text, int $base, ?string $id = null): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), '21', $id);
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::of('CZK')), '21', $id);
     }
 }

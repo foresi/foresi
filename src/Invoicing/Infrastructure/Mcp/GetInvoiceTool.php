@@ -47,7 +47,7 @@ final readonly class GetInvoiceTool implements ReadTool
         return 'Returns one sales document of the organisation by its id, in the trash too: '
             .'its number, kind, firm, the customer as the document names it, the dates, currency, variable symbol, order number and description, the net, VAT and total, the payment state, '
             .'its lines, the payments allocated to it, its correction documents and its balances (paid, corrections, remaining, to refund). '
-            .'Money is {amount_minor, currency}, in hundredths of the currency. '
+            .'Money is {amount_minor, currency, minor_units}: amount_minor in minor units, minor_units the decimals of the currency. '
             .'Find the id with foresi_search_invoices.';
     }
 

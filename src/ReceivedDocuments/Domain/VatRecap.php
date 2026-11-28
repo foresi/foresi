@@ -68,7 +68,7 @@ final readonly class VatRecap
      */
     public static function fromArray(array $stored, Currency $currency): self
     {
-        $czk = static fn (?int $minor): ?Money => null === $minor ? null : Money::ofMinor($minor, Currency::CZK);
+        $czk = static fn (?int $minor): ?Money => null === $minor ? null : Money::ofMinor($minor, Currency::of('CZK'));
         $rows = array_map(static fn (array $row): VatRecapRow => new VatRecapRow(
             VatRate::of($row['rate']),
             Money::ofMinor($row['base'], $currency),
@@ -141,11 +141,11 @@ final readonly class VatRecap
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VAT_RECAP_CURRENCY);
         }
         if ($line->statedVatCzk instanceof Money) {
-            if (Currency::CZK !== $line->statedVatCzk->currency()) {
+            if (Currency::of('CZK') !== $line->statedVatCzk->currency()) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VAT_RECAP_CURRENCY);
             }
             // A CZK document states its VAT in CZK already, and self-assessed VAT is the firm's own.
-            if (Currency::CZK === $currency || !$treatment->takesStatedVat()) {
+            if (Currency::of('CZK') === $currency || !$treatment->takesStatedVat()) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::STATED_VAT_CZK);
             }
         }
@@ -157,7 +157,7 @@ final readonly class VatRecap
     private static function vatCzkOf(VatRecapLine $line, ?Money $baseCzk, ?ExchangeRate $rate, PurchaseTaxTreatment $treatment): ?Money
     {
         if (PurchaseTaxTreatment::NotVatDocument === $treatment) {
-            return Money::ofMinor(0, Currency::CZK);
+            return Money::ofMinor(0, Currency::of('CZK'));
         }
         if ($treatment->isSelfAssessed()) {
             return $baseCzk?->multipliedBy($line->rate->factor());
@@ -171,7 +171,7 @@ final readonly class VatRecap
      */
     private function sumCzk(array $amounts): ?Money
     {
-        $sum = Money::ofMinor(0, Currency::CZK);
+        $sum = Money::ofMinor(0, Currency::of('CZK'));
         foreach ($amounts as $amount) {
             if (!$amount instanceof Money) {
                 return null;

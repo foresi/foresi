@@ -31,14 +31,14 @@ final class AttributeCellsTest extends TestCase
         yield 'reference by name' => [AttributeType::Reference, 'Example Firm', 'Example Firm'];
         yield 'a whole number grouped' => [AttributeType::Number, 12500, "12\u{a0}500"];
         yield 'a decimal with the separator of the language' => [AttributeType::Number, '1.5', '1,5'];
-        yield 'money with its currency' => [AttributeType::Money, Money::ofMinor(121050, Currency::CZK), "1\u{a0}210,50\u{a0}Kč"];
-        yield 'money in another currency' => [AttributeType::Money, Money::ofMinor(-500, Currency::EUR), "-5,00\u{a0}EUR"];
+        yield 'money with its currency' => [AttributeType::Money, Money::ofMinor(121050, Currency::of('CZK')), "1\u{a0}210,50\u{a0}Kč"];
+        yield 'money in another currency' => [AttributeType::Money, Money::ofMinor(-500, Currency::of('EUR')), "-5,00\u{a0}€"];
         yield 'a date in the format of the language' => [AttributeType::Date, new \DateTimeImmutable('2026-11-18'), '18. 11. 2026'];
         yield 'a datetime as it reads' => [AttributeType::DateTime, new \DateTimeImmutable('2026-11-18 09:05', new \DateTimeZone('Europe/Prague')), '18. 11. 2026 9:05'];
-        yield 'an enum as a neutral badge with the label of its value' => [AttributeType::Enum, Currency::CZK, ['label' => 'Czech crowns', 'tone' => 'gray']];
+        yield 'an enum as a neutral badge with the label of its value' => [AttributeType::Enum, Currency::of('CZK'), ['label' => 'Czech crowns', 'tone' => 'gray']];
         yield 'an enum value without a label' => [AttributeType::Enum, 'other', ['label' => 'other', 'tone' => 'gray']];
-        yield 'a multi-enum as one neutral badge per value' => [AttributeType::MultiEnum, ['x' => Currency::CZK, 'y' => 'other'], ['badges' => [['label' => 'Czech crowns', 'tone' => 'gray'], ['label' => 'other', 'tone' => 'gray']]]];
-        yield 'a multi-enum of one value' => [AttributeType::MultiEnum, Currency::CZK, ['badges' => [['label' => 'Czech crowns', 'tone' => 'gray']]]];
+        yield 'a multi-enum as one neutral badge per value' => [AttributeType::MultiEnum, ['x' => Currency::of('CZK'), 'y' => 'other'], ['badges' => [['label' => 'Czech crowns', 'tone' => 'gray'], ['label' => 'other', 'tone' => 'gray']]]];
+        yield 'a multi-enum of one value' => [AttributeType::MultiEnum, Currency::of('CZK'), ['badges' => [['label' => 'Czech crowns', 'tone' => 'gray']]]];
         yield 'yes' => [AttributeType::Boolean, true, 'Ano'];
         yield 'no' => [AttributeType::Boolean, false, 'Ne'];
         yield 'a country by its name' => [AttributeType::Country, 'DE', 'Německo'];
@@ -94,9 +94,9 @@ final class AttributeCellsTest extends TestCase
     {
         $money = new MoneyText(new LocaleSwitcher('en', []));
 
-        self::assertSame("1,210.50\u{a0}Kč", $money->shown(Money::ofMinor(121050, Currency::CZK)));
-        self::assertSame('EUR', $money->unit(Currency::EUR));
-        self::assertSame('-0.05', $money->grouped(Money::ofMinor(-5, Currency::EUR)));
+        self::assertSame("1,210.50\u{a0}CZK", $money->shown(Money::ofMinor(121050, Currency::of('CZK'))));
+        self::assertSame('€', $money->unit(Currency::of('EUR')));
+        self::assertSame('-0.05', $money->grouped(Money::ofMinor(-5, Currency::of('EUR'))));
     }
 
     private function cells(): AttributeCells

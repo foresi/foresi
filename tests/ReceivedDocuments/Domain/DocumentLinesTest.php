@@ -30,23 +30,23 @@ final class DocumentLinesTest extends TestCase
             $this->line('Hosting', 60_000, '21'),
             $this->line('Domain', 40_000, '21'),
             $this->line('Books', 50_000, '12'),
-        ], $recap, $this->czk(171_000), Currency::CZK);
+        ], $recap, $this->czk(171_000), Currency::of('CZK'));
 
         self::assertCount(3, $lines);
         $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): array => DocumentLines::check([
             $this->line('Hosting', 60_000, '21'),
             $this->line('Domain', 39_999, '21'),
             $this->line('Books', 50_000, '12'),
-        ], $recap, $this->czk(171_000), Currency::CZK));
+        ], $recap, $this->czk(171_000), Currency::of('CZK')));
         // A rate of the recap without lines adds up to nothing.
         $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): array => DocumentLines::check([
             $this->line('Hosting', 100_000, '21'),
-        ], $recap, $this->czk(171_000), Currency::CZK));
+        ], $recap, $this->czk(171_000), Currency::of('CZK')));
     }
 
     public function testNoLinesAlwaysFit(): void
     {
-        self::assertSame([], DocumentLines::check([], $this->recap(['21', 100_000]), null, Currency::CZK));
+        self::assertSame([], DocumentLines::check([], $this->recap(['21', 100_000]), null, Currency::of('CZK')));
     }
 
     public function testALineNamesARateOfTheRecap(): void
@@ -54,32 +54,32 @@ final class DocumentLinesTest extends TestCase
         $this->assertRefused(ReceivedDocumentRefused::UNKNOWN_VAT_RATE, fn (): array => DocumentLines::check([
             $this->line('Hosting', 100_000, '21'),
             $this->line('Books', 0, '12'),
-        ], $this->recap(['21', 100_000]), $this->czk(121_000), Currency::CZK));
+        ], $this->recap(['21', 100_000]), $this->czk(121_000), Currency::of('CZK')));
     }
 
     public function testARateThatIsNoRateIsRefused(): void
     {
-        $this->assertRefused(ReceivedDocumentRefused::VAT_RATE, fn (): array => DocumentLines::check([$this->line('Hosting', 100_000, 'twenty-one')], $this->recap(['21', 100_000]), null, Currency::CZK));
+        $this->assertRefused(ReceivedDocumentRefused::VAT_RATE, fn (): array => DocumentLines::check([$this->line('Hosting', 100_000, 'twenty-one')], $this->recap(['21', 100_000]), null, Currency::of('CZK')));
     }
 
     public function testTheTextIsTrimmedAndTheRateWrittenAsTheRecapWritesIt(): void
     {
-        $lines = DocumentLines::check([$this->line('  Hosting  ', 100_000, '21.00')], $this->recap(['21', 100_000]), null, Currency::CZK);
+        $lines = DocumentLines::check([$this->line('  Hosting  ', 100_000, '21.00')], $this->recap(['21', 100_000]), null, Currency::of('CZK'));
 
         self::assertSame(['Hosting', '21'], [$lines[0]->text, $lines[0]->vatRate]);
     }
 
     public function testALineNeedsAText(): void
     {
-        $this->assertRefused(ReceivedDocumentRefused::LINE_TEXT_REQUIRED, fn (): array => DocumentLines::check([$this->line('   ', 100_000, '21')], $this->recap(['21', 100_000]), null, Currency::CZK));
+        $this->assertRefused(ReceivedDocumentRefused::LINE_TEXT_REQUIRED, fn (): array => DocumentLines::check([$this->line('   ', 100_000, '21')], $this->recap(['21', 100_000]), null, Currency::of('CZK')));
     }
 
     public function testTheTextHasAtMost255CharactersNotBytes(): void
     {
         $recap = $this->recap(['21', 100_000]);
 
-        self::assertCount(1, DocumentLines::check([$this->line(str_repeat('č', 255), 100_000, '21')], $recap, null, Currency::CZK));
-        $this->assertRefused(ReceivedDocumentRefused::LINE_TEXT_TOO_LONG, fn (): array => DocumentLines::check([$this->line(str_repeat('č', 256), 100_000, '21')], $recap, null, Currency::CZK));
+        self::assertCount(1, DocumentLines::check([$this->line(str_repeat('č', 255), 100_000, '21')], $recap, null, Currency::of('CZK')));
+        $this->assertRefused(ReceivedDocumentRefused::LINE_TEXT_TOO_LONG, fn (): array => DocumentLines::check([$this->line(str_repeat('č', 256), 100_000, '21')], $recap, null, Currency::of('CZK')));
     }
 
     public function testADocumentHasAtMostAHundredLines(): void
@@ -87,38 +87,38 @@ final class DocumentLinesTest extends TestCase
         $recap = $this->recap(['21', 100]);
         $lines = array_map(fn (int $i): ReceivedDocumentLineInput => $this->line('Line '.$i, 1, '21'), range(1, 100));
 
-        self::assertCount(100, DocumentLines::check($lines, $recap, null, Currency::CZK));
+        self::assertCount(100, DocumentLines::check($lines, $recap, null, Currency::of('CZK')));
         $lines[] = $this->line('One more', 0, '21');
-        $this->assertRefused(ReceivedDocumentRefused::LINES_TOO_MANY, fn (): array => DocumentLines::check($lines, $recap, null, Currency::CZK));
+        $this->assertRefused(ReceivedDocumentRefused::LINES_TOO_MANY, fn (): array => DocumentLines::check($lines, $recap, null, Currency::of('CZK')));
     }
 
     public function testALineIsInTheCurrencyOfTheDocument(): void
     {
         $this->assertRefused(ReceivedDocumentRefused::CURRENCY_MISMATCH, fn (): array => DocumentLines::check(
-            [new ReceivedDocumentLineInput('Hosting', Money::ofMinor(100_000, Currency::EUR), '21')],
+            [new ReceivedDocumentLineInput('Hosting', Money::ofMinor(100_000, Currency::of('EUR')), '21')],
             $this->recap(['21', 100_000]),
             null,
-            Currency::CZK,
+            Currency::of('CZK'),
         ));
     }
 
     public function testTheLinesOfADocumentWithoutARecapAddUpToItsTotalAtRateZero(): void
     {
-        $empty = VatRecap::empty(Currency::CZK);
+        $empty = VatRecap::empty(Currency::of('CZK'));
 
-        self::assertCount(2, DocumentLines::check([$this->line('Fee', 30_000, '0'), $this->line('Charge', 20_000, '0')], $empty, $this->czk(50_000), Currency::CZK));
-        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): array => DocumentLines::check([$this->line('Fee', 30_000, '0')], $empty, $this->czk(50_000), Currency::CZK));
-        $this->assertRefused(ReceivedDocumentRefused::UNKNOWN_VAT_RATE, fn (): array => DocumentLines::check([$this->line('Fee', 50_000, '21')], $empty, $this->czk(50_000), Currency::CZK));
+        self::assertCount(2, DocumentLines::check([$this->line('Fee', 30_000, '0'), $this->line('Charge', 20_000, '0')], $empty, $this->czk(50_000), Currency::of('CZK')));
+        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): array => DocumentLines::check([$this->line('Fee', 30_000, '0')], $empty, $this->czk(50_000), Currency::of('CZK')));
+        $this->assertRefused(ReceivedDocumentRefused::UNKNOWN_VAT_RATE, fn (): array => DocumentLines::check([$this->line('Fee', 50_000, '21')], $empty, $this->czk(50_000), Currency::of('CZK')));
         // Without a total there is nothing to add up to.
-        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): array => DocumentLines::check([$this->line('Fee', 0, '0')], $empty, null, Currency::CZK));
+        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): array => DocumentLines::check([$this->line('Fee', 0, '0')], $empty, null, Currency::of('CZK')));
     }
 
     public function testTheLastLineOfARateTakesTheRoundingDifferenceInCzk(): void
     {
         // 0.30 USD at 23.455 is 7.04 CZK, while 0.10 USD alone is 2.35 CZK.
         $rate = ExchangeRate::of('23.455');
-        $recap = VatRecap::of([new VatRecapLine(VatRate::of('21'), Money::ofMinor(30, Currency::USD), Money::ofMinor(0, Currency::USD))], Currency::USD, $rate, PurchaseTaxTreatment::NonEuService);
-        $usd = static fn (int $minor): ReceivedDocumentLineInput => new ReceivedDocumentLineInput('Calls', Money::ofMinor($minor, Currency::USD), '21');
+        $recap = VatRecap::of([new VatRecapLine(VatRate::of('21'), Money::ofMinor(30, Currency::of('USD')), Money::ofMinor(0, Currency::of('USD')))], Currency::of('USD'), $rate, PurchaseTaxTreatment::NonEuService);
+        $usd = static fn (int $minor): ReceivedDocumentLineInput => new ReceivedDocumentLineInput('Calls', Money::ofMinor($minor, Currency::of('USD')), '21');
 
         $bases = DocumentLines::czkBases([$usd(10), $usd(10), $usd(10)], $recap, null, $rate);
 
@@ -128,9 +128,9 @@ final class DocumentLinesTest extends TestCase
 
     public function testLinesHaveNoCzkBaseWhileTheRecapHasNone(): void
     {
-        $recap = VatRecap::of([new VatRecapLine(VatRate::of('21'), Money::ofMinor(30, Currency::USD), Money::ofMinor(0, Currency::USD))], Currency::USD, null, PurchaseTaxTreatment::NonEuService);
+        $recap = VatRecap::of([new VatRecapLine(VatRate::of('21'), Money::ofMinor(30, Currency::of('USD')), Money::ofMinor(0, Currency::of('USD')))], Currency::of('USD'), null, PurchaseTaxTreatment::NonEuService);
 
-        self::assertSame([null], DocumentLines::czkBases([new ReceivedDocumentLineInput('Calls', Money::ofMinor(30, Currency::USD), '21')], $recap, null, null));
+        self::assertSame([null], DocumentLines::czkBases([new ReceivedDocumentLineInput('Calls', Money::ofMinor(30, Currency::of('USD')), '21')], $recap, null, null));
     }
 
     /**
@@ -144,7 +144,7 @@ final class DocumentLinesTest extends TestCase
             $lines[] = new VatRecapLine($rate, $this->czk($base), $this->czk($this->czk($base)->multipliedBy($rate->factor())->minor()));
         }
 
-        return VatRecap::of($lines, Currency::CZK, ExchangeRate::one(), PurchaseTaxTreatment::Domestic);
+        return VatRecap::of($lines, Currency::of('CZK'), ExchangeRate::one(), PurchaseTaxTreatment::Domestic);
     }
 
     private function line(string $text, int $base, string $rate): ReceivedDocumentLineInput
@@ -154,7 +154,7 @@ final class DocumentLinesTest extends TestCase
 
     private function czk(int $minor): Money
     {
-        return Money::ofMinor($minor, Currency::CZK);
+        return Money::ofMinor($minor, Currency::of('CZK'));
     }
 
     private function assertRefused(string $reason, \Closure $change): void

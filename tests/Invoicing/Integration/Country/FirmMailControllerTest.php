@@ -365,7 +365,7 @@ final class FirmMailControllerTest extends WebTestCase
         $em->persist(new PartyEmail($customer, 'billing@example.com', EmailPurpose::Invoices));
         $em->flush();
         $day = new \DateTimeImmutable('2026-10-01');
-        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $invoices = [];
         foreach ($dueDates as $due) {
             $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
@@ -378,7 +378,7 @@ final class FirmMailControllerTest extends WebTestCase
 
     private function pay(Invoice $invoice, string $amount): void
     {
-        $czk = Money::of($amount, Currency::CZK);
+        $czk = Money::of($amount, Currency::of('CZK'));
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
     }
 

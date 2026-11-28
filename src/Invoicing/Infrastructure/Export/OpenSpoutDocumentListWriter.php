@@ -16,10 +16,12 @@ use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\RateSummary;
 use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\CSV\Options as CsvOptions;
 use OpenSpout\Writer\CSV\Writer as CsvWriter;
 use OpenSpout\Writer\WriterInterface;
@@ -90,7 +92,7 @@ final readonly class OpenSpoutDocumentListWriter implements DocumentListWriter
             $this->text($row->issueDate->format('Y-m-d'), $format),
             $this->text($document->taxPointDate?->format('Y-m-d') ?? '', $format),
             $this->text($row->dueDate->format('Y-m-d'), $format),
-            $this->text($document->currency->value, $format),
+            $this->text($document->currency->code(), $format),
             $this->decimal($document->exchangeRate, $format, $locale),
             $this->amount($document->net, $format, $locale),
             $this->amount($document->vat, $format, $locale),
@@ -133,12 +135,14 @@ final readonly class OpenSpoutDocumentListWriter implements DocumentListWriter
 
     private function amount(Money $money, ListFileFormat $format, string $locale): Cell
     {
-        $minor = $money->minor();
+        $decimal = MoneyFormat::decimal($money);
         if (ListFileFormat::Xlsx === $format) {
-            return new NumericCell($minor / 100);
+            $digits = $money->currency()->minorUnits();
+
+            return new NumericCell((float) $decimal, new Style()->withFormat(0 === $digits ? '0' : '0.'.str_repeat('0', $digits)));
         }
 
-        return $this->decimal(\sprintf('%s%d.%02d', $minor < 0 ? '-' : '', intdiv(abs($minor), 100), abs($minor) % 100), $format, $locale);
+        return $this->decimal($decimal, $format, $locale);
     }
 
     private function decimal(string $value, ListFileFormat $format, string $locale): Cell

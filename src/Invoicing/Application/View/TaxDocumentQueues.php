@@ -14,6 +14,7 @@ use Foresi\Invoicing\Application\UncorrectedTaxDocument;
 use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
 use Foresi\Shared\Application\View\RowConditions;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Domain\MoneyFormat;
 
 /**
  * The rows of the two lists a tax document waits in, as a view and a search narrow
@@ -86,7 +87,7 @@ final readonly class TaxDocumentQueues
 
         return match ($field) {
             TaxDocumentQueueLists::CUSTOMER => $row->customerName,
-            TaxDocumentQueueLists::AMOUNT => ($missing ? $row->received : $row->amount)->minor() / 100,
+            TaxDocumentQueueLists::AMOUNT => (float) MoneyFormat::decimal($missing ? $row->received : $row->amount),
             TaxDocumentQueueLists::RECEIVED_ON => $missing ? $row->receivedOn : null,
             TaxDocumentQueueLists::DECISIVE_DATE => $missing ? null : $row->decisiveDate,
             TaxDocumentQueueLists::DEADLINE => $row->deadline,

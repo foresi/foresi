@@ -108,7 +108,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
         $this->listener = new RecalculateOnPairing($calculation);
 
         $this->em->persist(new PlannedAllocation(Uuid::v7()->toRfc4122(), self::ITEM, new \DateTimeImmutable('2026-05-01'), new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client(self::CLIENT_A), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), amountCzk: Money::ofMinor(60_000, Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]), new \DateTimeImmutable(), 'user'));
         $this->em->flush();
@@ -307,7 +307,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
 
     private function document(string $id, string $basis, int $minor): void
     {
-        $this->source->documents[$id] = new CostDocument($id, null, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), [new CostLine('line-1', 'Hosting', Money::ofMinor($minor, Currency::CZK))], false, 'EN '.$id, '/received-documents/'.$id);
+        $this->source->documents[$id] = new CostDocument($id, null, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), [new CostLine('line-1', 'Hosting', Money::ofMinor($minor, Currency::of('CZK')))], false, 'EN '.$id, '/received-documents/'.$id);
     }
 
     /**

@@ -70,11 +70,11 @@ final class ForecastAmountsMappingTest extends TestCase
         ], array_map(static fn (ForecastAmount $amount): array => [$amount->kind, $amount->grossCzk->minor(), $amount->certainty, $amount->source], $amounts->amounts));
         self::assertSame(['invoice', 'd1', '/api/v1/invoices/d1', '2026-12-10'], [$amounts->amounts[0]->subject?->type, $amounts->amounts[0]->subject?->id, $amounts->amounts[0]->subject?->url, $amounts->amounts[0]->on->format('Y-m-d')]);
         self::assertNull($amounts->amounts[2]->subject, 'A flow the caller may not read comes without its document.');
-        self::assertSame(Currency::CZK, $amounts->amounts[1]->grossCzk->currency());
+        self::assertSame(Currency::of('CZK'), $amounts->amounts[1]->grossCzk->currency());
     }
 
     private function flow(FlowDirection $direction, FlowCategory $category, FlowCertainty $certainty, string $source, bool $subject = true): ReadFlow
     {
-        return new ReadFlow($source, $subject ? new FlowSubject('invoice', 'd1', '/api/v1/invoices/d1') : null, $direction, Money::ofMinor(100, Currency::EUR), Money::ofMinor(2_420, Currency::CZK), new \DateTimeImmutable('2026-12-10'), $category, $certainty, []);
+        return new ReadFlow($source, $subject ? new FlowSubject('invoice', 'd1', '/api/v1/invoices/d1') : null, $direction, Money::ofMinor(100, Currency::of('EUR')), Money::ofMinor(2_420, Currency::of('CZK')), new \DateTimeImmutable('2026-12-10'), $category, $certainty, []);
     }
 }

@@ -168,7 +168,7 @@
                 </section>
             {% endif %}
 
-            {% set foreign = document.currency.value != 'CZK' %}
+            {% set foreign = document.currency.code != 'CZK' %}
             {% if lines.rows is not empty %}
                 <section class="grid gap-2" aria-labelledby="lines-title" data-purchasing-lines>
                     <h2 id="lines-title" class="m-0 text-small font-semibold text-ink">{{ 'received_documents.lines.title'|trans }}</h2>

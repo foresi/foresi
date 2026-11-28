@@ -685,7 +685,7 @@ final class RecurringFormControllerTest extends WebTestCase
     private function issued(): Invoice
     {
         return $this->scoped(function (): Invoice {
-            $line = static fn (string $text, string $price, string $discount): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString($discount));
+            $line = static fn (string $text, string $price, string $discount): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString($discount));
             $day = new \DateTimeImmutable('2026-10-15');
 
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, $this->customer->id(), null, $day, $day, $day->modify('+21 days'), PaymentMethod::BankTransfer, self::IBAN, '', '', 'PO-7', 'Consulting', 'Before the lines', 'After the lines', DocumentLanguage::Czech, [$line('Work', '1000.00', '0'), $line('Travel', '200.00', '10')], true));
@@ -695,7 +695,7 @@ final class RecurringFormControllerTest extends WebTestCase
     private function template(): RecurringInvoice
     {
         return $this->scoped(function (): RecurringInvoice {
-            $line = new LineInput('Hosting {month/year}', Quantity::fromString('1'), 'ks', Money::of('1200.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Hosting {month/year}', Quantity::fromString('1'), 'ks', Money::of('1200.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $recurrence = new Recurrence(new \DateTimeImmutable('2026-12-01', new \DateTimeZone('Europe/Prague')), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null);
 
             return self::getContainer()->get(SaveRecurringInvoice::class)->create(new RecurringInput($this->series->id(), $this->customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send));

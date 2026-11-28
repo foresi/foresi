@@ -212,7 +212,7 @@ final class StatusSplitTest extends TaxesTestCase
     {
         $day = new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague'));
 
-        return new ActualAmount($source, new Subject('invoice', $on, null), $kind, $day, Money::ofMinor($gross, Currency::CZK), Money::ofMinor($net, Currency::CZK), Money::ofMinor($gross - $net, Currency::CZK), $day, false);
+        return new ActualAmount($source, new Subject('invoice', $on, null), $kind, $day, Money::ofMinor($gross, Currency::of('CZK')), Money::ofMinor($net, Currency::of('CZK')), Money::ofMinor($gross - $net, Currency::of('CZK')), $day, false);
     }
 
     /**

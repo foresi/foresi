@@ -13,6 +13,7 @@ use Foresi\Audit\Application\AuditTrail;
 use Foresi\Audit\Domain\AuditAction;
 use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Identity\Domain\Role;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Timesheet\Domain\ProjectTimeFields;
 use Foresi\Timesheet\Domain\ProjectTimeSetting;
@@ -94,7 +95,7 @@ final class ProjectTimeSettingsControllerTest extends WebTestCase
         $id = $this->createProject('Website');
         $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
         self::assertSame('', $crawler->filter('#rate')->attr('value'));
-        self::assertSame(['CZK', 'EUR', 'USD'], $crawler->filter('#rate-currency option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
+        self::assertSame(Currencies::currentCodes(), $crawler->filter('#rate-currency option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
 
         $this->client->submit($crawler->filter('[data-settings-time] form')->form(['rate' => 'a lot', 'rateCurrency' => 'EUR']));
         self::assertResponseRedirects('/projects/'.$id.'/settings', 303);

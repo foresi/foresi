@@ -22,6 +22,7 @@ use Foresi\Deals\Domain\DealLineTerms;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 
 /**
  * The lines of a deal, kept in positions 0 to n-1. A line from a product
@@ -81,8 +82,8 @@ final readonly class DealLineWrites
                 $this->given($input->name, $line->name()),
                 $this->given($input->unit, $line->unit()),
                 $this->given($input->quantity, $line->quantity()),
-                $this->given($input->unitPrice, $price instanceof Money ? $this->decimal($price->minor()) : null),
-                $this->given($input->currency, $price?->currency()->value ?? 'CZK'),
+                $this->given($input->unitPrice, $price instanceof Money ? $this->decimal($price) : null),
+                $this->given($input->currency, $price?->currency()->code() ?? 'CZK'),
                 $kind,
                 $this->given($input->recurrenceUnit, $recurs ? $line->recurrenceUnit()?->value : null),
                 $this->given($input->interval, $recurs ? $line->interval() : null),
@@ -269,11 +270,11 @@ final readonly class DealLineWrites
     }
 
     /**
-     * Minor units as the decimal the rules read back, such as "1500.50". A
+     * An amount as the decimal the rules read back, such as "1500.50" or "1500" in yen. A
      * stored price is never negative.
      */
-    private function decimal(int $minor): string
+    private function decimal(Money $money): string
     {
-        return \sprintf('%d.%02d', intdiv($minor, 100), $minor % 100);
+        return MoneyFormat::decimal($money);
     }
 }

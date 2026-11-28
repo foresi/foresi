@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Timesheet\Infrastructure\Slot;
 
 use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
 use Foresi\Timesheet\Application\ProjectTimeSettings;
@@ -154,11 +155,11 @@ final readonly class TimesheetSlots implements SlotProvider
         }
         $rate = $this->settings->hourlyRate($project);
         $locale = $this->requests->getCurrentRequest()?->getLocale() ?? 'en';
-        $currencies = array_map(static fn (Currency $currency): string => $currency->value, Currency::cases());
+        $currencies = Currencies::currentCodes();
 
         return [new SlotItem(self::SETTINGS_TEMPLATE, [
             'rate' => TypedAmount::field($rate, $locale),
-            'rateCurrency' => ($rate?->currency() ?? Currency::CZK)->value,
+            'rateCurrency' => ($rate?->currency() ?? Currency::of('CZK'))->code(),
             'currencies' => array_combine($currencies, $currencies),
             'archived' => $project->isArchived(),
         ], 10)];

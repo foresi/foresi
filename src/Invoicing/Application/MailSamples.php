@@ -64,7 +64,7 @@ final readonly class MailSamples
             'description' => '',
             'issue_date' => $this->format->date($today, $language),
             'due_date' => $this->format->date($today->modify('+'.self::DUE_IN_DAYS.' days'), $language),
-            'currency' => $currency->value,
+            'currency' => $currency->code(),
             'document_type' => $documentType,
             'customer_name' => $customer,
             'amount_vat' => $money(self::VAT),

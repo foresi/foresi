@@ -39,7 +39,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         self::assertSame(FlowDirection::Out, $stored->direction());
         self::assertSame(FlowCategory::Rent, $stored->category());
         self::assertSame(1000000, $stored->amount()->minor());
-        self::assertSame(Currency::CZK, $stored->amount()->currency());
+        self::assertSame(Currency::of('CZK'), $stored->amount()->currency());
         self::assertSame('2026-11-20', $stored->firstOn()->format('Y-m-d'));
         self::assertFalse($stored->isRecurring());
         self::assertNull($stored->recurrence(new \DateTimeZone('Europe/Prague')));
@@ -68,7 +68,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         self::assertTrue($stored->isRecurring());
         self::assertFalse($stored->isIncluded());
         self::assertSame(150050, $stored->amount()->minor());
-        self::assertSame(Currency::EUR, $stored->amount()->currency());
+        self::assertSame(Currency::of('EUR'), $stored->amount()->currency());
         self::assertSame('123-456/0100', $stored->matchRule()->counterpartyAccount());
         self::assertSame('0042', $stored->matchRule()->variableSymbol());
         self::assertSame(125, $stored->matchRule()->toleranceMinor());
@@ -81,7 +81,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         $this->assertRefused('name_required', 'name', fn (): PlannedItem => $this->planned(name: ' '));
         $this->assertRefused('name_required', 'name', fn (): PlannedItem => $this->planned(name: str_repeat('ř', PlannedItem::MAX_NAME + 1)));
         $this->assertRefused('category_unknown', 'category', fn (): PlannedItem => $this->planned(category: 'fun'), message: 'The category is one of revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other.');
-        $this->assertRefused('currency_unknown', 'currency', fn (): PlannedItem => $this->planned(currency: 'GBP'), message: 'The currency is one of CZK, EUR, USD.');
+        $this->assertRefused('currency_unknown', 'currency', fn (): PlannedItem => $this->planned(currency: 'XYZ'), message: 'The currency is not an ISO 4217 code; GET /api/v1/currencies lists them.');
         $this->assertRefused('amount_invalid', 'amount', fn (): PlannedItem => $this->planned(amount: '12.345'));
         $this->assertRefused('amount_invalid', 'amount', fn (): PlannedItem => $this->planned(amount: 'ten'));
         $this->assertRefused('amount_not_positive', 'amount', fn (): PlannedItem => $this->planned(amount: '0'));

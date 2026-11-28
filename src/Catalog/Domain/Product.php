@@ -51,7 +51,7 @@ class Product implements Audited
     #[ORM\Column(name: 'unit_price_minor', type: 'bigint', nullable: true)]
     private ?int $unitPriceMinor;
 
-    #[ORM\Column(name: 'currency', type: 'string', length: 3, nullable: true, enumType: Currency::class)]
+    #[ORM\Column(name: 'currency', type: 'currency', length: 3, nullable: true)]
     private ?Currency $currency;
 
     /** A plain string, so a new kind needs no data migration. */

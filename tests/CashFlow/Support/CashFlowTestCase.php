@@ -98,7 +98,7 @@ abstract class CashFlowTestCase extends KernelTestCase
 
     protected function euroAccount(): FirmBankAccount
     {
-        $account = FirmAccounts::add($this->em, self::EURO_IBAN, Currency::EUR);
+        $account = FirmAccounts::add($this->em, self::EURO_IBAN, Currency::of('EUR'));
         $this->em->flush();
 
         return $account;

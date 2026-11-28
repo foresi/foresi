@@ -32,7 +32,7 @@ final class CashFlowValuesTest extends TestCase
 {
     public function testAFlowMovesWithAFlagOnceAndKeepsEverythingElse(): void
     {
-        $flow = new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1', '/api/v1/invoices/inv-1'), FlowDirection::In, Money::of('10.00', Currency::EUR), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Document, 'FV-1', [FlowFlag::NoDueDate], 'contact-1');
+        $flow = new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1', '/api/v1/invoices/inv-1'), FlowDirection::In, Money::of('10.00', Currency::of('EUR')), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Document, 'FV-1', [FlowFlag::NoDueDate], 'contact-1');
 
         $moved = $flow->movedTo(new \DateTimeImmutable('2026-12-01'), FlowFlag::ExpectedDate)->movedTo(new \DateTimeImmutable('2026-12-02'), FlowFlag::ExpectedDate);
 
@@ -46,10 +46,10 @@ final class CashFlowValuesTest extends TestCase
 
     public function testAFlowHasAPositiveAmount(): void
     {
-        new ExpectedFlow('test.source', new FlowSubject('invoice', 'zero'), FlowDirection::Out, Money::of('0', Currency::CZK), new \DateTimeImmutable(), FlowCategory::Other, FlowCertainty::Estimate, 'Zero');
+        new ExpectedFlow('test.source', new FlowSubject('invoice', 'zero'), FlowDirection::Out, Money::of('0', Currency::of('CZK')), new \DateTimeImmutable(), FlowCategory::Other, FlowCertainty::Estimate, 'Zero');
 
         $this->expectException(\InvalidArgumentException::class);
-        new ExpectedFlow('test.source', new FlowSubject('invoice', 'minus'), FlowDirection::Out, Money::of('-0.01', Currency::CZK), new \DateTimeImmutable(), FlowCategory::Other, FlowCertainty::Estimate, 'Minus');
+        new ExpectedFlow('test.source', new FlowSubject('invoice', 'minus'), FlowDirection::Out, Money::of('-0.01', Currency::of('CZK')), new \DateTimeImmutable(), FlowCategory::Other, FlowCertainty::Estimate, 'Minus');
     }
 
     public function testAPeriodIsKeyedByItsIsoWeekOrMonth(): void
@@ -77,7 +77,7 @@ final class CashFlowValuesTest extends TestCase
 
     public function testTermsHaveANameAndAPositiveAmount(): void
     {
-        $terms = static fn (string $name, string $amount): PlannedItemTerms => new PlannedItemTerms($name, FlowCategory::Rent, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, true, MatchRule::none());
+        $terms = static fn (string $name, string $amount): PlannedItemTerms => new PlannedItemTerms($name, FlowCategory::Rent, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), null, null, true, MatchRule::none());
         self::assertSame('Rent', $terms('Rent', '0.01')->name);
 
         foreach ([[' ', '1.00'], ['Rent', '0.00'], ['Rent', '-1.00']] as [$name, $amount]) {
@@ -92,14 +92,14 @@ final class CashFlowValuesTest extends TestCase
 
     public function testTheVatOfAFlowIsZeroOrMoreInTheCurrencyOfItsAmount(): void
     {
-        $flow = static fn (Money $vat): ExpectedFlow => new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1'), FlowDirection::In, Money::of('121.00', Currency::EUR), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Plan, 'FV-1', vat: $vat);
-        self::assertSame(2_100, $flow(Money::of('21.00', Currency::EUR))->vat?->minor());
-        self::assertSame(0, $flow(Money::of('0', Currency::EUR))->vat?->minor());
+        $flow = static fn (Money $vat): ExpectedFlow => new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1'), FlowDirection::In, Money::of('121.00', Currency::of('EUR')), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Plan, 'FV-1', vat: $vat);
+        self::assertSame(2_100, $flow(Money::of('21.00', Currency::of('EUR')))->vat?->minor());
+        self::assertSame(0, $flow(Money::of('0', Currency::of('EUR')))->vat?->minor());
 
-        foreach ([Money::of('-0.01', Currency::EUR), Money::of('21.00', Currency::CZK)] as $vat) {
+        foreach ([Money::of('-0.01', Currency::of('EUR')), Money::of('21.00', Currency::of('CZK'))] as $vat) {
             try {
                 $flow($vat);
-                self::fail('Expected a refusal of the VAT '.$vat->minor().' '.$vat->currency()->value);
+                self::fail('Expected a refusal of the VAT '.$vat->minor().' '.$vat->currency()->code());
             } catch (\InvalidArgumentException) {
                 $this->addToAssertionCount(1);
             }
@@ -108,7 +108,7 @@ final class CashFlowValuesTest extends TestCase
 
     public function testTermsWithAVatModeHaveARateFromZeroToAHundredAndTermsWithoutHaveNone(): void
     {
-        $terms = static fn (PlannedVatMode $mode, ?string $rate): PlannedItemTerms => new PlannedItemTerms('Rent', FlowCategory::Rent, Money::of('100.00', Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, true, MatchRule::none(), $mode, $rate);
+        $terms = static fn (PlannedVatMode $mode, ?string $rate): PlannedItemTerms => new PlannedItemTerms('Rent', FlowCategory::Rent, Money::of('100.00', Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), null, null, true, MatchRule::none(), $mode, $rate);
         self::assertSame(['0.00', '7.05', '21.00', '100.00', null], [
             $terms(PlannedVatMode::Included, '0.00')->vatRate,
             $terms(PlannedVatMode::Excluded, '7.05')->vatRate,
@@ -137,11 +137,11 @@ final class CashFlowValuesTest extends TestCase
 
     public function testAMinimumBalanceIsInCzk(): void
     {
-        $minimum = new MinimumBalance(Money::of('100.00', Currency::CZK));
+        $minimum = new MinimumBalance(Money::of('100.00', Currency::of('CZK')));
         self::assertSame(10000, $minimum->amount()->minor());
 
         $this->expectException(\InvalidArgumentException::class);
-        $minimum->change(Money::of('100.00', Currency::EUR));
+        $minimum->change(Money::of('100.00', Currency::of('EUR')));
     }
 
     public function testAnItemsDayIsTheSameCalendarDayInAnyZone(): void

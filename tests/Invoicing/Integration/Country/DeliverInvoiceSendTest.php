@@ -562,7 +562,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     public function testDeliveryCancelsAReminderWhoseContactWasSwitchedOffMeanwhile(): void
     {
         [, $reminder] = $this->queuedReminder();
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false));
         $this->em->flush();
 
         $this->worker->run();

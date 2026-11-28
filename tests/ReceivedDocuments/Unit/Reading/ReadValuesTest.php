@@ -90,11 +90,11 @@ final class ReadValuesTest extends TestCase
             new \DateTimeImmutable('2026-10-27'),
             new \DateTimeImmutable('2026-11-11'),
             null,
-            Currency::EUR,
-            Money::ofMinor(-12_100, Currency::EUR),
+            Currency::of('EUR'),
+            Money::ofMinor(-12_100, Currency::of('EUR')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor(-10_000, Currency::EUR), Money::ofMinor(-2_100, Currency::EUR))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor(-10_000, Currency::of('EUR')), Money::ofMinor(-2_100, Currency::of('EUR')))],
             null,
         ));
         $holds = fn (ReadField $field, string|int|array $value): bool => ReadValues::holds($document, $this->reading([$field->value => $value]), $field);
@@ -205,6 +205,6 @@ final class ReadValuesTest extends TestCase
     {
         $blank = $this->blank();
 
-        return $this->document(new ReceivedDocumentContent($blank->kind, $blank->treatment, null, $supplier, '', '', null, null, null, $blank->receivedDate, Currency::CZK, null, null, null, [], null));
+        return $this->document(new ReceivedDocumentContent($blank->kind, $blank->treatment, null, $supplier, '', '', null, null, null, $blank->receivedDate, Currency::of('CZK'), null, null, null, [], null));
     }
 }

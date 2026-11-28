@@ -27,7 +27,6 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  */
 final readonly class PlannedItemRules
 {
-    public const array CURRENCIES = ['CZK', 'EUR', 'USD'];
     public const array UNITS = ['day', 'week', 'month', 'year'];
 
     public function __construct(private CashFlowAccess $access)
@@ -44,7 +43,7 @@ final readonly class PlannedItemRules
             throw CashFlowRefused::invalid('name_required', 'name', \sprintf('A planned item has a name of 1 to %d characters.', PlannedItem::MAX_NAME));
         }
         $category = FlowCategory::tryFrom($draft->category) ?? throw CashFlowRefused::invalid('category_unknown', 'category', 'The category is one of '.implode(', ', FlowCategory::values()).'.');
-        $currency = Currency::tryFrom($draft->currency) ?? throw CashFlowRefused::invalid('currency_unknown', 'currency', 'The currency is one of '.implode(', ', self::CURRENCIES).'.');
+        $currency = Currency::tryFrom($draft->currency) ?? throw CashFlowRefused::invalid('currency_unknown', 'currency', 'The currency is not an ISO 4217 code; GET /api/v1/currencies lists them.');
         $amount = self::money($draft->amount, $currency, 'amount');
         if ($amount->minor() <= 0) {
             throw CashFlowRefused::invalid('amount_not_positive', 'amount', 'The amount of a planned item is more than zero; the direction says whether it comes in or goes out.');

@@ -106,7 +106,7 @@ final class VatScreenTest extends KernelTestCase
         $zero = $this->screen->row($this->view(output: 0, input: 0));
         self::assertSame(["0\u{a0}Kč", 'Nic k zaplacení', null], [$zero['result'], $zero['resultLabel'], $zero['due']]);
 
-        $entered = $this->screen->row($this->view(state: PeriodState::ReturnEntered, returnAmount: Money::ofMinor(150_000, Currency::CZK)));
+        $entered = $this->screen->row($this->view(state: PeriodState::ReturnEntered, returnAmount: Money::ofMinor(150_000, Currency::of('CZK'))));
         self::assertSame(["1\u{a0}500\u{a0}Kč", 'Částka z přiznání'], [$entered['result'], $entered['stateLabel']]);
 
         $this->locale('en');
@@ -150,8 +150,8 @@ final class VatScreenTest extends KernelTestCase
 
     public function testTheDuplicatesAndTheUnassignedPayments(): void
     {
-        $payment = new PaymentView(new VatPayment('m1', $this->day('2026-12-27'), Money::ofMinor(150_000, Currency::CZK), false, VatPayment::OTHER), null, false);
-        $refund = new PaymentView(new VatPayment('m2', $this->day('2027-01-20'), Money::ofMinor(300_000, Currency::CZK), true, VatPayment::REFUND), null, true);
+        $payment = new PaymentView(new VatPayment('m1', $this->day('2026-12-27'), Money::ofMinor(150_000, Currency::of('CZK')), false, VatPayment::OTHER), null, false);
+        $refund = new PaymentView(new VatPayment('m2', $this->day('2027-01-20'), Money::ofMinor(300_000, Currency::of('CZK')), true, VatPayment::REFUND), null, true);
         $list = $this->list([], duplicates: [new PossibleDuplicate('p1', 'VAT November', '/cash-flow/planned-costs/p1'), new PossibleDuplicate('p2', 'VAT')], unassigned: [$payment, $refund]);
 
         self::assertSame([['name' => 'VAT November', 'href' => '/cash-flow/planned-costs/p1'], ['name' => 'VAT', 'href' => null]], $this->screen->duplicates($list));
@@ -173,10 +173,10 @@ final class VatScreenTest extends KernelTestCase
 
     public function testTheSheetShowsTheBreakdownTheDocumentsTheStepsAndThePayments(): void
     {
-        $paid = new PaymentView(new VatPayment('m1', $this->day('2026-12-27'), Money::ofMinor(150_000, Currency::CZK), false, VatPayment::PAYABLE), '2026-11', true);
+        $paid = new PaymentView(new VatPayment('m1', $this->day('2026-12-27'), Money::ofMinor(150_000, Currency::of('CZK')), false, VatPayment::PAYABLE), '2026-11', true);
         $view = $this->view(state: PeriodState::Settled, payments: [$paid], mark: new SettledMark($this->day('2026-12-28'), 'u1', null), missingCzk: ['FV-7']);
-        $document = new DocumentVat('invoicing.issued_vat', new VatSubject('invoice', 'i1', '/invoices/i1'), 'FV-1', $this->day('2026-11-20'), $this->day('2026-11-20'), Money::ofMinor(210_000, Currency::CZK), Money::ofMinor(0, Currency::CZK), true);
-        $schedule = new ScheduleAmount(new ScheduledVat('invoicing.recurring_vat', new VatSubject('recurring_invoice', 'r1', null), 'Hosting', $this->day('2026-11-30'), Money::ofMinor(10_000, Currency::EUR)), Money::ofMinor(25_000, Currency::CZK), true, false);
+        $document = new DocumentVat('invoicing.issued_vat', new VatSubject('invoice', 'i1', '/invoices/i1'), 'FV-1', $this->day('2026-11-20'), $this->day('2026-11-20'), Money::ofMinor(210_000, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')), true);
+        $schedule = new ScheduleAmount(new ScheduledVat('invoicing.recurring_vat', new VatSubject('recurring_invoice', 'r1', null), 'Hosting', $this->day('2026-11-30'), Money::ofMinor(10_000, Currency::of('EUR'))), Money::ofMinor(25_000, Currency::of('CZK')), true, false);
 
         $detail = $this->screen->detail(new PeriodDetail($this->list([$view]), $view, [$document], ['received-documents.received_vat'], [$schedule]));
 
@@ -204,7 +204,7 @@ final class VatScreenTest extends KernelTestCase
         self::assertTrue($detail['settled']);
         self::assertSame(['FV-7'], $detail['missingCzk']);
 
-        $open = $this->screen->detail(new PeriodDetail($this->list([$this->view()], gaps: ['schedules_not_counted', 'plans_not_counted']), $this->view(returnAmount: Money::ofMinor(150_000, Currency::CZK)), [], [], []));
+        $open = $this->screen->detail(new PeriodDetail($this->list([$this->view()], gaps: ['schedules_not_counted', 'plans_not_counted']), $this->view(returnAmount: Money::ofMinor(150_000, Currency::of('CZK'))), [], [], []));
         self::assertSame([null, 'Zatím se nepočítá', 'Zatím se nepočítá'], array_column($open['parts'], 'empty'));
         self::assertFalse($open['restricted']);
         self::assertFalse($open['settledMark']);
@@ -215,7 +215,7 @@ final class VatScreenTest extends KernelTestCase
 
     public function testTheDifferenceIsPlainInformation(): void
     {
-        $payment = static fn (int $minor): PaymentView => new PaymentView(new VatPayment('m'.$minor, new \DateTimeImmutable('2026-12-27'), Money::ofMinor($minor, Currency::CZK), false, VatPayment::PAYABLE), '2026-11', false);
+        $payment = static fn (int $minor): PaymentView => new PaymentView(new VatPayment('m'.$minor, new \DateTimeImmutable('2026-12-27'), Money::ofMinor($minor, Currency::of('CZK')), false, VatPayment::PAYABLE), '2026-11', false);
 
         self::assertNull($this->screen->difference($this->view()));
         self::assertSame("Zaplaceno 1\u{a0}890\u{a0}Kč, jak se čekalo.", $this->screen->difference($this->view(payments: [$payment(189_000)])));
@@ -255,7 +255,7 @@ final class VatScreenTest extends KernelTestCase
         array $missingCzk = [],
     ): PeriodView {
         $period = new VatPeriod($key, $this->day($start), $this->day($end), VatPeriodLength::Month);
-        $czk = static fn (int $minor): Money => Money::ofMinor($minor, Currency::CZK);
+        $czk = static fn (int $minor): Money => Money::ofMinor($minor, Currency::of('CZK'));
         $result = $czk($output - $input);
         $amounts = new PeriodAmounts($period, new VatPart($czk($output), $czk($input)), VatPart::zero(), VatPart::zero(), [
             new CalculationStep(CalculationStep::OUTPUT, $czk($output), 'output', []),

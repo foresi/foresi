@@ -21,6 +21,7 @@ use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Shared\Domain\Currencies;
 
 /**
  * Reads go through the ORM; the two locks are plain statements. A page of the
@@ -260,12 +261,33 @@ final readonly class DoctrineBankMovements implements BankMovements
         $found = ["LOWER(m.counterName) LIKE :text ESCAPE '!'", "LOWER(m.message) LIKE :text ESCAPE '!'", "m.variableSymbol LIKE :text ESCAPE '!'", "m.counterAccount LIKE :text ESCAPE '!'"];
         $parameters = ['text' => ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%', null]];
         $amount = str_replace([' ', "\u{a0}", "\u{202f}", ','], ['', '', '', '.'], $text);
-        if (1 === preg_match('/^\d{1,13}(?:\.\d{1,2})?$/D', $amount)) {
+        if (1 === preg_match('/^\d{1,13}(?:\.\d{1,4})?$/D', $amount)) {
             [$whole, $decimals] = explode('.', $amount.'.', 3);
-            $found[] = 'm.amountMinor = :minor';
-            $parameters['minor'] = [(int) $whole * 100 + (int) str_pad($decimals, 2, '0'), null];
+            // The amount in each scale a currency has, matched only in the currencies of that scale.
+            foreach ($this->currenciesByMinorUnits() as $digits => $codes) {
+                if (\strlen($decimals) <= $digits) {
+                    $found[] = \sprintf('(m.amountMinor = :minor%1$d AND m.currency IN (:currencies%1$d))', $digits);
+                    $parameters['minor'.$digits] = [(int) $whole * 10 ** $digits + (int) str_pad($decimals, $digits, '0'), null];
+                    $parameters['currencies'.$digits] = [$codes, ArrayParameterType::STRING];
+                }
+            }
         }
 
         return ['('.implode(' OR ', $found).')', $parameters];
+    }
+
+    /**
+     * The ISO codes grouped by how many decimals the currency has: 0 for yen, 2 for euro, 3 for dinar.
+     *
+     * @return array<int, list<string>>
+     */
+    private function currenciesByMinorUnits(): array
+    {
+        $groups = [];
+        foreach (Currencies::all() as $currency) {
+            $groups[$currency->minorUnits()][] = $currency->code();
+        }
+
+        return $groups;
     }
 }

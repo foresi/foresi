@@ -646,7 +646,7 @@ final class PublicDocumentControllerTest extends WebTestCase
             $container = self::getContainer();
             [, $series, $customer] = $this->firm ??= $this->newFirm();
             $day = new \DateTimeImmutable('2026-11-01');
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $invoice = $container->get(IssueInvoice::class)->issue(new InvoiceInput($series, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-15'), $method, PaymentMethod::BankTransfer === $method ? self::IBAN : null, '20260001', '', '', 'Consulting', '', '', $language, [$line]));
             $send = $container->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], $copy, 'Invoice 20260001', "Invoice 20260001\n{link}"));
             $tokens = $container->get(LinkTokens::class);
@@ -681,7 +681,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         $document = $this->scoped(function (): Invoice {
             $advance = $this->issuedAdvance();
-            $money = Money::of('1210.00', Currency::CZK);
+            $money = Money::of('1210.00', Currency::of('CZK'));
             $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), $money)]));
             $id = self::getContainer()->get(AdvanceDocuments::class)->taxDocumentOf($advance->id(), $payment->id());
             self::assertNotNull($id);
@@ -706,7 +706,7 @@ final class PublicDocumentControllerTest extends WebTestCase
             $deductible = $container->get(DeductibleAdvances::class)->for($customer, null, DocumentLanguage::Czech);
             self::assertCount(1, $deductible);
             $day = new \DateTimeImmutable('2026-11-03');
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
             return $container->get(IssueInvoice::class)->issue(new InvoiceInput($series, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-17'), PaymentMethod::BankTransfer, self::IBAN, '20260001', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line, ...$deductible[0]->lines]));
         });
@@ -728,7 +728,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $correction = $this->scoped(function () use ($original, $quantity): Invoice {
             [, , $customer] = $this->firm ?? throw new \LogicException('The firm is missing.');
             $day = new \DateTimeImmutable('2026-11-03');
-            $line = new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(null, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-17'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, null, new CorrectionInput($original['invoice'], 'Returned goods', CorrectionType::Change, $day)));
         });
@@ -742,7 +742,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         [, , $customer] = $this->firm ??= $this->newFirm();
         $day = new \DateTimeImmutable('2026-11-01');
-        $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(null, null, $customer, null, $day, null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance));
     }
@@ -766,7 +766,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     private function paid(string $invoiceId, string $amount, string $on = '2026-11-03'): void
     {
         $this->scoped(function () use ($invoiceId, $amount, $on): void {
-            $money = Money::of($amount, Currency::CZK);
+            $money = Money::of($amount, Currency::of('CZK'));
             self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable($on), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
         });
     }

@@ -43,7 +43,7 @@ class BillingPlanEntry implements Audited
     #[ORM\Column(name: 'amount_minor', type: 'bigint', nullable: true)]
     private ?int $amountMinor = null;
 
-    #[ORM\Column(name: 'currency', type: 'string', length: 3, nullable: true, enumType: Currency::class)]
+    #[ORM\Column(name: 'currency', type: 'currency', length: 3, nullable: true)]
     private ?Currency $currency = null;
 
     #[ORM\Column(name: 'expected_on', type: 'date_immutable', nullable: true)]

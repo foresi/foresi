@@ -105,7 +105,7 @@ final class CzechVatRatesTest extends TestCase
 
         self::assertTrue($country->supports('CZ'));
         self::assertFalse($country->supports('SK'));
-        self::assertSame(Currency::CZK, $country->homeCurrency());
+        self::assertSame(Currency::of('CZK'), $country->homeCurrency());
         self::assertSame('Europe/Prague', $country->timezone()->getName());
         self::assertSame('21.00', $country->rate(VatRateKind::Base, new \DateTimeImmutable('2026-10-31'))->decimal());
         self::assertSame('invoice.pdf.note.reverse_charge', $country->noteKey(TaxTreatment::ReverseCharge));

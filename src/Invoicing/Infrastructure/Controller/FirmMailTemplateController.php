@@ -232,7 +232,7 @@ final class FirmMailTemplateController extends AbstractController
         try {
             return $this->countries->for($this->firm()->address()->countryCode)->homeCurrency();
         } catch (UnsupportedCountry) {
-            return Currency::EUR;
+            return Currency::of('EUR');
         }
     }
 

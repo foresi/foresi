@@ -36,7 +36,7 @@ final class PaymentStateTest extends TestCase
     #[DataProvider('amounts')]
     public function testTheStateFollowsThePaidAmount(int $payable, int $paid, PaymentState $state): void
     {
-        self::assertSame($state, PaymentState::of(Money::ofMinor($payable, Currency::CZK), Money::ofMinor($paid, Currency::CZK)));
+        self::assertSame($state, PaymentState::of(Money::ofMinor($payable, Currency::of('CZK')), Money::ofMinor($paid, Currency::of('CZK'))));
     }
 
     /**
@@ -54,7 +54,7 @@ final class PaymentStateTest extends TestCase
     #[DataProvider('nothingPayable')]
     public function testZeroPayableShowsNoPaymentState(int $payable, int $paid): void
     {
-        self::assertSame(PaymentState::Unpaid, PaymentState::of(Money::ofMinor($payable, Currency::CZK), Money::ofMinor($paid, Currency::CZK)));
+        self::assertSame(PaymentState::Unpaid, PaymentState::of(Money::ofMinor($payable, Currency::of('CZK')), Money::ofMinor($paid, Currency::of('CZK'))));
     }
 
     /**
@@ -81,23 +81,23 @@ final class PaymentStateTest extends TestCase
     #[DataProvider('corrected')]
     public function testCorrectionsChangeWhatIsDue(int $corrections, int $paid, PaymentState $state): void
     {
-        self::assertSame($state, PaymentState::of(Money::ofMinor(121000, Currency::CZK), Money::ofMinor($paid, Currency::CZK), Money::ofMinor($corrections, Currency::CZK)));
+        self::assertSame($state, PaymentState::of(Money::ofMinor(121000, Currency::of('CZK')), Money::ofMinor($paid, Currency::of('CZK')), Money::ofMinor($corrections, Currency::of('CZK'))));
     }
 
     public function testACorrectionOfANothingPayableDocumentShowsNoPaymentState(): void
     {
-        self::assertSame(PaymentState::Unpaid, PaymentState::of(Money::ofMinor(0, Currency::CZK), Money::ofMinor(0, Currency::CZK), Money::ofMinor(-100, Currency::CZK)));
+        self::assertSame(PaymentState::Unpaid, PaymentState::of(Money::ofMinor(0, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')), Money::ofMinor(-100, Currency::of('CZK'))));
     }
 
     public function testACorrectiveDocumentHasNoPaymentStateOfItsOwn(): void
     {
-        self::assertSame(PaymentState::Unpaid, PaymentState::ofDocument(DocumentKind::CorrectionDocument, Money::ofMinor(24200, Currency::CZK), Money::ofMinor(24200, Currency::CZK)));
+        self::assertSame(PaymentState::Unpaid, PaymentState::ofDocument(DocumentKind::CorrectionDocument, Money::ofMinor(24200, Currency::of('CZK')), Money::ofMinor(24200, Currency::of('CZK'))));
     }
 
     public function testACorrectionInAnotherCurrencyIsRefused(): void
     {
         $this->expectException(CurrencyMismatch::class);
-        PaymentState::of(Money::ofMinor(100, Currency::CZK), Money::ofMinor(0, Currency::CZK), Money::ofMinor(-100, Currency::EUR));
+        PaymentState::of(Money::ofMinor(100, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')), Money::ofMinor(-100, Currency::of('EUR')));
     }
 
     public function testOnlyPaidOverpaidAndToRefundAreSettled(): void
@@ -111,6 +111,6 @@ final class PaymentStateTest extends TestCase
     public function testAnotherCurrencyIsRefused(): void
     {
         $this->expectException(CurrencyMismatch::class);
-        PaymentState::of(Money::ofMinor(100, Currency::CZK), Money::ofMinor(100, Currency::EUR));
+        PaymentState::of(Money::ofMinor(100, Currency::of('CZK')), Money::ofMinor(100, Currency::of('EUR')));
     }
 }

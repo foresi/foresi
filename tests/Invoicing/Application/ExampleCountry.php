@@ -38,7 +38,7 @@ final readonly class ExampleCountry implements InvoicingCountry
 
     public function homeCurrency(): Currency
     {
-        return Currency::CZK;
+        return Currency::of('CZK');
     }
 
     public function roundsTotalsToWholeUnits(): bool

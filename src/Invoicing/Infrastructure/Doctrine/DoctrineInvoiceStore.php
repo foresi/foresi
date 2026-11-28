@@ -381,14 +381,14 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         // Each document converts at its own rate, as its summary in the pack does, before the sums add up.
         /** @var array<string, array{treatment: TaxTreatment, rate: ?string, net: Money, vat: Money, gross: Money}> $lines */
         $lines = [];
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         [$net, $vat, $gross] = [$zero, $zero, $zero];
         /** @var list<array{treatment: TaxTreatment, rate: ?string, currency: Currency, exchangeRate: string, net: int|numeric-string, vat: int|numeric-string, gross: int|numeric-string}> $rows */
         $rows = $groups->getResult(Query::HYDRATE_ARRAY);
         foreach ($rows as $row) {
             $key = $row['treatment']->value.'|'.$row['rate'];
             $line = $lines[$key] ?? ['net' => $zero, 'vat' => $zero, 'gross' => $zero];
-            $home = static fn (int|string $minor): Money => Money::ofMinor((int) $minor, Currency::CZK)->multipliedBy($row['exchangeRate']);
+            $home = static fn (int|string $minor): Money => Money::ofMinor((int) $minor, Currency::of('CZK'))->multipliedBy($row['exchangeRate']);
             $lines[$key] = ['treatment' => $row['treatment'], 'rate' => $row['rate'], 'net' => $line['net']->plus($home($row['net'])), 'vat' => $line['vat']->plus($home($row['vat'])), 'gross' => $line['gross']->plus($home($row['gross']))];
             $net = $net->plus($home($row['net']));
             $vat = $vat->plus($home($row['vat']));

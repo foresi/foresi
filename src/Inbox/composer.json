@@ -18,7 +18,7 @@
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
         "foresi/mail": "self.version",
-        "foresi/module-api": "^2.0",
+        "foresi/module-api": "^3.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",

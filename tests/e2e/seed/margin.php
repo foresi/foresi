@@ -64,7 +64,7 @@ $entityManager->persist($marginSeries);
 $entityManager->flush();
 $marginClient = $createParty->createFrom($party(PartyKind::Company, 'Client A s.r.o.', [PartyRole::Customer], 'billing@example.com', 8, '12345679', 'CZ12345679'));
 $issueInvoice->issue(new InvoiceInput($marginSeries->id(), null, $marginClient->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [
-    new LineInput('Consulting', Quantity::fromString('1'), 'ks', Money::of('8000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    new LineInput('Consulting', Quantity::fromString('1'), 'ks', Money::of('8000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 $createParty->createFrom($party(PartyKind::Company, 'Cloud Host s.r.o.', [PartyRole::Supplier], 'office@example.com', 2, '12345687', 'CZ12345687'));
 $marginOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'margin@example.com']) ?? throw new LogicException('The owner of the margin world is missing.');
@@ -78,8 +78,8 @@ $marginDocument = $container->get('e2e.record_received_document');
 $margin14 = new DateTimeImmutable('2026-10-14');
 $marginDocument->create(new ReceivedDocumentInput(
     ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, $marginSuppliers['Cloud Host s.r.o.'], 'FV-2026-0414', '2026041400',
-    $margin14, $margin14, $margin14->modify('+14 days'), $margin14, Currency::CZK, Money::of('1815.00', Currency::CZK),
-    null, null, [new VatRecapLine(VatRate::of('21'), Money::of('1500.00', Currency::CZK), Money::of('315.00', Currency::CZK))],
+    $margin14, $margin14, $margin14->modify('+14 days'), $margin14, Currency::of('CZK'), Money::of('1815.00', Currency::of('CZK')),
+    null, null, [new VatRecapLine(VatRate::of('21'), Money::of('1500.00', Currency::of('CZK')), Money::of('315.00', Currency::of('CZK')))],
 ));
 
 // A cost Client A bears that was paid and not rebilled: Voice API, planned monthly from 20 November 2026, mapped
@@ -100,15 +100,15 @@ $marginMapping->setPlannedAllocation(new SetPlannedAllocationInput($marginCost->
 $margin20 = new DateTimeImmutable('2026-11-20');
 $marginVoice = $marginDocument->create(new ReceivedDocumentInput(
     ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, $marginSuppliers['Voice API s.r.o.'], 'FV-2026-1120', '2026112000',
-    $margin20, $margin20, $margin20->modify('+14 days'), $margin20, Currency::CZK, Money::of('1210.00', Currency::CZK),
-    null, null, [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', Currency::CZK), Money::of('210.00', Currency::CZK))],
+    $margin20, $margin20, $margin20->modify('+14 days'), $margin20, Currency::of('CZK'), Money::of('1210.00', Currency::of('CZK')),
+    null, null, [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', Currency::of('CZK')), Money::of('210.00', Currency::of('CZK')))],
 ));
 $container->get(DocumentPairings::class)->pair(new FlowSubject('received_document', $marginVoice->document->id()), $marginCost->id(), $margin20);
 $marginSave = $container->get('e2e.save_recurring');
 \assert($marginSave instanceof SaveRecurringInvoice);
 $marginSave->create(new RecurringInput(
     $marginSeries->id(), $marginClient->id(), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', 'Voice API {month/year}', '', '', DocumentLanguage::Czech,
-    [new LineInput('Voice API {month/year}', Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+    [new LineInput('Voice API {month/year}', Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
     new Recurrence(new DateTimeImmutable('2026-12-01'), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null),
     TaxPointRule::IssueDate, 14, RecurringDelivery::Review, 'Example Voice API',
 ));

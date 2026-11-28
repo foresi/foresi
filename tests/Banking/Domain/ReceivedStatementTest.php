@@ -61,11 +61,11 @@ final class ReceivedStatementTest extends TestCase
 
     private function received(?string $hash, ?string $name, ?StatementSequence $sequence = null): ReceivedStatement
     {
-        $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, 'Main', 1);
+        $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::of('CZK'), 'Main', 1);
 
         return new ReceivedStatement(
             $account,
-            new BankStatement($account->iban(), Currency::CZK, [], sequence: $sequence),
+            new BankStatement($account->iban(), Currency::of('CZK'), [], sequence: $sequence),
             MovementProvenance::unverified(MovementChannel::Statement, 'test.json'),
             $hash,
             $name,

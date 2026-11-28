@@ -30,7 +30,7 @@ final readonly class FlatRateResult
      */
     public function __construct(public array $months)
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         [$tax, $social, $health] = [$zero, $zero, $zero];
         foreach ($months as $month) {
             $tax = $tax->plus($month->incomeTax);

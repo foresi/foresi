@@ -60,7 +60,7 @@ final readonly class SearchInvoicesTool implements ReadTool
             .'Every argument narrows the search, all joined by AND; with none, it returns the newest documents. '
             .'view_id lists what a saved view holds (find views with foresi_list_views; it needs the views:read scope) and filter adds conditions in the format of foresi_list_lists, such as {"conditions": [{"field": "due_date", "op": "is", "value": {"relative": "next_n_days", "n": 7}}]}. '
             .'Returns {items, next_cursor, applied_view}: each item has the id, number, kind, firm, customer, issue, due and tax point dates, the total, paid and remaining amounts, the payment state and whether it is overdue, delivered or in the trash. '
-            .'Money is {amount_minor, currency}, in hundredths of the currency. '
+            .'Money is {amount_minor, currency, minor_units}: amount_minor in minor units, minor_units the decimals of the currency. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_get_invoice for the lines, payments and balances of one document, foresi_search_contacts for a customer_id.';
     }

@@ -45,7 +45,7 @@ final readonly class GetPaymentTool implements ReadTool
     public function description(): string
     {
         return 'Returns one payment of the organisation by its id, a cancelled one too: its firm, day, amount, direction, method, source, note, the bank movement it came from, when it was cancelled, and the documents it is allocated to with the amounts. '
-            .'Money is {amount_minor, currency}, in hundredths of the currency. '
+            .'Money is {amount_minor, currency, minor_units}: amount_minor in minor units, minor_units the decimals of the currency. '
             .'Find the id with foresi_search_payments, or in the payments of foresi_get_invoice.';
     }
 

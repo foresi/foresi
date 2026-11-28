@@ -37,6 +37,7 @@ use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
@@ -153,7 +154,7 @@ final class FirmBankController extends AbstractController
         $this->denyUnlessOwner();
         $firm = $this->firm();
         $first = [] === $this->accounts->all();
-        $values = ['number' => '', 'currency' => Currency::CZK->value, 'label' => '', 'primary' => $first ? '1' : ''];
+        $values = ['number' => '', 'currency' => Currency::of('CZK')->code(), 'label' => '', 'primary' => $first ? '1' : ''];
         if (!$request->isMethod('POST')) {
             return $this->accountForm($firm, null, $values, [], Response::HTTP_OK);
         }
@@ -191,7 +192,7 @@ final class FirmBankController extends AbstractController
         $this->denyUnlessOwner();
         $firm = $this->firm();
         $stored = $this->account($account);
-        $values = ['number' => $stored->iban(), 'currency' => $stored->currency()->value, 'label' => $stored->label(), 'primary' => $stored->isPrimary() ? '1' : ''];
+        $values = ['number' => $stored->iban(), 'currency' => $stored->currency()->code(), 'label' => $stored->label(), 'primary' => $stored->isPrimary() ? '1' : ''];
         if (!$request->isMethod('POST')) {
             return $this->accountForm($firm, $stored, $values, [], Response::HTTP_OK);
         }
@@ -199,7 +200,7 @@ final class FirmBankController extends AbstractController
         $this->checkToken($request, self::ACCOUNT_TOKEN);
         // The IBAN is the account itself: whatever is posted for it is not read.
         $locked = $this->usage->hasMovements($stored->id());
-        $values['currency'] = $locked ? $stored->currency()->value : $request->request->getString('currency');
+        $values['currency'] = $locked ? $stored->currency()->code() : $request->request->getString('currency');
         $values['label'] = trim($request->request->getString('label'));
         $values['primary'] = $stored->isPrimary() || '1' === $request->request->getString('primary') ? '1' : '';
         $errors = $this->labelErrors($values['label']);
@@ -224,7 +225,7 @@ final class FirmBankController extends AbstractController
         $stored = $this->account($account);
         $this->checkToken($request, self::ACTION_TOKEN);
         try {
-            $this->manage->change($stored->id(), $stored->label(), $stored->currency()->value, true);
+            $this->manage->change($stored->id(), $stored->label(), $stored->currency()->code(), true);
             $this->addFlash('success', $this->translator->trans('bank.account.flash.primary', ['name' => $this->name($firm, $stored)]));
         } catch (BankAccountRefused $refused) {
             $this->addFlash('error', $this->translator->trans($refused->getMessage()));
@@ -334,7 +335,7 @@ final class FirmBankController extends AbstractController
             'account' => $account,
             'values' => $values,
             'errors' => array_map(fn (string $key): string => $this->translator->trans($key), $errors),
-            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
+            'currencies' => Currencies::choices(),
             'currencyLocked' => $locked,
             'domestic' => $account instanceof FirmBankAccount ? $this->domestic($firm, $account->iban()) : null,
             'iban' => $account instanceof FirmBankAccount ? $this->grouped($account->iban()) : null,
@@ -379,7 +380,7 @@ final class FirmBankController extends AbstractController
             'label' => $name,
             'cells' => $working->display->cells($row),
             // On a phone the IBAN and the currency go under the name.
-            'secondary' => $row->iban.' · '.$account->currency()->value,
+            'secondary' => $row->iban.' · '.$account->currency()->code(),
             'actions' => $actions,
         ];
     }

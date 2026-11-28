@@ -133,10 +133,10 @@ abstract class PaymentReadTestCase extends InvoiceTestCase
     ): Payment {
         $total = $amount ?? (string) array_sum(array_map(intval(...), $parts));
         $movement = PaymentSource::BankMovement === $source ? \sprintf('01963c5e-0000-7000-8000-%012d', random_int(1, 999_999)) : null;
-        $payment = new Payment(new \DateTimeImmutable($on), Money::of($total, Currency::CZK), $method, $source, $movement, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
+        $payment = new Payment(new \DateTimeImmutable($on), Money::of($total, Currency::of('CZK')), $method, $source, $movement, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
         $this->em->persist($payment);
         foreach ($parts as $invoiceId => $part) {
-            $this->em->persist(new PaymentAllocation($payment, $this->em->getReference(Invoice::class, $invoiceId) ?? throw new \LogicException('No invoice.'), Money::of($part, Currency::CZK)));
+            $this->em->persist(new PaymentAllocation($payment, $this->em->getReference(Invoice::class, $invoiceId) ?? throw new \LogicException('No invoice.'), Money::of($part, Currency::of('CZK'))));
         }
         if ($cancelled) {
             $payment->cancel(new \DateTimeImmutable('2026-11-11 08:00:00'), $this->owner->user()->id());

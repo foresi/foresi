@@ -291,7 +291,7 @@ final readonly class AllocationWrites
         return new AllocationShare(
             $this->recipient($share['recipient'], 'shares'),
             $percent,
-            null === $amount ? null : Money::of(trim($amount), Currency::CZK),
+            null === $amount ? null : Money::of(trim($amount), Currency::of('CZK')),
             $rest,
         );
     }

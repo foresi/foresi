@@ -29,7 +29,7 @@
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <twig:Ui:TextInput name="receivedOn" id="refund-receivedOn" type="date" :label="'invoice.payment.refund.date'|trans" :value="values.receivedOn" :error="errors.receivedOn|default(null)" :required="true" :max="today" />
-            <twig:Ui:TextInput name="amount" id="refund-amount" :label="'invoice.payment.field.amount'|trans ~ ' (' ~ unit ~ ')'" :value="values.amount" :error="errors.amount|default(null)" :required="true" inputmode="decimal" autocomplete="off" class="num text-right" :autofocus="errors is empty" data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished" />
+            <twig:Ui:TextInput name="amount" id="refund-amount" :label="'invoice.payment.field.amount'|trans ~ ' (' ~ unit ~ ')'" :value="values.amount" :error="errors.amount|default(null)" :required="true" inputmode="decimal" autocomplete="off" class="num text-right" :autofocus="errors is empty" data-controller="number-input" data-number-input-decimals-value="{{ invoice.currency.minorUnits }}" data-action="input->number-input#typed blur->number-input#finished" />
         </div>
         <twig:Ui:Select name="method" id="refund-method" :label="'invoice.payment.field.method'|trans" :options="methods" :value="values.method" :error="errors.method|default(null)" />
         <twig:Ui:Textarea name="note" id="refund-note" :label="'invoice.payment.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" :maxlength="maxNote" />

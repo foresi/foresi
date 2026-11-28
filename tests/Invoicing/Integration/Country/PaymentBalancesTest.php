@@ -116,7 +116,7 @@ final class PaymentBalancesTest extends InvoiceBalancesContract
 
         $owed = $this->balances()->outstanding([$invoice->id()])[$invoice->id()];
 
-        self::assertSame(Currency::EUR, $owed->currency());
+        self::assertSame(Currency::of('EUR'), $owed->currency());
         self::assertSame(121000, $owed->minor());
     }
 
@@ -194,7 +194,7 @@ final class PaymentBalancesTest extends InvoiceBalancesContract
 
     private function pay(string $invoiceId, string $amount): Payment
     {
-        $czk = Money::of($amount, Currency::CZK);
+        $czk = Money::of($amount, Currency::of('CZK'));
         $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(
             new \DateTimeImmutable('2026-11-01'),
             $czk,

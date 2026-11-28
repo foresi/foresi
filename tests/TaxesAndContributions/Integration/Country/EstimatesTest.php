@@ -232,7 +232,7 @@ final class EstimatesTest extends TaxesTestCase
 
         self::assertNotContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $next->warnings);
 
-        $stated = new ForecastAmount('cash-flow.planned', null, AmountKind::Income, new \DateTimeImmutable('2027-04-01', new \DateTimeZone('Europe/Prague')), Money::ofMinor(12_100_000, Currency::CZK), ForecastCertainty::Plan, Money::ofMinor(2_100_000, Currency::CZK));
+        $stated = new ForecastAmount('cash-flow.planned', null, AmountKind::Income, new \DateTimeImmutable('2027-04-01', new \DateTimeZone('Europe/Prague')), Money::ofMinor(12_100_000, Currency::of('CZK')), ForecastCertainty::Plan, Money::ofMinor(2_100_000, Currency::of('CZK')));
         $partial = $this->estimates([], [new FakeForecastSource([$stated], ['invoicing.invoices'])])->of(2027);
         self::assertContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $partial->warnings);
         self::assertInstanceOf(ForecastView::class, $partial->forecast);
@@ -251,7 +251,7 @@ final class EstimatesTest extends TaxesTestCase
     {
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
         $amounts = [$this->amount('a', '2026-01-10', 100_000, 100_000), $this->amount('b', '2026-03-10', 31_000_000, 31_000_000)];
-        $costs = [new ActualAmount('received-documents.payments', new Subject('received_document', 'd', null), AmountKind::Cost, new \DateTimeImmutable('2026-03-12', new \DateTimeZone('Europe/Prague')), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(0, Currency::CZK), null, false)];
+        $costs = [new ActualAmount('received-documents.payments', new Subject('received_document', 'd', null), AmountKind::Cost, new \DateTimeImmutable('2026-03-12', new \DateTimeZone('Europe/Prague')), Money::ofMinor(1_000_000, Currency::of('CZK')), Money::ofMinor(1_000_000, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')), null, false)];
         $forecast = new FakeForecastSource([$this->expected('c', '2026-12-15', 60_000_000, ForecastCertainty::Plan)]);
 
         $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', $amounts), new FakeAmountSource('received-documents.payments', $costs)], [$forecast])->of(2026);
@@ -398,7 +398,7 @@ final class EstimatesTest extends TaxesTestCase
         $income = [new FakeAmountSource('invoicing.payments', [$this->amount('a', '2026-05-10', 90_000_000, 90_000_000)]), new FakeAmountSource('received-documents.payments', [])];
         $settlement = $this->payment($this->estimatesWith($income, [])->of(2026), 'social.settlement.2026');
         $bank = new FakeLevyPayments([
-            new LevyPayment(Authority::Social, 'jan', new \DateTimeImmutable('2027-01-29', new \DateTimeZone('Europe/Prague')), Money::ofMinor(100, Currency::CZK)),
+            new LevyPayment(Authority::Social, 'jan', new \DateTimeImmutable('2027-01-29', new \DateTimeZone('Europe/Prague')), Money::ofMinor(100, Currency::of('CZK'))),
             new LevyPayment(Authority::Social, 'settle', new \DateTimeImmutable('2027-06-05', new \DateTimeZone('Europe/Prague')), $settlement->amount),
         ]);
         $estimates = $this->estimatesWith($income, [$bank]);
@@ -469,7 +469,7 @@ final class EstimatesTest extends TaxesTestCase
 
     private function expected(string $id, string $on, int $gross, ForecastCertainty $certainty = ForecastCertainty::Document, AmountKind $kind = AmountKind::Income, bool $restricted = false, string $source = 'invoicing.invoices'): ForecastAmount
     {
-        return new ForecastAmount($source, $restricted ? null : new Subject('invoice', $id, null), $kind, new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague')), Money::ofMinor($gross, Currency::CZK), $certainty);
+        return new ForecastAmount($source, $restricted ? null : new Subject('invoice', $id, null), $kind, new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague')), Money::ofMinor($gross, Currency::of('CZK')), $certainty);
     }
 
     /**
@@ -494,6 +494,6 @@ final class EstimatesTest extends TaxesTestCase
     {
         $day = new \DateTimeImmutable($paidOn, new \DateTimeZone('Europe/Prague'));
 
-        return new ActualAmount('invoicing.payments', new Subject('invoice', $id, '/api/v1/invoices/'.$id), AmountKind::Income, $day, Money::ofMinor($gross, Currency::CZK), Money::ofMinor($net, Currency::CZK), Money::ofMinor($gross - $net, Currency::CZK), $day, false);
+        return new ActualAmount('invoicing.payments', new Subject('invoice', $id, '/api/v1/invoices/'.$id), AmountKind::Income, $day, Money::ofMinor($gross, Currency::of('CZK')), Money::ofMinor($net, Currency::of('CZK')), Money::ofMinor($gross - $net, Currency::of('CZK')), $day, false);
     }
 }

@@ -36,7 +36,7 @@ class ProjectTimeSetting implements Audited, AuditRooted
     #[ORM\Column(name: 'hourly_rate_minor', type: 'bigint', nullable: true)]
     private ?int $hourlyRateMinor = null;
 
-    #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(name: 'hourly_rate_currency', type: 'currency', length: 3, nullable: true, options: ['fixed' => true])]
     private ?Currency $hourlyRateCurrency = null;
 
     #[ORM\Column(name: 'budget_counting', type: 'string', length: 16, enumType: BudgetCounting::class, options: ['default' => 'all'])]

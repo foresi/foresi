@@ -40,6 +40,7 @@ use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -80,7 +81,7 @@ final class PartyImportTargetTest extends KernelTestCase
         self::assertSame('import.field.party.billing_city', $fields['billing_city']->labelKey);
         self::assertSame(FieldType::EmailList, $fields['email']->type);
         self::assertSame(['person', 'sole_trader', 'company'], $fields['kind']->choices);
-        self::assertSame(['CZK', 'EUR', 'USD'], $fields['currency']->choices);
+        self::assertSame(Currencies::currentCodes(), $fields['currency']->choices);
         self::assertSame(['bank_transfer', 'cash', 'card'], $fields['payment_method']->choices);
         self::assertSame(['customer', 'supplier', 'partner', 'authority'], $fields['roles']->choices);
         foreach (['ic', 'ico', 'dic', 'nazev', 'nazev firmy', 'ulice', 'mesto', 'psc', 'stat', 'e mail', 'telefon', 'splatnost'] as $alias) {
@@ -137,7 +138,7 @@ final class PartyImportTargetTest extends KernelTestCase
         yield 'contact person' => [['contact_title' => 'Ing.', 'contact_first_name' => 'Jana', 'contact_last_name' => 'Example', 'contact_email' => 'jana@example.com', 'contact_phone' => '+420 111 222 333', 'contact_position' => 'Accountant'], self::contact(...), ['Ing. Jana Example', 'jana@example.com', '+420 111 222 333', 'Accountant', true]];
         yield 'contact person by full name' => [['contact_name' => 'Jana Example', 'contact_first_name' => 'Ignored'], self::contact(...), ['Jana Example', null, '', '', true]];
         yield 'due days' => [['due_days' => 30], static fn (Party $p): int => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->dueDays, 30];
-        yield 'currency' => [['currency' => 'EUR'], static fn (Party $p): Currency => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->currency, Currency::EUR];
+        yield 'currency' => [['currency' => 'EUR'], static fn (Party $p): Currency => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->currency, Currency::of('EUR')];
         yield 'payment method' => [['payment_method' => 'cash'], static fn (Party $p): PaymentMethod => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->paymentMethod, PaymentMethod::Cash];
         yield 'private note' => [['private_note' => 'Pays late'], static fn (Party $p): string => $p->privateNote(), 'Pays late'];
     }
@@ -330,13 +331,13 @@ final class PartyImportTargetTest extends KernelTestCase
 
         $this->target->update($id, $blank, BlankCells::Keep);
         $party = $this->find($id);
-        self::assertSame(['+420 123 456 789', '+420 987 654 321', 'https://www.example.com', 'CZ12345687', 'Note', [PartyRole::Supplier], 30, Currency::EUR, PaymentMethod::Cash], $this->scalars($party));
+        self::assertSame(['+420 123 456 789', '+420 987 654 321', 'https://www.example.com', 'CZ12345687', 'Note', [PartyRole::Supplier], 30, Currency::of('EUR'), PaymentMethod::Cash], $this->scalars($party));
         self::assertSame('Example Company', $party->displayName());
         self::assertEquals(new Address('Example Street 1', 'Example City', '100 00', 'SK'), $this->details()->billingAddress($party)?->address());
 
         $this->target->update($id, $blank, BlankCells::Clear);
         $party = $this->find($id);
-        self::assertSame(['', '', '', 'CZ12345687', '', [], 14, Currency::CZK, PaymentMethod::BankTransfer], $this->scalars($party), 'a company keeps an identifier');
+        self::assertSame(['', '', '', 'CZ12345687', '', [], 14, Currency::of('CZK'), PaymentMethod::BankTransfer], $this->scalars($party), 'a company keeps an identifier');
         self::assertSame('12345687', $party->registrationNumber()?->value);
         self::assertSame('Example Company', $party->displayName(), 'the name is required');
         self::assertEquals(new Address('', '', '', 'CZ'), $this->details()->billingAddress($party)?->address());
@@ -419,7 +420,7 @@ final class PartyImportTargetTest extends KernelTestCase
     {
         $id = $this->create($this->values(['email' => ['info@example.com', 'copy@example.com'], 'phone' => '+420 123 456 789', 'website' => 'https://old.example.com', 'roles' => 'supplier', 'due_days' => 30, 'currency' => 'EUR', 'bank_account_iban' => 'CZ0303000000190000123457']))->id;
         $party = $this->find($id);
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new \Foresi\Invoicing\Contract\InvoicingDefaults(30, Currency::EUR, \Foresi\Invoicing\Contract\DocumentLanguage::English, PaymentMethod::Card, true));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new \Foresi\Invoicing\Contract\InvoicingDefaults(30, Currency::of('EUR'), \Foresi\Invoicing\Contract\DocumentLanguage::English, PaymentMethod::Card, true));
         $this->em->flush();
         $before = $this->state($id);
 

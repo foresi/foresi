@@ -11,7 +11,7 @@ declare(strict_types=1);
  * Foresi\Shared\Contract\Event (ADR 0044), loaded on first use with a
  * deprecation. They cannot be files in Domain/Event, as Doctrine reads every
  * file of a mapped directory and would report them all. Composer includes this
- * file ("autoload.files" of foresi/shared); the names go in module API 3.0.
+ * file ("autoload.files" of foresi/shared); the names go in module API 4.0.
  */
 spl_autoload_register(static function (string $class): void {
     $moved = [

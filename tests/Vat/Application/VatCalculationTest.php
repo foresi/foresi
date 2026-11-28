@@ -39,7 +39,7 @@ final class VatCalculationTest extends TestCase
         [$november, $december] = VatCalculation::compute([$this->month('2026-11', '2026-11-12', '2026-11-30'), $this->month('2026-12', '2026-12-01', '2026-12-31')], [$received, $issued], $this->payer());
 
         self::assertSame([210_000, 21_000, 189_000], $this->totals($november));
-        self::assertSame('CZK', $november->result->currency()->value);
+        self::assertSame('CZK', $november->result->currency()->code());
         self::assertSame([$received, $issued], $november->documents);
         self::assertSame([210_000, 21_000], [$november->documentsPart->output->minor(), $november->documentsPart->input->minor()]);
         self::assertSame([0, 0, 0, 0], [$november->schedulesPart->output->minor(), $november->schedulesPart->input->minor(), $november->plansPart->output->minor(), $november->plansPart->input->minor()]);
@@ -178,7 +178,7 @@ final class VatCalculationTest extends TestCase
         self::assertSame([], $nov->schedules);
         self::assertSame([210_000, 21_000, 189_000], $this->totals($dec));
         self::assertSame([0, 21_000, 210_000, 0], [$dec->documentsPart->output->minor(), $dec->documentsPart->input->minor(), $dec->schedulesPart->output->minor(), $dec->schedulesPart->input->minor()]);
-        self::assertSame(['CZK', 'CZK'], [$dec->schedulesPart->output->currency()->value, $dec->schedulesPart->input->currency()->value]);
+        self::assertSame(['CZK', 'CZK'], [$dec->schedulesPart->output->currency()->code(), $dec->schedulesPart->input->currency()->code()]);
         self::assertSame([$december], $dec->schedules);
         self::assertSame([$received], $dec->documents);
         self::assertSame([
@@ -279,6 +279,6 @@ final class VatCalculationTest extends TestCase
 
     private function czk(int $minor): Money
     {
-        return Money::ofMinor($minor, Currency::CZK);
+        return Money::ofMinor($minor, Currency::of('CZK'));
     }
 }

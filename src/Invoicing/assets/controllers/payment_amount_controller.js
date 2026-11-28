@@ -18,11 +18,12 @@ const SPACES = /[\s   ]/g;
  * Whole minor units throughout, never a float for the comparison.
  *
  *     <form data-controller="payment-amount" data-payment-amount-remaining-value="71000"
- *           data-payment-amount-unit-value="Kč" data-payment-amount-limit-value="99">
+ *           data-payment-amount-unit-value="Kč" data-payment-amount-limit-value="99"
+ *           data-payment-amount-minor-units-value="2">
  */
 export default class extends Controller {
     static targets = ['amount', 'warning', 'warningText', 'settle', 'settleBox', 'settleText'];
-    static values = { remaining: Number, unit: String, limit: { type: Number, default: -1 } };
+    static values = { remaining: Number, unit: String, limit: { type: Number, default: -1 }, minorUnits: { type: Number, default: 2 } };
 
     connect() {
         this.check();
@@ -50,17 +51,35 @@ export default class extends Controller {
 
     // "1 210,50" or "1210.5" in minor units; null for what is not an amount.
     minor(typed) {
-        const match = /^(\d{1,13})(?:[.,](\d{0,2}))?$/.exec(typed.replace(SPACES, ''));
+        const match = this.pattern().exec(typed.replace(SPACES, ''));
         if (match === null) {
             return null;
         }
-        return Number(match[1]) * 100 + Number((match[2] || '').padEnd(2, '0'));
+        return Number(match[1]) * this.factor() + Number((match[2] || '').padEnd(this.minorUnitsValue, '0'));
     }
 
     written(minor) {
+        return `${this.number(minor)} ${this.unitValue}`;
+    }
+
+    // One minor unit's worth of the currency: 100 for two decimals, 1 for none, 1000 for three.
+    factor() {
+        return 10 ** this.minorUnitsValue;
+    }
+
+    // Whole units, then as many decimals as the currency has and none when it has none.
+    pattern() {
+        return new RegExp(`^(\\d{1,13})(?:[.,](\\d{0,${this.minorUnitsValue}}))?$`);
+    }
+
+    // "1 210,50": the grouped whole units and the decimals of the currency.
+    number(minor) {
         const language = document.documentElement.lang;
-        const whole = new Intl.NumberFormat(language).format(Math.floor(minor / 100));
+        const whole = new Intl.NumberFormat(language).format(Math.floor(minor / this.factor()));
+        if (this.minorUnitsValue === 0) {
+            return whole;
+        }
         const decimal = new Intl.NumberFormat(language).formatToParts(1.5).find((part) => part.type === 'decimal')?.value ?? ',';
-        return `${whole}${decimal}${String(minor % 100).padStart(2, '0')} ${this.unitValue}`;
+        return `${whole}${decimal}${String(minor % this.factor()).padStart(this.minorUnitsValue, '0')}`;
     }
 }

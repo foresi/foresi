@@ -78,7 +78,7 @@ final class InvoiceJson
             'issue_date' => JsonValues::date($invoice->issueDate()),
             'due_date' => JsonValues::date($invoice->dueDate()),
             'tax_point_date' => JsonValues::date($invoice->taxPointDate()),
-            'currency' => $invoice->currency()->value,
+            'currency' => $invoice->currency()->code(),
             'variable_symbol' => $invoice->variableSymbol(),
             'order_number' => $invoice->orderNumber(),
             'description' => $invoice->description(),

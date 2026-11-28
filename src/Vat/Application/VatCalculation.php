@@ -89,7 +89,7 @@ final class VatCalculation
      */
     private static function amounts(VatPeriod $period, array $documents, array $schedules, array $plans): PeriodAmounts
     {
-        $output = Money::ofMinor(0, Currency::CZK);
+        $output = Money::ofMinor(0, Currency::of('CZK'));
         $input = $output;
         $sources = [];
         $missing = [];
@@ -105,7 +105,7 @@ final class VatCalculation
         sort($sources);
         $part = new VatPart($output, $input);
 
-        $scheduledOutput = Money::ofMinor(0, Currency::CZK);
+        $scheduledOutput = Money::ofMinor(0, Currency::of('CZK'));
         $scheduleSources = [];
         $warnings = [];
         foreach ($schedules as $schedule) {
@@ -118,7 +118,7 @@ final class VatCalculation
                 $warnings[PeriodAmounts::WARNING_FX_TODAY] = true;
             }
         }
-        $plannedOutput = Money::ofMinor(0, Currency::CZK);
+        $plannedOutput = Money::ofMinor(0, Currency::of('CZK'));
         $plannedInput = $plannedOutput;
         $planSources = [];
         foreach ($plans as $plan) {
@@ -139,7 +139,7 @@ final class VatCalculation
         return new PeriodAmounts(
             $period,
             $part,
-            new VatPart($scheduledOutput, Money::ofMinor(0, Currency::CZK)),
+            new VatPart($scheduledOutput, Money::ofMinor(0, Currency::of('CZK'))),
             new VatPart($plannedOutput, $plannedInput),
             [
                 new CalculationStep(CalculationStep::OUTPUT, $total, self::RULE_OUTPUT, $outputSources),

@@ -193,7 +193,7 @@ final class PerfData
         $this->em->persist($owner);
         $this->em->persist(new Membership($owner, Role::Owner));
         $this->em->persist(new LegalEntity('Example Perf s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $this->address(0), VatStatus::Registered, 'Example register, entry C 3612'));
-        $account = FirmBankAccount::open(Iban::fromString(self::FIRM_IBAN), Currency::CZK, '', 0);
+        $account = FirmBankAccount::open(Iban::fromString(self::FIRM_IBAN), Currency::of('CZK'), '', 0);
         $account->markPrimary(true);
         $this->em->persist($account);
         $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
@@ -279,7 +279,7 @@ final class PerfData
                     \sprintf('Example service %d', $this->random->getInt(1, 50)),
                     Quantity::fromString((string) $this->random->getInt(1, 20)),
                     'h',
-                    Money::ofMinor($this->random->getInt(100, 5_000) * 100, Currency::CZK),
+                    Money::ofMinor($this->random->getInt(100, 5_000) * 100, Currency::of('CZK')),
                     PriceType::WithoutVat,
                     TaxTreatment::Standard,
                     VatRateKind::Base,
@@ -342,11 +342,11 @@ final class PerfData
                 $day,
                 $day->modify('+14 days'),
                 $received,
-                Currency::CZK,
-                Money::ofMinor($base + $vat, Currency::CZK),
+                Currency::of('CZK'),
+                Money::ofMinor($base + $vat, Currency::of('CZK')),
                 null,
                 null,
-                [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::CZK), Money::ofMinor($vat, Currency::CZK))],
+                [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::of('CZK')), Money::ofMinor($vat, Currency::of('CZK')))],
             ));
             $first ??= $saved->document->id();
             $this->step('received_documents', $i + 1, $count);

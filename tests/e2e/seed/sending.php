@@ -50,7 +50,7 @@ $entityManager->persist(new PartyEmail($recipient, 'billing@example.com', EmailP
 $entityManager->persist(new PartyEmail($recipient, 'accounts@example.com', EmailPurpose::Copy));
 $entityManager->flush();
 $sendingInvoice = static fn (string $description, string $price): Invoice => $issueInvoice->issue(new InvoiceInput($sendingSeries->id(), null, $recipient->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
-    new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 $sendingInvoice('Annual support', '24000.00');
 // Delivered at once by the synchronous e2e queue: one refused by the recipient's server,

@@ -70,7 +70,7 @@ final class TaxesApiTest extends ApiTestCase
             'direction' => 'out',
             'payable_from' => '2026-12-01',
             'due_on' => '2026-12-31',
-            'amount' => ['amount_minor' => 500_500, 'currency' => 'CZK'],
+            'amount' => ['amount_minor' => 500_500, 'currency' => 'CZK', 'minor_units' => 2],
             'state' => 'expected',
             'match_rule' => ['account' => '123-456789/0100', 'variable_symbol' => '7805121234'],
             'paid_by' => null,
@@ -97,10 +97,10 @@ final class TaxesApiTest extends ApiTestCase
         $this->get('/api/v1/taxes-and-contributions/estimate?year=2026', secret: $this->owner);
         self::assertResponseIsSuccessful();
         // January to November: six months of 9,984 and five of 9,162.
-        self::assertSame(['amount_minor' => (6 * 9_984 + 5 * 9_162) * 100, 'currency' => 'CZK'], $this->at('data', 'to_date', 'flat_rate', 'total'));
-        self::assertSame(['month' => '2026-07', 'band' => '1', 'income_tax' => ['amount_minor' => 10_000, 'currency' => 'CZK'], 'social' => ['amount_minor' => 575_600, 'currency' => 'CZK'], 'health' => ['amount_minor' => 330_600, 'currency' => 'CZK'], 'total' => ['amount_minor' => 916_200, 'currency' => 'CZK']], $this->at('data', 'to_date', 'flat_rate', 'months', 6));
+        self::assertSame(['amount_minor' => (6 * 9_984 + 5 * 9_162) * 100, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'to_date', 'flat_rate', 'total'));
+        self::assertSame(['month' => '2026-07', 'band' => '1', 'income_tax' => ['amount_minor' => 10_000, 'currency' => 'CZK', 'minor_units' => 2], 'social' => ['amount_minor' => 575_600, 'currency' => 'CZK', 'minor_units' => 2], 'health' => ['amount_minor' => 330_600, 'currency' => 'CZK', 'minor_units' => 2], 'total' => ['amount_minor' => 916_200, 'currency' => 'CZK', 'minor_units' => 2]], $this->at('data', 'to_date', 'flat_rate', 'months', 6));
         self::assertSame($this->at('data', 'to_date', 'flat_rate', 'total'), $this->at('data', 'to_date', 'methods', 0, 'totals', 'flat_rate'));
-        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK'], $this->at('data', 'to_date', 'methods', 0, 'totals', 'social'));
+        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'to_date', 'methods', 0, 'totals', 'social'));
         self::assertSame(['flat_rate', '1'], [$this->at('data', 'to_date', 'methods', 0, 'steps', 8, 'key'), $this->at('data', 'to_date', 'months', 0, 'flat_rate_band')]);
         $payments = (array) $this->at('data', 'payments');
         $december = $this->index($payments, 'flat_rate.advance.2026-12');
@@ -122,12 +122,12 @@ final class TaxesApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         Clock::set(new MockClock('2027-03-10 10:00:00', 'UTC'));
         $later = $this->flushed(fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->ownerId, 'Taxes 2027', [ApiScope::from('taxes:write')])->secret);
-        $open = new OpenAmount('invoicing.payments', new Subject('invoice', 'open', null), AmountKind::Income, Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(0, Currency::CZK));
+        $open = new OpenAmount('invoicing.payments', new Subject('invoice', 'open', null), AmountKind::Income, Money::ofMinor(50_000_00, Currency::of('CZK')), Money::ofMinor(50_000_00, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')));
         self::getContainer()->set(IssuedPaymentAmounts::class, new DatedAmountSource('invoicing.payments', [], ['2026-12-31' => [$open]]));
 
         $this->get('/api/v1/taxes-and-contributions/estimate?year=2027', secret: $later);
         self::assertResponseIsSuccessful();
-        $czk = static fn (int $minor): array => ['amount_minor' => $minor, 'currency' => 'CZK'];
+        $czk = static fn (int $minor): array => ['amount_minor' => $minor, 'currency' => 'CZK', 'minor_units' => 2];
         self::assertSame([
             'adjusted_year' => 2026,
             'from_method' => 'actual',

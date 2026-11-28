@@ -19,6 +19,7 @@
         data-controller="payment-amount"
         data-payment-amount-remaining-value="{{ remainingMinor }}"
         data-payment-amount-unit-value="{{ unit }}"
+        data-payment-amount-minor-units-value="{{ invoice.currency.minorUnits }}"
         {%- if limit is not null %} data-payment-amount-limit-value="{{ limit }}"{% endif %}>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
         <input type="hidden" name="_submission" value="{{ token }}">
@@ -38,7 +39,7 @@
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <twig:Ui:TextInput name="receivedOn" id="pay-receivedOn" type="date" :label="'invoice.payment.field.receivedOn'|trans" :value="values.receivedOn" :error="errors.receivedOn|default(null)" :required="true" :max="today" />
-            <twig:Ui:TextInput name="amount" id="pay-amount" :label="'invoice.payment.field.amount'|trans ~ ' (' ~ unit ~ ')'" :value="values.amount" :error="errors.amount|default(null)" :required="true" inputmode="decimal" autocomplete="off" class="num text-right" :autofocus="errors is empty" data-payment-amount-target="amount" data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished input->payment-amount#check" />
+            <twig:Ui:TextInput name="amount" id="pay-amount" :label="'invoice.payment.field.amount'|trans ~ ' (' ~ unit ~ ')'" :value="values.amount" :error="errors.amount|default(null)" :required="true" inputmode="decimal" autocomplete="off" class="num text-right" :autofocus="errors is empty" data-payment-amount-target="amount" data-controller="number-input" data-number-input-decimals-value="{{ invoice.currency.minorUnits }}" data-action="input->number-input#typed blur->number-input#finished input->payment-amount#check" />
         </div>
         {# Read out once the typing stops, not on every key. #}
         <p class="m-0 flex items-start gap-1.5 text-small font-medium text-badge-amber-text" data-payment-amount-target="warning" data-overpay-warning data-template="{{ 'invoice.payment.overpay'|trans({over: '{over}'}) }}" aria-live="polite" hidden>

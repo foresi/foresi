@@ -296,7 +296,7 @@ final class PairMovementTest extends InvoiceBankingTestCase
         // The matcher saw a CZK invoice; by the time it pays, the invoice says EUR.
         $this->em->getConnection()->update('invoice', ['currency' => 'EUR'], ['id' => $invoice->id()]);
         $log = new LockLog(self::getContainer()->get(Candidates::class), static fn (int $read, array $found): array => array_map(
-            static fn (Candidate $candidate): Candidate => new Candidate($candidate->invoiceId, $candidate->number, $candidate->dueDate, Money::ofMinor($candidate->remaining->minor(), Currency::CZK), $candidate->customerName, $candidate->issueDate),
+            static fn (Candidate $candidate): Candidate => new Candidate($candidate->invoiceId, $candidate->number, $candidate->dueDate, Money::ofMinor($candidate->remaining->minor(), Currency::of('CZK')), $candidate->customerName, $candidate->issueDate),
             $found,
         ));
 

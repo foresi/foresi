@@ -68,7 +68,7 @@ final class TimeInvoicingTest extends WorkTestCase
         $this->em->flush();
 
         $this->website = $this->projects->create('Website', $this->customer->id(), WorkflowTemplate::Simple);
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::of('CZK')));
     }
 
     public function testEveryProjectIsOfferedOnceArchivedOnesTooByName(): void
@@ -83,7 +83,7 @@ final class TimeInvoicingTest extends WorkTestCase
     public function testOnlyFinishedTimeOfTheProjectsChosenIsOffered(): void
     {
         $shop = $this->projects->create('Shop', $this->customer->id(), WorkflowTemplate::Simple);
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($shop->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($shop->id(), Money::of('1000', Currency::of('CZK')));
         $finished = $this->logged($this->website, '2026-10-05');
         $this->logged($shop, '2026-10-06');
         $this->time->startTimer($this->website->id(), null, billable: true);
@@ -94,8 +94,8 @@ final class TimeInvoicingTest extends WorkTestCase
     public function testEachPersonsTimeHasTheirOwnRate(): void
     {
         self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), null);
-        $this->owner->changeHourlyRate(Money::of('1500', Currency::CZK));
-        $this->member->changeHourlyRate(Money::of('800', Currency::CZK));
+        $this->owner->changeHourlyRate(Money::of('1500', Currency::of('CZK')));
+        $this->member->changeHourlyRate(Money::of('800', Currency::of('CZK')));
         $this->em->flush();
         $this->logged($this->website, '2026-10-05');
         $this->signIn($this->member);

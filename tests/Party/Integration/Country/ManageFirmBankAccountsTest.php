@@ -128,7 +128,7 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
 
         self::assertSame(['lock account', 'movements?'], $calls->getArrayCopy());
         $this->em->clear();
-        self::assertSame('EUR', $this->accounts()->get($account->id())->currency()->value);
+        self::assertSame('EUR', $this->accounts()->get($account->id())->currency()->code());
     }
 
     /**
@@ -293,7 +293,7 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
     public function testAnUnknownCurrencyIsRefused(): void
     {
         $this->firm();
-        $this->assertRefused(BankAccountRefusal::UnknownCurrency, fn (): FirmBankAccount => $this->manage->open(self::IBAN, 'GBP', '', false));
+        $this->assertRefused(BankAccountRefusal::UnknownCurrency, fn (): FirmBankAccount => $this->manage->open(self::IBAN, 'XYZ', '', false));
         $account = $this->manage->open(self::IBAN, 'CZK', '', false);
 
         $this->assertRefused(BankAccountRefusal::UnknownCurrency, fn (): FirmBankAccount => $this->manage->change($account->id(), '', 'czk', true));
@@ -442,7 +442,7 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
     private function stored(bool $withArchived = false): array
     {
         return array_map(
-            static fn (FirmBankAccount $account): array => [$account->iban(), $account->isPrimary(), $account->currency()->value, $account->label(), $account->position()],
+            static fn (FirmBankAccount $account): array => [$account->iban(), $account->isPrimary(), $account->currency()->code(), $account->label(), $account->position()],
             $this->accounts()->all($withArchived),
         );
     }

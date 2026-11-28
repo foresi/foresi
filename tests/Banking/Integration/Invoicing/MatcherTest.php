@@ -80,9 +80,9 @@ final class MatcherTest extends InvoiceBankingTestCase
 
     public function testSmallDifferenceSettlesOnlyInCzk(): void
     {
-        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1000.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
+        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1000.00', Currency::of('EUR')), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
 
-        $decision = $this->decide($this->movement('999.01', Currency::EUR), [$eur], new PairingRules(true, true));
+        $decision = $this->decide($this->movement('999.01', Currency::of('EUR')), [$eur], new PairingRules(true, true));
 
         self::assertSame([['A', '999.01', null]], $this->shape($decision));
     }
@@ -100,7 +100,7 @@ final class MatcherTest extends InvoiceBankingTestCase
 
     public function testAnotherCurrencyIsCurrencyMismatch(): void
     {
-        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('50.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
+        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('50.00', Currency::of('EUR')), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
 
         $decision = $this->decide($this->movement('50.00'), [$eur], new PairingRules(true, false));
 
@@ -131,10 +131,10 @@ final class MatcherTest extends InvoiceBankingTestCase
 
     public function testAMovementInAnotherCurrencyThanItsAccountIsNeverPairedByItself(): void
     {
-        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1210.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
+        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1210.00', Currency::of('EUR')), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
 
-        $decision = $this->decide($this->movement('1210.00', Currency::EUR, account: $this->account), [$eur], new PairingRules(true, false));
-        $failed = $this->decide($this->movement('1210.00', Currency::EUR, trust: MovementTrust::Failed, account: $this->account), [$eur], new PairingRules(true, false));
+        $decision = $this->decide($this->movement('1210.00', Currency::of('EUR'), account: $this->account), [$eur], new PairingRules(true, false));
+        $failed = $this->decide($this->movement('1210.00', Currency::of('EUR'), trust: MovementTrust::Failed, account: $this->account), [$eur], new PairingRules(true, false));
 
         self::assertSame([UnmatchedReason::AccountCurrency, ['A']], [$decision->reason, array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions)], 'the CZK account says the bank booked something else');
         self::assertSame(UnmatchedReason::Rejected, $failed->reason, 'a rejected message stays rejected');
@@ -183,8 +183,9 @@ final class MatcherTest extends InvoiceBankingTestCase
     /**
      * On an account in the currency of the movement, unless one is given.
      */
-    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MovementTrust $trust = MovementTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
+    private function movement(string $amount, ?Currency $currency = null, ?string $vs = '20260001', MovementTrust $trust = MovementTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
+        $currency ??= Currency::of('CZK');
         if (!$account instanceof FirmBankAccount) {
             $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, 'DE89370400440532013000', $currency));
         }

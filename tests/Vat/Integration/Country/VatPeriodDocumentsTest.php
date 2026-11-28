@@ -63,7 +63,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
     {
         $this->martin();
 
-        $list = $this->with([], [$this->schedules('invoicing.recurring_vat', [$this->scheduled('2026-12-01', Money::ofMinor(210_000, Currency::CZK)), $this->scheduled('2027-01-01', Money::ofMinor(210_000, Currency::CZK))])])->list('2026-11', '2027-01');
+        $list = $this->with([], [$this->schedules('invoicing.recurring_vat', [$this->scheduled('2026-12-01', Money::ofMinor(210_000, Currency::of('CZK'))), $this->scheduled('2027-01-01', Money::ofMinor(210_000, Currency::of('CZK')))])])->list('2026-11', '2027-01');
 
         self::assertSame([['2026-11', 0], ['2026-12', 210_000], ['2027-01', 210_000]], array_map(static fn (\Foresi\Vat\Application\PeriodView $view): array => [$view->period->key, $view->result->minor()], $list->periods));
         self::assertSame([['invoicing.recurring_vat', '2026-11-01', '2027-01-31 2026-11-20 Europe/Prague']], $this->reads->getArrayCopy(), 'The whole periods, with today in the instance\'s zone.');
@@ -75,12 +75,12 @@ final class VatPeriodDocumentsTest extends VatTestCase
     public function testAnEurTemplateCountsAtTodaysRate(): void
     {
         $this->martin();
-        $eur = $this->scheduled('2026-12-01', Money::ofMinor(21_000, Currency::EUR));
+        $eur = $this->scheduled('2026-12-01', Money::ofMinor(21_000, Currency::of('EUR')));
 
-        $list = $this->with([], [$this->schedules('invoicing.recurring_vat', [$eur, $this->scheduled('2027-01-01', Money::ofMinor(42_000, Currency::EUR)), $this->scheduled('2027-01-02', Money::ofMinor(1_000, Currency::USD))])], $this->rates(['EUR' => [1, '25.000'], 'USD' => [100, '2250.5']]))->list('2026-12', '2027-01');
+        $list = $this->with([], [$this->schedules('invoicing.recurring_vat', [$eur, $this->scheduled('2027-01-01', Money::ofMinor(42_000, Currency::of('EUR'))), $this->scheduled('2027-01-02', Money::ofMinor(1_000, Currency::of('USD')))])], $this->rates(['EUR' => [1, '25.000'], 'USD' => [100, '2250.5']]))->list('2026-12', '2027-01');
 
         [$december, $january] = $list->periods;
-        self::assertSame([525_000, 'CZK'], [$december->output->minor(), $december->output->currency()->value], '210 EUR at 25.000.');
+        self::assertSame([525_000, 'CZK'], [$december->output->minor(), $december->output->currency()->code()], '210 EUR at 25.000.');
         self::assertSame([$eur, true, false], [$december->amounts->schedules[0]->schedule, $december->amounts->schedules[0]->fxToday, $december->amounts->schedules[0]->missingCzk]);
         self::assertSame([PeriodAmounts::WARNING_FX_TODAY], $december->warnings);
         self::assertSame(1_050_000 + 22_505, $january->output->minor(), '420 EUR at 25.000 and 10 USD at 2,250.5 per 100.');
@@ -91,10 +91,10 @@ final class VatPeriodDocumentsTest extends VatTestCase
     {
         $this->martin();
 
-        $list = $this->with([], [$this->schedules('invoicing.recurring_vat', [$this->scheduled('2026-12-01', Money::ofMinor(21_000, Currency::EUR)), $this->scheduled('2026-12-02', Money::ofMinor(100, Currency::EUR), 'Support')])])->list('2026-12', '2026-12');
+        $list = $this->with([], [$this->schedules('invoicing.recurring_vat', [$this->scheduled('2026-12-01', Money::ofMinor(21_000, Currency::of('EUR'))), $this->scheduled('2026-12-02', Money::ofMinor(100, Currency::of('EUR')), 'Support')])])->list('2026-12', '2026-12');
 
         $december = $list->periods[0];
-        self::assertSame([0, 'CZK'], [$december->output->minor(), $december->amounts->schedulesPart->output->currency()->value]);
+        self::assertSame([0, 'CZK'], [$december->output->minor(), $december->amounts->schedulesPart->output->currency()->code()]);
         self::assertSame([PeriodAmounts::WARNING_MISSING_CZK_VAT, PeriodAmounts::WARNING_FX_TODAY], $december->warnings);
         self::assertSame(['Hosting (2026-12-01)', 'Support (2026-12-02)'], $december->amounts->missingCzk);
         self::assertSame([true, true], [$december->amounts->schedules[0]->fxToday, $december->amounts->schedules[0]->missingCzk]);
@@ -124,7 +124,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
             }
         };
 
-        $list = $this->with([$this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)]), $this->source('received-documents.received_vat', [])], [$failing, $this->schedules('other.schedules', [$this->scheduled('2026-11-30', Money::ofMinor(5, Currency::CZK))])])->list('2026-11', '2026-11');
+        $list = $this->with([$this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)]), $this->source('received-documents.received_vat', [])], [$failing, $this->schedules('other.schedules', [$this->scheduled('2026-11-30', Money::ofMinor(5, Currency::of('CZK')))])])->list('2026-11', '2026-11');
 
         self::assertSame(['invoicing.recurring_vat'], $list->unavailableSources);
         self::assertSame(105, $list->periods[0]->result->minor());
@@ -134,8 +134,8 @@ final class VatPeriodDocumentsTest extends VatTestCase
     public function testWithoutInvoicesReadThePeriodHasNoSchedulesInItsDetail(): void
     {
         $this->martin();
-        $hidden = $this->scheduled('2026-12-01', Money::ofMinor(210_000, Currency::CZK));
-        $shown = new ScheduledVat('other.schedules', new VatSubject('plan', 'p', null), 'Other', new \DateTimeImmutable('2026-12-05', new \DateTimeZone('Europe/Prague')), Money::ofMinor(100, Currency::CZK));
+        $hidden = $this->scheduled('2026-12-01', Money::ofMinor(210_000, Currency::of('CZK')));
+        $shown = new ScheduledVat('other.schedules', new VatSubject('plan', 'p', null), 'Other', new \DateTimeImmutable('2026-12-05', new \DateTimeZone('Europe/Prague')), Money::ofMinor(100, Currency::of('CZK')));
 
         $restricted = $this->with([], [$this->schedules('invoicing.recurring_vat', [$hidden], false), $this->schedules('other.schedules', [$shown])])->get('2026-12');
         $open = $this->with([], [$this->schedules('invoicing.recurring_vat', [$hidden])])->get('2026-12');
@@ -391,7 +391,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
     {
         $zone = new \DateTimeZone('Europe/Prague');
 
-        return new DocumentVat($source, new VatSubject('document', $source.$taxPoint, null), $taxPoint, new \DateTimeImmutable($countsOn, $zone), new \DateTimeImmutable($taxPoint, $zone), Money::ofMinor($output, Currency::CZK), Money::ofMinor($input, Currency::CZK));
+        return new DocumentVat($source, new VatSubject('document', $source.$taxPoint, null), $taxPoint, new \DateTimeImmutable($countsOn, $zone), new \DateTimeImmutable($taxPoint, $zone), Money::ofMinor($output, Currency::of('CZK')), Money::ofMinor($input, Currency::of('CZK')));
     }
 
     /**

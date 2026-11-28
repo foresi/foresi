@@ -44,7 +44,7 @@ $defaultsOf = static function (string $name, InvoicingDefaults $defaults) use ($
         $partyInvoicingDefaults->change($party->id(), $defaults);
     }
 };
-$defaultsOf('Example Builder a.s.', new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
-$defaultsOf('Example German GmbH', new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
-$defaultsOf('Example Euro a.s.', new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::BankTransfer, false));
+$defaultsOf('Example Builder a.s.', new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+$defaultsOf('Example German GmbH', new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+$defaultsOf('Example Euro a.s.', new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::BankTransfer, false));
 $entityManager->flush();

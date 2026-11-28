@@ -68,8 +68,9 @@ final class AmountsTest extends TaxesTestCase
         return new Amounts($container->get(ProfileReads::class), $sources, $container->get(ExchangeRates::class), $container->get(InstanceClock::class), $logger ?? new NullLogger());
     }
 
-    private function amount(string $source, string $id, AmountKind $kind, string $paidOn, int $gross, int $net, Currency $currency = Currency::CZK): ActualAmount
+    private function amount(string $source, string $id, AmountKind $kind, string $paidOn, int $gross, int $net, ?Currency $currency = null): ActualAmount
     {
+        $currency ??= Currency::of('CZK');
         $zone = new \DateTimeZone('Europe/Prague');
 
         return new ActualAmount($source, new Subject('document', $id, '/api/v1/documents/'.$id), $kind, new \DateTimeImmutable($paidOn, $zone), Money::ofMinor($gross, $currency), Money::ofMinor($net, $currency), Money::ofMinor($gross - $net, $currency), new \DateTimeImmutable($paidOn, $zone), false);

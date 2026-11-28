@@ -164,7 +164,7 @@ final class LineRulesTest extends TestCase
 
     public function testALineInAnotherCurrencyIsRefused(): void
     {
-        self::assertEquals([new IssueProblem('lines.0.price', 'invoice.problem.currency_not_home')], $this->lines([$this->line(currency: Currency::EUR)]));
+        self::assertEquals([new IssueProblem('lines.0.price', 'invoice.problem.currency_not_home')], $this->lines([$this->line(currency: Currency::of('EUR'))]));
     }
 
     public function testEveryProblemOfALineIsReportedInOrder(): void
@@ -174,7 +174,7 @@ final class LineRulesTest extends TestCase
             new IssueProblem('lines.0.unit', 'invoice.problem.too_long'),
             new IssueProblem('lines.0.price', 'invoice.problem.currency_not_home'),
             new IssueProblem('lines.0.rate', 'invoice.problem.line_rate_missing'),
-        ], $this->lines([$this->line(kind: null, text: '', unit: str_repeat('x', 33), currency: Currency::EUR)]));
+        ], $this->lines([$this->line(kind: null, text: '', unit: str_repeat('x', 33), currency: Currency::of('EUR'))]));
     }
 
     public function testAPayerLineOutsideVatIsRefusedUnlessItDeducts(): void
@@ -271,7 +271,7 @@ final class LineRulesTest extends TestCase
         self::assertEquals([
             new IssueProblem('lines.0.price', 'invoice.problem.currency_not_home'),
             new IssueProblem('lines.0.supplyCode', 'invoice.problem.supply_code_invalid'),
-        ], $this->lines([$this->line(treatment: TaxTreatment::ReverseCharge, kind: VatRateKind::Base, supplyCode: '9', currency: Currency::EUR)]));
+        ], $this->lines([$this->line(treatment: TaxTreatment::ReverseCharge, kind: VatRateKind::Base, supplyCode: '9', currency: Currency::of('EUR'))]));
     }
 
     public function testTheProblemsOfSeveralLinesAddUp(): void
@@ -422,10 +422,12 @@ final class LineRulesTest extends TestCase
         ?string $supplyCode = null,
         string $text = 'Work',
         string $unit = 'h',
-        Currency $currency = Currency::CZK,
+        ?Currency $currency = null,
         ?string $deducts = null,
         string $quantity = '1',
     ): LineInput {
+        $currency ??= Currency::of('CZK');
+
         return new LineInput($text, Quantity::fromString($quantity), $unit, Money::of($price, $currency), PriceType::WithoutVat, $treatment, $kind, $supplyCode, Percent::fromString('0'), $deducts);
     }
 }

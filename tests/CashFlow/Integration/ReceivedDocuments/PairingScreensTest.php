@@ -323,7 +323,7 @@ final class PairingScreensTest extends WebTestCase
 
     private function record(string $day, string $total, ?Party $supplier = null): string
     {
-        $minor = Money::of($total, Currency::CZK)->minor();
+        $minor = Money::of($total, Currency::of('CZK'))->minor();
         $base = intdiv($minor * 100, 121);
         $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
             ReceivedDocumentKind::TaxInvoice,
@@ -335,11 +335,11 @@ final class PairingScreensTest extends WebTestCase
             new \DateTimeImmutable($day),
             null,
             new \DateTimeImmutable($day),
-            Currency::CZK,
-            Money::ofMinor($minor, Currency::CZK),
+            Currency::of('CZK'),
+            Money::ofMinor($minor, Currency::of('CZK')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::CZK), Money::ofMinor($minor - $base, Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::of('CZK')), Money::ofMinor($minor - $base, Currency::of('CZK')))],
         ));
         $this->browser->em()->flush();
 

@@ -70,6 +70,9 @@ final class InputSchema
         if (null !== $describe?->format) {
             $property['format'] = $describe->format;
         }
+        if (null !== $describe?->pattern) {
+            $property['pattern'] = $describe->pattern;
+        }
         if ($describe instanceof Field) {
             $property['description'] = $describe->description;
         }

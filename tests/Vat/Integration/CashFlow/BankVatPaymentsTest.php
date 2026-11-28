@@ -35,7 +35,7 @@ final class BankVatPaymentsTest extends TestCase
             $this->movement('back', FlowDirection::In, self::OFFICE, '4400'),
             $this->movement('other', FlowDirection::Out, self::OFFICE, '9'),
             $this->movement('elsewhere', FlowDirection::Out, '123/0100', '12345678'),
-            new ActualFlow('invoicing.invoices', new FlowSubject('invoice', 'i1'), FlowDirection::In, Money::ofMinor(100, Currency::CZK), new \DateTimeImmutable('2026-12-20'), counterpartyId: 'c1', counterpartyAccount: self::OFFICE, variableSymbol: '12345678'),
+            new ActualFlow('invoicing.invoices', new FlowSubject('invoice', 'i1'), FlowDirection::In, Money::ofMinor(100, Currency::of('CZK')), new \DateTimeImmutable('2026-12-20'), counterpartyId: 'c1', counterpartyAccount: self::OFFICE, variableSymbol: '12345678'),
         ]);
 
         $found = new BankVatPayments(new RuleMovements([$bank]))->paymentsBetween(new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2027-01-05'), self::OFFICE, '12345678');
@@ -65,6 +65,6 @@ final class BankVatPaymentsTest extends TestCase
 
     private function movement(string $id, FlowDirection $direction, string $account, ?string $symbol): ActualFlow
     {
-        return new ActualFlow('banking.movements', new FlowSubject('bank_movement', $id), $direction, Money::ofMinor(50_000, Currency::CZK), new \DateTimeImmutable('2026-12-20'), counterpartyAccount: $account, variableSymbol: $symbol);
+        return new ActualFlow('banking.movements', new FlowSubject('bank_movement', $id), $direction, Money::ofMinor(50_000, Currency::of('CZK')), new \DateTimeImmutable('2026-12-20'), counterpartyAccount: $account, variableSymbol: $symbol);
     }
 }

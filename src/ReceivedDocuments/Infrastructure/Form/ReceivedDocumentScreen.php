@@ -16,7 +16,7 @@ use Foresi\ReceivedDocuments\Domain\PurchaseTaxTreatment;
 use Foresi\ReceivedDocuments\Domain\ReceivedDocument;
 use Foresi\ReceivedDocuments\Domain\ReceivedDocumentKind;
 use Foresi\ReceivedDocuments\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Money;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -62,12 +62,7 @@ final readonly class ReceivedDocumentScreen
      */
     public function currencies(): array
     {
-        $currencies = [];
-        foreach (Currency::cases() as $currency) {
-            $currencies[$currency->value] = $currency->value;
-        }
-
-        return $currencies;
+        return Currencies::choices();
     }
 
     /**

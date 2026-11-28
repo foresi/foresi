@@ -543,7 +543,7 @@ final class SendLogControllerTest extends WebTestCase
     private function issued(?Party $customer = null): Invoice
     {
         $day = new \DateTimeImmutable('2026-11-01');
-        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, ($customer ?? $this->customer)->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
     }

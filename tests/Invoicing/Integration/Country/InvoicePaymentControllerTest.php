@@ -102,7 +102,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertSame('Paid at the counter', $rows[0]['note']);
         // The flash waits for the page the dialog leads to.
         $this->client->request('GET', '/invoices?tab=unpaid');
-        self::assertAnySelectorTextContains('[role="status"]', $this->nb('A payment of 1,210.00 Kč was recorded for invoice 20260001.'));
+        self::assertAnySelectorTextContains('[role="status"]', $this->nb('A payment of 1,210.00 CZK was recorded for invoice 20260001.'));
     }
 
     public function testTheDialogPrefillsTheRemainingAmount(): void
@@ -124,7 +124,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertSame('bank_transfer', $dialog->filter('#pay-method option[selected]')->attr('value'));
         self::assertSame(['bank_transfer', 'cash', 'card'], $dialog->filter('#pay-method option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
         self::assertSame('71000', $dialog->filter('[data-controller~="payment-amount"]')->attr('data-payment-amount-remaining-value'));
-        self::assertSelectorTextContains('dialog', $this->nb('Remaining 710.00 Kč of 1,210.00 Kč'));
+        self::assertSelectorTextContains('dialog', $this->nb('Remaining 710.00 CZK of 1,210.00 CZK'));
         // Cancel first, then the action, which has the focus so Enter records it.
         $buttons = $dialog->filter('footer button');
         self::assertSame('dialog#dismiss', $buttons->first()->attr('data-action'));
@@ -158,7 +158,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertResponseRedirects('/invoices');
         self::assertSame(130000, $this->allocations()[0]['amount_minor']);
         $this->client->followRedirect();
-        self::assertAnySelectorTextContains('[role="status"]', $this->nb('Invoice 20260001 is overpaid by 90.00 Kč.'));
+        self::assertAnySelectorTextContains('[role="status"]', $this->nb('Invoice 20260001 is overpaid by 90.00 CZK.'));
         self::assertSelectorTextContains('tbody tr', 'Overpaid');
     }
 
@@ -187,7 +187,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         $rows = $this->allocations();
         self::assertSame([120950, 50, 120950], [$rows[1]['amount_minor'], $rows[1]['settlement_minor'], $rows[1]['payment_amount']]);
         $this->client->followRedirect();
-        self::assertAnySelectorTextContains('[role="status"]', $this->nb('A payment of 1,209.50 Kč was recorded for invoice 20260002. The difference of 0.50 Kč was written off.'));
+        self::assertAnySelectorTextContains('[role="status"]', $this->nb('A payment of 1,209.50 CZK was recorded for invoice 20260002. The difference of 0.50 CZK was written off.'));
     }
 
     public function testAnAmountAboveTheRemainingByCoinsCanCloseItToo(): void
@@ -215,7 +215,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         $dialog = $this->post($invoice, $values);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame($this->nb('Only a difference of up to 0.99 Kč can be written off.'), $dialog->filter('#pay-settle-error')->text());
+        self::assertSame($this->nb('Only a difference of up to 0.99 CZK can be written off.'), $dialog->filter('#pay-settle-error')->text());
         self::assertSame([], $this->allocations());
     }
 
@@ -370,10 +370,10 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertCount(1, $panel);
         self::assertCount(0, $crawler->filter('form#invoice-form [data-payments]'), 'the panel is outside the invoice form');
         self::assertStringContainsString('2026-11-03', $panel->filter('[data-payment]')->text());
-        self::assertStringContainsString($this->nb('1,210.00 Kč'), $panel->filter('[data-payment]')->text());
+        self::assertStringContainsString($this->nb('1,210.00 CZK'), $panel->filter('[data-payment]')->text());
         self::assertStringContainsString('Bank transfer', $panel->filter('[data-payment]')->text());
         $remove = $panel->filter('form[action="/invoices/'.$invoice->id().'/payments/'.$paymentId.'/cancel"]');
-        self::assertSame($this->nb('Remove the payment of 1,210.00 Kč?'), $remove->attr('data-confirm-title'));
+        self::assertSame($this->nb('Remove the payment of 1,210.00 CZK?'), $remove->attr('data-confirm-title'));
         self::assertSame('The invoice counts as unpaid again by that amount.', $remove->attr('data-confirm-text'));
 
         $this->client->submit($remove->form());
@@ -383,7 +383,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         $cancelled = $this->connection()->fetchOne('SELECT cancelled_at FROM payment WHERE id = ?', [$paymentId]);
         self::assertNotNull($cancelled, 'the payment stays, cancelled');
         $this->client->followRedirect();
-        self::assertAnySelectorTextContains('[role="status"]', $this->nb('The payment of 1,210.00 Kč was removed.'));
+        self::assertAnySelectorTextContains('[role="status"]', $this->nb('The payment of 1,210.00 CZK was removed.'));
         self::assertSelectorTextSame('header h1 + span', 'Issued');
         self::assertSelectorTextContains('[data-payments]', 'No payments yet.');
     }
@@ -394,9 +394,9 @@ final class InvoicePaymentControllerTest extends WebTestCase
         $first = $this->issued();
         $second = $this->issued();
         $paymentId = $this->scoped(function () use ($first, $second): string {
-            $part = Money::of('1210.00', Currency::CZK);
+            $part = Money::of('1210.00', Currency::of('CZK'));
 
-            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-03'), Money::of('2420.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($first->id(), $part), new AllocationRequest($second->id(), $part)]))->id();
+            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-03'), Money::of('2420.00', Currency::of('CZK')), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($first->id(), $part), new AllocationRequest($second->id(), $part)]))->id();
         });
 
         $crawler = $this->client->request('GET', '/invoices/'.$first->id().'/edit');
@@ -407,7 +407,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
 
         self::assertSame([], $this->allocations());
         $this->client->followRedirect();
-        self::assertAnySelectorTextContains('[role="status"]', $this->nb('The payment of 2,420.00 Kč was removed from invoices '.$first->number().', '.$second->number().'.'));
+        self::assertAnySelectorTextContains('[role="status"]', $this->nb('The payment of 2,420.00 CZK was removed from invoices '.$first->number().', '.$second->number().'.'));
         $translator = self::getContainer()->get('translator');
         self::assertSame('Úhrada platí i fakturu 20260002. Odebere se ze všech a každá bude o svou část znovu neuhrazená.', $translator->trans('invoice.payment.panel.remove_text_shared', ['count' => 1, 'numbers' => '20260002'], null, 'cs'));
         self::assertSame('Úhrada platí i faktury 20260002, 20260003. Odebere se ze všech, každá bude o svou část znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.', $translator->trans('invoice.payment.panel.remove_text_shared_bank', ['count' => 2, 'numbers' => '20260002, 20260003'], null, 'cs'));
@@ -453,8 +453,8 @@ final class InvoicePaymentControllerTest extends WebTestCase
         $items = $this->client->request('GET', '/invoices/'.$invoice->id().'/history')->filter('[data-invoice-history] li');
 
         $texts = $items->each(static fn (Crawler $item): string => $item->filter('span')->last()->text());
-        self::assertSame($this->nb('Example Company: payment of 500.00 Kč recorded'), $texts[1]);
-        self::assertSame($this->nb('Example Company: payment of 500.00 Kč removed'), $texts[2]);
+        self::assertSame($this->nb('Example Company: payment of 500.00 CZK recorded'), $texts[1]);
+        self::assertSame($this->nb('Example Company: payment of 500.00 CZK removed'), $texts[2]);
         self::assertSame(['banknote', 'banknote-x'], \array_slice($items->each(static fn (Crawler $item): string => (string) $item->attr('data-history-icon')), 1, 2));
     }
 
@@ -504,14 +504,14 @@ final class InvoicePaymentControllerTest extends WebTestCase
     private function credited(Invoice $invoice, string $difference): void
     {
         $this->scoped(function () use ($invoice, $difference): void {
-            $line = new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of(ltrim($difference, '-'), Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of(ltrim($difference, '-'), Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Credit', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, correction: new CorrectionInput($invoice->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2026-11-02'))));
         });
     }
 
     private function nb(string $text): string
     {
-        return str_replace(' Kč', "\u{a0}Kč", $text);
+        return str_replace(' CZK', "\u{a0}CZK", $text);
     }
 
     private function payUrl(Invoice $invoice): string
@@ -585,7 +585,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
     private function paid(Invoice $invoice, string $amount): string
     {
         return $this->scoped(function () use ($invoice, $amount): string {
-            $money = Money::of($amount, Currency::CZK);
+            $money = Money::of($amount, Currency::of('CZK'));
 
             return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-03'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]))->id();
         });
@@ -594,7 +594,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
     private function issued(): Invoice
     {
         return $this->scoped(function (): Invoice {
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true));
         });

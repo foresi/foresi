@@ -43,7 +43,7 @@ $accountantCustomer = $createParty->createFrom($party(PartyKind::Company, 'Examp
 $accountantToday = $instanceClock->today();
 $lastMonth = $accountantToday->modify('first day of last month');
 $accountantDocument = static fn (DateTimeImmutable $date, string $description, string $price, VatRateKind $rate, DocumentKind $kind = DocumentKind::Invoice): Invoice => $issueInvoice->issue(new InvoiceInput(DocumentKind::Invoice === $kind ? $accountantSeries->id() : null, null, $accountantCustomer->id(), null, $date, DocumentKind::Invoice === $kind ? $date : null, $date->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
-    new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, $rate, null, Percent::fromString('0')),
+    new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, $rate, null, Percent::fromString('0')),
 ], true, $kind));
 $accountantDocument($lastMonth->modify('+9 days'), 'Bookkeeping', '1000.00', VatRateKind::Base);
 $accountantDocument($lastMonth->modify('+11 days'), 'Printed manuals', '500.00', VatRateKind::Reduced);

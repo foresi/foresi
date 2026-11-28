@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Ui\Format\MoneyText;
 use Symfony\Component\Translation\LocaleSwitcher;
 
@@ -47,7 +48,7 @@ final readonly class AmountText
      */
     public function plain(Money $money): string
     {
-        return $this->localised(\sprintf('%s%d.%02d', $money->isNegative() ? '-' : '', intdiv(abs($money->minor()), 100), abs($money->minor()) % 100));
+        return $this->localised(MoneyFormat::decimal($money));
     }
 
     /**

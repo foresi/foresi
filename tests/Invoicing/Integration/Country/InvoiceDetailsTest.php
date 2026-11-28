@@ -89,7 +89,7 @@ final class InvoiceDetailsTest extends InvoicingReadTestCase
 
     private function pay(string $invoiceId, string $amount): void
     {
-        $money = Money::of($amount, Currency::CZK);
+        $money = Money::of($amount, Currency::of('CZK'));
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
     }
 }

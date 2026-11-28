@@ -36,11 +36,11 @@ final class NoPaymentPairingTest extends BankingTestCase
         $candidates = new NoCandidates();
 
         self::assertFalse($pairing->isAvailable());
-        self::assertNull($pairing->settlementLimit(Currency::CZK));
+        self::assertNull($pairing->settlementLimit(Currency::of('CZK')));
         self::assertFalse($pairing->isLive('01963c5e-0000-7000-8000-00000000beef'));
         self::assertSame([], $pairing->documentsOf(['01963c5e-0000-7000-8000-00000000beef']));
         $pairing->lock([]);
-        self::assertSame([[], [], [], []], [$candidates->withSymbol('20260001'), $candidates->open(Currency::CZK, '', [], 10), $candidates->refunds(null), $candidates->paidFrom(self::COUNTER_IBAN, null)]);
+        self::assertSame([[], [], [], []], [$candidates->withSymbol('20260001'), $candidates->open(Currency::of('CZK'), '', [], 10), $candidates->refunds(null), $candidates->paidFrom(self::COUNTER_IBAN, null)]);
         $movement = $this->storedMovement($this->recordMovement->record($this->incoming('1210.00'), self::verified())->id());
         $this->expectRefused(PairingRefused::NO_PAIRING, static fn (): string => $pairing->pay($movement, [new Allocation('01963c5e-0000-7000-8000-00000000dead', $movement->amount())]));
         $this->expectRefused(PairingRefused::NO_PAIRING, static function () use ($pairing): string {

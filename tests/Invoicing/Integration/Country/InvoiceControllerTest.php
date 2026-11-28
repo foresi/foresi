@@ -588,14 +588,14 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $data = $this->json();
         self::assertStringStartsWith('{"lines":', (string) $this->client->getResponse()->getContent());
-        self::assertSame(['1,209.99 Kč', '100.00 Kč'], array_map($this->nbsp(...), array_column($data['lines'], 'total')));
-        self::assertSame('1,089.28 Kč', $this->nbsp($data['net']));
-        self::assertSame('220.71 Kč', $this->nbsp((string) $data['vat']));
-        self::assertSame('0.01 Kč', $this->nbsp((string) $data['rounding']));
-        self::assertSame('1,310.00 Kč', $this->nbsp($data['payable']));
+        self::assertSame(['1,209.99 CZK', '100.00 CZK'], array_map($this->nbsp(...), array_column($data['lines'], 'total')));
+        self::assertSame('1,089.28 CZK', $this->nbsp($data['net']));
+        self::assertSame('220.71 CZK', $this->nbsp((string) $data['vat']));
+        self::assertSame('0.01 CZK', $this->nbsp((string) $data['rounding']));
+        self::assertSame('1,310.00 CZK', $this->nbsp($data['payable']));
         self::assertCount(2, $data['summaries']);
         self::assertSame('21%', $data['summaries'][0]['label']);
-        self::assertSame('999.99 Kč', $this->nbsp($data['summaries'][0]['base']));
+        self::assertSame('999.99 CZK', $this->nbsp($data['summaries'][0]['base']));
     }
 
     public function testRecountAndTheSavedDocumentNeverDiverge(): void
@@ -708,7 +708,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->client->request('POST', '/invoices/recount', $values);
 
-        self::assertSame('1,210.00 Kč', $this->nbsp($this->json()['payable']));
+        self::assertSame('1,210.00 CZK', $this->nbsp($this->json()['payable']));
     }
 
     public function testAnUnknownSeriesOrCustomerIsAFormError(): void
@@ -1413,9 +1413,9 @@ final class InvoiceControllerTest extends WebTestCase
     private function paidAdvanceWithoutTaxDocument(): Invoice
     {
         return $this->scoped(function (): Invoice {
-            $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $advance = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance, TaxOnReceiptChoice::Skip));
-            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-10-31'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-10-31'), Money::of('1210.00', Currency::of('CZK')), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::of('CZK')))]));
             // The supply is known now: by the rules VAT arose on the payment.
             $this->em()->getConnection()->executeStatement('UPDATE invoice SET tax_on_receipt = NULL WHERE id = ?', [$advance->id()]);
 
@@ -1443,7 +1443,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/recount', $values);
 
         self::assertResponseIsSuccessful();
-        self::assertSame('1,210.00 Kč', $this->nbsp($this->json()['payable']));
+        self::assertSame('1,210.00 CZK', $this->nbsp($this->json()['payable']));
     }
 
     public function testACopyOfAnAdvanceIsAnAdvance(): void
@@ -1612,9 +1612,9 @@ final class InvoiceControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/recount', $this->filled(['lines' => [$this->lineValues(['price' => '1000,00', 'discount' => '10', 'vat' => 'base'])]]));
 
         $line = $this->json()['lines'][0];
-        self::assertSame('1,210.00 Kč', $this->nbsp($line['total']));
-        self::assertSame('-121.00 Kč', $this->nbsp($line['discount']));
-        self::assertSame('1,089.00 Kč', $this->nbsp($this->json()['payable']));
+        self::assertSame('1,210.00 CZK', $this->nbsp($line['total']));
+        self::assertSame('-121.00 CZK', $this->nbsp($line['discount']));
+        self::assertSame('1,089.00 CZK', $this->nbsp($this->json()['payable']));
     }
 
     public function testAStoredDocumentShowsItsStatus(): void
@@ -1870,7 +1870,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
             self::assertNotNull($party);
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::Cash, true));
             $this->em()->flush();
         });
 
@@ -1917,7 +1917,7 @@ final class InvoiceControllerTest extends WebTestCase
         $pdf = "%PDF-1.4\n% the original from the source\n%%EOF\n";
         $id = $this->scoped(function () use ($pdf): string {
             $series = $this->em()->find(Series::class, $this->series->id()) ?? throw new \LogicException('Series.');
-            $input = new InvoiceInput($series->id(), '20240007', $this->customer->id(), null, new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-15'), PaymentMethod::BankTransfer, self::IBAN, '20240007', '', '', '', '', '', DocumentLanguage::Czech, [new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]);
+            $input = new InvoiceInput($series->id(), '20240007', $this->customer->id(), null, new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-15'), PaymentMethod::BankTransfer, self::IBAN, '20240007', '', '', '', '', '', DocumentLanguage::Czech, [new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]);
             $issuer = new DocumentParty('Old Name s.r.o.', '12345695', 'CZ12345695', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
             $result = self::getContainer()->get(ImportIssuedDocument::class)->import(new ImportedDocumentInput($input, $issuer, VatRegime::Payer, TotalRounding::WholeUnit, new \DateTimeImmutable('2024-03-01 09:30'), new \DateTimeImmutable('2024-03-02'), null, new ImportedTotals(100000, 21000, 121000, 121000), 'idoklad', '4711', '0192f0a0-0000-7000-8000-000000000001', $pdf));
 
@@ -2115,7 +2115,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
             self::assertNotNull($party);
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
             $this->em()->flush();
         });
 
@@ -2131,7 +2131,7 @@ final class InvoiceControllerTest extends WebTestCase
         $foreign = $this->scoped(function (): Party {
             $party = new Party(PartyKind::Company, 'Example German GmbH', null, VatId::fromString('DE123456789'), '');
             $this->em()->persist($party);
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::BankTransfer, true));
             $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Strasse 1', 'Berlin', '10115', 'DE')));
             $this->em()->flush();
 
@@ -2155,7 +2155,7 @@ final class InvoiceControllerTest extends WebTestCase
             $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry());
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
             self::assertNotNull($party);
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
             $this->em()->flush();
         });
         $values = $this->openEdit($invoice);
@@ -2342,7 +2342,7 @@ final class InvoiceControllerTest extends WebTestCase
             $party = new Party(PartyKind::Person, 'Example Customer Two a.s.', null, null, '');
             $this->em()->persist($party);
             $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Second Street', 'Customer City', '200 00', 'CZ')));
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::Cash, true));
             $this->em()->flush();
 
             return $party;
@@ -2379,7 +2379,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
             self::assertNotNull($party);
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
             $this->em()->flush();
         });
         $values = $this->filled();
@@ -2403,7 +2403,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->save($values);
         $this->openEdit($this->onlyInvoice());
 
-        self::assertSame('-0.12 Kč', $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
+        self::assertSame('-0.12 CZK', $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
     }
 
     public function testATextLikeMarkupStaysText(): void

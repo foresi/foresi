@@ -125,12 +125,12 @@ final class SendRemindersTest extends SendingTestCase
     {
         $invoice = $this->overdue();
         // The invoice owes 1,210.00 CZK.
-        $this->switchOn(minimum: Money::of('1210.01', Currency::CZK));
+        $this->switchOn(minimum: Money::of('1210.01', Currency::of('CZK')));
 
         $this->runOn('2027-01-17 09:00:00');
         self::assertSame([], $this->reminders($invoice));
 
-        $this->switchOn(minimum: Money::of('1210.00', Currency::CZK));
+        $this->switchOn(minimum: Money::of('1210.00', Currency::of('CZK')));
         $this->runOn('2027-01-17 09:00:00');
         self::assertSame([1], $this->steps($invoice), 'exactly the minimum is reminded');
     }
@@ -138,7 +138,7 @@ final class SendRemindersTest extends SendingTestCase
     public function testAnotherCurrencyIgnoresTheMinimum(): void
     {
         $invoice = $this->overdue();
-        $this->switchOn(minimum: Money::of('100000', Currency::EUR));
+        $this->switchOn(minimum: Money::of('100000', Currency::of('EUR')));
 
         $this->runOn('2027-01-17 09:00:00');
 
@@ -269,7 +269,7 @@ final class SendRemindersTest extends SendingTestCase
         }
         InvoiceCopies::of($this->connection, $source->id(), 300, ['payable_minor' => 100_00]);
         $due = $this->overdue();
-        $this->switchOn(minimum: Money::of('500', Currency::CZK));
+        $this->switchOn(minimum: Money::of('500', Currency::of('CZK')));
 
         $this->runOn('2027-01-17 09:00:00');
 
@@ -428,7 +428,7 @@ final class SendRemindersTest extends SendingTestCase
      */
     private function pay(Invoice $invoice, string $amount): string
     {
-        $czk = Money::of($amount, Currency::CZK);
+        $czk = Money::of($amount, Currency::of('CZK'));
         $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
         $this->em->clear();
 
@@ -460,7 +460,7 @@ final class SendRemindersTest extends SendingTestCase
 
     private function reminding(Party $customer, bool $send): void
     {
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($customer->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($customer->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
         $this->em->flush();
     }
 

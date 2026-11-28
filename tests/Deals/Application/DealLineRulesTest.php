@@ -43,7 +43,7 @@ final class DealLineRulesTest extends TestCase
 
     public function testTheRefusalsOfACurrencyAndARecurrenceUnitListWhatIsAccepted(): void
     {
-        $this->assertRefused('currency', 'currency_unknown', 'The currency is one of CZK, EUR, USD.', $this->draft(currency: 'GBP'));
+        $this->assertRefused('currency', 'currency_unknown', 'The currency is not an ISO 4217 code; GET /api/v1/currencies lists them.', $this->draft(currency: 'XYZ'));
         $this->assertRefused('recurrenceUnit', 'recurrence_unit_unknown', 'The recurrence unit is one of day, week, month, year.', $this->draft(billingKind: 'recurring', recurrenceUnit: 'hour', interval: 1));
     }
 

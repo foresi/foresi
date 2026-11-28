@@ -53,7 +53,7 @@ final class AdvanceChainTest extends AdvanceTestCase
         self::assertSame([['21.00', 3100000, 651000, 3751000]], $this->figuresOf($document));
 
         $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
-        $work = new LineInput('Development', Quantity::fromString('65'), 'h', Money::of('1200.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $work = new LineInput('Development', Quantity::fromString('65'), 'h', Money::of('1200.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $final = $this->issue->issue($this->input([$work, ...$deduction], [
             'issueDate' => new \DateTimeImmutable('2025-02-06'),
             'taxPointDate' => new \DateTimeImmutable('2025-02-06'),

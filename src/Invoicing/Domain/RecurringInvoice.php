@@ -178,7 +178,7 @@ class RecurringInvoice implements Audited
      * @throws \DomainException for an imported identifier too long
      */
     public function __construct(
-        #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+        #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
         private readonly Currency $currency,
         RecurringContent $content,
         #[ORM\Column(name: 'owner_id', type: 'guid', nullable: true)]

@@ -387,8 +387,8 @@ final readonly class KbNotificationParser implements BankMessageParser
         if (1 !== preg_match($english ? self::ENGLISH_AMOUNT : self::AMOUNT, $written, $parts)) {
             throw new ParseFailed(ParseFailure::InvalidValue, 'The amount is not written as an amount and a currency.');
         }
-        $currency = 'Kč' === $parts[4] ? Currency::CZK : Currency::tryFrom($parts[4]);
-        if (null === $currency) {
+        $currency = 'Kč' === $parts[4] ? Currency::of('CZK') : Currency::tryFrom($parts[4]);
+        if (!$currency instanceof Currency) {
             throw new ParseFailed(ParseFailure::InvalidValue, 'The amount is in a currency Foresi does not support.');
         }
         if ('-' === $parts[1] && MovementDirection::Incoming === $direction) {
@@ -405,7 +405,7 @@ final readonly class KbNotificationParser implements BankMessageParser
             throw new ParseFailed(ParseFailure::InvalidValue, 'The amount is zero.');
         }
 
-        return $amount->minor().' '.$currency->value;
+        return $amount->minor().' '.$currency->code();
     }
 
     private function ownAccount(string $written): string

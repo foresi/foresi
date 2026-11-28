@@ -47,7 +47,7 @@ $entityManager->flush();
 $vatCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Customer a.s.', [PartyRole::Customer], 'billing@example.com', 8, '12345679', 'CZ12345679'));
 $vatDay = new DateTimeImmutable('2026-11-16');
 $issueInvoice->issue(new InvoiceInput($vatSeries->id(), null, $vatCustomer->id(), null, $vatDay, $vatDay, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [
-    new LineInput('Consulting', Quantity::fromString('1'), 'ks', Money::of('9000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    new LineInput('Consulting', Quantity::fromString('1'), 'ks', Money::of('9000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 $vatGuest = new User('vat-guest@example.com', $hash, 'Guest Example', 'cs');
 $entityManager->persist($vatGuest);

@@ -135,7 +135,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         Clock::set(new MockClock('2026-11-28 12:00:00', 'UTC'));
         $overdue = $this->invoice('2026-11-16', '2026-11-30', 'Consulting');
         $partlyPaid = $this->invoice('2026-11-20', '2026-12-20', 'Development');
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-25'), Money::of('2100.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($partlyPaid, Money::of('2100.00', Currency::CZK))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-25'), Money::of('2100.00', Currency::of('CZK')), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($partlyPaid, Money::of('2100.00', Currency::of('CZK')))]));
         $undated = $this->received($this->otherSupplier, 'FV-11', '2026-11-18', null, '2026-11-20', 500_000);
         $this->checkpoint('2026-11-25', '100000.00');
         $this->movement(MovementDirection::Incoming, '5000.00', '2026-11-27', '123456789/0800', null);
@@ -207,7 +207,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     {
         $zone = new \DateTimeZone('Europe/Prague');
         $item = fn (string $id, DocumentKind $kind, string $payable, string $paid, string $due): InvoiceListItem => new InvoiceListItem(
-            new InvoiceRow($id, 'FV-'.$id, 'Example Firm s.r.o.', 'Customer Example s.r.o.', new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable($due, $zone), Money::of($payable, Currency::CZK), false, false, false, Money::of($paid, Currency::CZK), PaymentState::Unpaid, kind: $kind),
+            new InvoiceRow($id, 'FV-'.$id, 'Example Firm s.r.o.', 'Customer Example s.r.o.', new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable($due, $zone), Money::of($payable, Currency::of('CZK')), false, false, false, Money::of($paid, Currency::of('CZK')), PaymentState::Unpaid, kind: $kind),
             $this->customer->id(),
             null,
             new \DateTimeImmutable('2026-11-10', $zone),
@@ -240,7 +240,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     {
         $zone = new \DateTimeZone('Europe/Prague');
         $item = fn (string $id, DocumentKind $kind, string $payable): InvoiceListItem => new InvoiceListItem(
-            new InvoiceRow($id, 'FV-'.$id, 'Example Firm s.r.o.', 'Customer Example s.r.o.', new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable('2026-11-24', $zone), Money::of($payable, Currency::CZK), false, false, false, Money::of('0.00', Currency::CZK), PaymentState::Unpaid, kind: $kind),
+            new InvoiceRow($id, 'FV-'.$id, 'Example Firm s.r.o.', 'Customer Example s.r.o.', new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable('2026-11-24', $zone), Money::of($payable, Currency::of('CZK')), false, false, false, Money::of('0.00', Currency::of('CZK')), PaymentState::Unpaid, kind: $kind),
             $this->customer->id(),
             null,
             new \DateTimeImmutable('2026-11-10', $zone),
@@ -335,7 +335,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $received = $this->received($this->supplier, 'RECEIVED', '2026-11-10', null, '2026-11-12', 100_000);
         $evidence = $this->received($this->otherSupplier, '', '2026-11-08', '2026-12-05', '2026-11-08', 100_000);
         $paid = $this->received($this->supplier, 'PAID', '2026-11-01', '2026-12-10', '2026-11-02', 100_000);
-        self::getContainer()->get(PayReceivedDocument::class)->pay($paid, new \DateTimeImmutable('2026-11-16'), Money::ofMinor(121_000, Currency::CZK), PurchasingPaymentMethod::BankTransfer);
+        self::getContainer()->get(PayReceivedDocument::class)->pay($paid, new \DateTimeImmutable('2026-11-16'), Money::ofMinor(121_000, Currency::of('CZK')), PurchasingPaymentMethod::BankTransfer);
         $zone = new \DateTimeZone('Europe/Prague');
 
         $flows = [];
@@ -358,7 +358,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $both = $this->received($this->supplier, 'BOTH', '2026-11-12', '2026-12-10', '2026-11-20', 100_000);
         $this->received($this->supplier, 'BEFORE', '2026-11-09', '2026-12-10', '2026-11-11', 100_000);
         $this->received($this->supplier, 'AFTER', '2026-12-01', '2026-12-10', '2026-11-11', 100_000);
-        self::getContainer()->get(PayReceivedDocument::class)->pay($first, new \DateTimeImmutable('2026-11-16'), Money::ofMinor(121_000, Currency::CZK), PurchasingPaymentMethod::BankTransfer);
+        self::getContainer()->get(PayReceivedDocument::class)->pay($first, new \DateTimeImmutable('2026-11-16'), Money::ofMinor(121_000, Currency::of('CZK')), PurchasingPaymentMethod::BankTransfer);
         $zone = new \DateTimeZone('Europe/Prague');
 
         $actuals = [];
@@ -434,7 +434,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     private function movementBalance(): ?AccountBalance
     {
         $zone = new \DateTimeZone('Europe/Prague');
-        $checkpoint = new BalanceCheckpoint($this->account->id(), Money::of('1000.00', Currency::CZK), new \DateTimeImmutable('2026-11-10', $zone));
+        $checkpoint = new BalanceCheckpoint($this->account->id(), Money::of('1000.00', Currency::of('CZK')), new \DateTimeImmutable('2026-11-10', $zone));
 
         return self::getContainer()->get(MovementFlows::class)->balance($checkpoint, new \DateTimeImmutable('2026-11-17', $zone));
     }
@@ -598,7 +598,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
 
     private function line(string $text = 'Work', string $price = '10000.00'): LineInput
     {
-        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
     }
 
     /**
@@ -617,11 +617,11 @@ final class CashFlowSourcesTest extends CashFlowTestCase
             new \DateTimeImmutable($issued),
             null === $due ? null : new \DateTimeImmutable($due),
             new \DateTimeImmutable($received),
-            Currency::CZK,
-            Money::ofMinor($base + $vat, Currency::CZK),
+            Currency::of('CZK'),
+            Money::ofMinor($base + $vat, Currency::of('CZK')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::CZK), Money::ofMinor($vat, Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::of('CZK')), Money::ofMinor($vat, Currency::of('CZK')))],
         ));
         $this->em->flush();
 
@@ -639,7 +639,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
             $this->account->id(),
             null,
             $direction,
-            Money::of($amount, Currency::CZK),
+            Money::of($amount, Currency::of('CZK')),
             new \DateTimeImmutable($bookedOn),
             $counterAccount,
             $counterIban,

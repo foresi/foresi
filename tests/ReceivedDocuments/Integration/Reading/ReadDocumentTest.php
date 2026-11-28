@@ -332,7 +332,7 @@ final class ReadDocumentTest extends PurchasingTestCase
 
         $this->readDocument($this->stub('isdoc', static fn (): Reading => new Reading([
             new ReadValue(ReadField::SupplierNumber, 'FV-2026-77', 'isdoc'),
-            new ReadValue(ReadField::Currency, 'GBP', 'isdoc'),
+            new ReadValue(ReadField::Currency, 'XYZ', 'isdoc'),
             new ReadValue(ReadField::Total, 12_100, 'isdoc'),
             new ReadValue(ReadField::VatRecap, [['rate' => '21', 'baseMinor' => 10_000, 'vatMinor' => 2_100]], 'isdoc'),
         ])))->read($message);
@@ -343,7 +343,7 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::assertSame(['total', 'vat_recap'], $reading->suggested());
         self::assertContains(ReceivedDocumentWarning::READING_PARTLY_APPLIED, $reading->warnings());
         self::assertSame('FV-2026-77', $document->supplierNumber());
-        self::assertNotSame(12_100, $document->total()?->minor(), 'GBP amounts are never taken as CZK.');
+        self::assertNotSame(12_100, $document->total()?->minor(), 'XYZ amounts are never taken as CZK.');
         self::assertTrue($document->vatRecap()->isEmpty());
     }
 

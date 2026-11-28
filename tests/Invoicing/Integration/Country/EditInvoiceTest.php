@@ -688,7 +688,7 @@ final class EditInvoiceTest extends InvoiceTestCase
 
     private function sourced(string $text, string $source): LineInput
     {
-        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $source);
+        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $source);
     }
 
     /**

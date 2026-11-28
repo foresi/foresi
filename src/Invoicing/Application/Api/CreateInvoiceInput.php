@@ -55,7 +55,7 @@ final readonly class CreateInvoiceInput
         public ?string $taxPointDate = null,
         #[Field('The due date, YYYY-MM-DD; the issue date plus the due days of the customer when left out.', format: 'date')]
         public ?string $dueDate = null,
-        #[Field('The currency, ISO 4217; the currency of the firm when left out.', maxLength: 3)]
+        #[Field('The currency, an ISO 4217 code such as EUR (GET /api/v1/currencies lists them); the currency of the firm when left out.', pattern: Field::CURRENCY)]
         public ?string $currency = null,
         #[Field('How it is paid; the default of the customer when left out.', enum: ['bank_transfer', 'cash', 'card'])]
         public ?string $paymentMethod = null,

@@ -65,13 +65,13 @@ final class AllocationTest extends TestCase
         $this->assertRefused('percent_must_add_up', fn (): Allocation => $percent('abc', '100'));
         $this->assertRefused('percent_must_add_up', fn (): Allocation => new Allocation(AllocationKind::Percent, [
             new AllocationShare(Recipient::own(), '50'),
-            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('1', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('1', Currency::of('CZK'))),
         ]));
     }
 
     public function testFixedNeedsARest(): void
     {
-        $czk = static fn (string $amount): Money => Money::of($amount, Currency::CZK);
+        $czk = static fn (string $amount): Money => Money::of($amount, Currency::of('CZK'));
         $client = static fn (string $id, string $amount): AllocationShare => new AllocationShare(Recipient::client($id), null, $czk($amount));
 
         $fixed = new Allocation(AllocationKind::Fixed, [$client(self::CLIENT_A, '800'), new AllocationShare(Recipient::own(), rest: true)]);
@@ -87,7 +87,7 @@ final class AllocationTest extends TestCase
         $this->assertRefused('fixed_needs_a_rest', fn (): Allocation => new Allocation(AllocationKind::Fixed, [$client(self::CLIENT_A, '0'), new AllocationShare(Recipient::own(), rest: true)]));
         $this->assertRefused('fixed_needs_a_rest', fn (): Allocation => new Allocation(AllocationKind::Fixed, [$client(self::CLIENT_A, '-5'), new AllocationShare(Recipient::own(), rest: true)]));
         $this->assertRefused('fixed_needs_a_rest', fn (): Allocation => new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('5', Currency::EUR)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('5', Currency::of('EUR'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]));
         $this->assertRefused('fixed_needs_a_rest', fn (): Allocation => new Allocation(AllocationKind::Fixed, [
@@ -103,7 +103,7 @@ final class AllocationTest extends TestCase
             new AllocationShare(Recipient::client(self::CLIENT_A), '50'),
         ]));
         $this->assertRefused('duplicate_recipient', fn (): Allocation => new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::own(), null, Money::of('10', Currency::CZK)),
+            new AllocationShare(Recipient::own(), null, Money::of('10', Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]));
     }
@@ -116,7 +116,7 @@ final class AllocationTest extends TestCase
             new AllocationShare(Recipient::own(), '20'),
         ]);
         $fixed = new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('800', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), null, Money::of('800', Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]);
         $whole = new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own())]);
@@ -179,14 +179,14 @@ final class AllocationTest extends TestCase
 
     public function testWholeTakesNeitherAnAmountNorTheRest(): void
     {
-        $this->assertRefused('whole_needs_one', fn (): Allocation => new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own(), null, Money::of('1', Currency::CZK))]));
+        $this->assertRefused('whole_needs_one', fn (): Allocation => new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own(), null, Money::of('1', Currency::of('CZK')))]));
         $this->assertRefused('whole_needs_one', fn (): Allocation => new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own(), rest: true)]));
     }
 
     public function testAPercentShareTakesNeitherAnAmountNorTheRest(): void
     {
         $this->assertRefused('percent_must_add_up', fn (): Allocation => new Allocation(AllocationKind::Percent, [
-            new AllocationShare(Recipient::own(), '50', Money::of('1', Currency::CZK)),
+            new AllocationShare(Recipient::own(), '50', Money::of('1', Currency::of('CZK'))),
             new AllocationShare(Recipient::client(self::CLIENT_A), '50'),
         ]));
         $this->assertRefused('percent_must_add_up', fn (): Allocation => new Allocation(AllocationKind::Percent, [
@@ -203,7 +203,7 @@ final class AllocationTest extends TestCase
             new AllocationShare(Recipient::own(), '20'),
         ]);
 
-        $split = new ShareSplitter()->split($allocation, Money::of('100.01', Currency::CZK));
+        $split = new ShareSplitter()->split($allocation, Money::of('100.01', Currency::of('CZK')));
 
         self::assertSame([3000, 5000, 2001], array_map(static fn (array $part): int => $part[1]->minor(), $split));
     }

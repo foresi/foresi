@@ -56,7 +56,7 @@ final readonly class AmountsView
      */
     public static function none(\DateTimeImmutable $from, \DateTimeImmutable $to): self
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $totals = [];
         foreach (AmountKind::cases() as $kind) {
             $totals[$kind->value] = new AmountTotals($zero, $zero, $zero, $zero);

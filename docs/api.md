@@ -78,7 +78,8 @@ To check a set-up, call `GET /api/v1/me`. It returns the person and the token (i
 
 ### Money, dates and ids
 
-- Money is an object with the amount in minor units: `{"amount_minor": 12100, "currency": "CZK"}` is 121.00 CZK.
+- Money is an object with the amount in minor units of its currency and how many minor units the currency has: `{"amount_minor": 12100, "currency": "CZK", "minor_units": 2}` is 121.00 CZK, `{"amount_minor": 1500, "currency": "JPY", "minor_units": 0}` is 1,500 yen and `{"amount_minor": 12345, "currency": "BHD", "minor_units": 3}` is 12.345 dinars. Read `minor_units`; never assume two.
+- A currency is any current ISO 4217 code, uppercase, such as `EUR` or `CHF`; `GET /api/v1/currencies` lists them with their names and minor units (`?historic=true` adds withdrawn ones such as `HRK`, which older documents may be in). A code that is not in the list is refused with `400 invalid_parameter`. A decimal amount in an input has at most the currency's minor units: `"12.345"` for BHD, `"1500"` for JPY.
 - Dates are `YYYY-MM-DD`. Timestamps are ISO 8601 with an offset, such as `2026-11-10T14:30:00+01:00`.
 - Quantities, percentages and discounts are strings with fixed decimals, such as `"1.0000"` and `"21.00"`.
 - Ids are UUIDs.
@@ -165,6 +166,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/document-types` | `documents:read` | The document types, by name. |
 | `/api/v1/document-templates` | `documents:read` | The document templates, by name, without their bodies. |
 | `/api/v1/document-templates/{templateId}` | `documents:read` | One template with its latest version, its versions and the variables a body can use. |
+| `/api/v1/currencies?historic=` | any scope | The ISO 4217 currencies, by code: `code`, `name`, `minor_units`, `numeric_code` and `historic`; the withdrawn ones only with `historic=true`. |
 | `/api/v1/fields?record=` | the record's read scope | The custom fields modules add to contacts, deals, tasks, projects and products, of every record kind the token may read or of one (`record`); see [Custom fields](#custom-fields). |
 | `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
 | `/api/v1/views?list=` | `views:read` | The saved views of a list the token's person sees. |
@@ -542,7 +544,7 @@ Fields of a planned item:
 | `name` | Required. At most 120 characters. |
 | `category` | Required. `revenue`, `purchases`, `rent`, `software`, `payroll`, `taxes`, `insurance`, `vat`, `loans`, `owner_draws` or `other`. |
 | `amount` | Required. The amount of one occurrence, more than zero, as a decimal string such as `"1500.00"`. |
-| `currency` | `CZK` (the default), `EUR` or `USD`. |
+| `currency` | An ISO 4217 code; `CZK` when left out. |
 | `on` | Required. The day of a one-off item, or the first day of a recurring one. |
 | `repeat` | `day`, `week`, `month` or `year`; left out or `null` for a one-off item. |
 | `every` | 1 to 99, 1 by default. |
@@ -687,7 +689,7 @@ Fields of a product:
 | `billing_kind` | `one_off` (the default), `recurring` or `time_based`, billed by the hour. |
 | `unit` | Up to 32 characters, as the unit of an invoice line; may be empty. `h` for `time_based` (empty means `h`, another unit is refused `time_based_unit`). |
 | `unit_price` | A decimal of zero or more, without VAT, or `null` when the price is agreed each time. Required for `time_based`, where it is the hourly rate (`rate_required`). |
-| `currency` | `CZK` (the default), `EUR` or `USD`. |
+| `currency` | An ISO 4217 code; `CZK` when left out. |
 | `recurrence_unit` | `day`, `week`, `month` or `year`; required for `recurring`, refused for `one_off` and `time_based`. |
 | `interval` | 1 to 99, required for `recurring`: billed every `interval` units. Refused for `one_off` and `time_based`. |
 | `cycles` | 1 to 999 times, or `null` for no end. Refused for `one_off` and `time_based`. |

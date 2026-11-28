@@ -111,8 +111,8 @@ final readonly class FacturXReader implements DocumentReader
             $this->value(ReadField::IssueDate, $this->date($xpath, '/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString')),
             $this->value(ReadField::DueDate, $this->date($xpath, self::SETTLEMENT.'/ram:SpecifiedTradePaymentTerms/ram:DueDateDateTime/udt:DateTimeString')),
             $this->value(ReadField::Currency, null !== $currency && 1 === preg_match('/^[A-Z]{3}$/D', $currency) ? $currency : null),
-            $this->value(ReadField::Total, null === $total ? null : ReadFormat::minor($total)),
-            $this->value(ReadField::VatRecap, $this->recap($xpath)),
+            $this->value(ReadField::Total, null === $total ? null : ReadFormat::minor($total, ReadFormat::minorUnits($currency))),
+            $this->value(ReadField::VatRecap, $this->recap($xpath, ReadFormat::minorUnits($currency))),
             $this->value(ReadField::BankAccount, null !== $iban && 1 === preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/D', $iban) ? $iban : null),
         ];
         $reading = new Reading(array_filter($values));
@@ -127,7 +127,7 @@ final readonly class FacturXReader implements DocumentReader
      *
      * @return list<array{rate: string, baseMinor: int, vatMinor: int}>|null
      */
-    private function recap(\DOMXPath $xpath): ?array
+    private function recap(\DOMXPath $xpath, int $minorUnits): ?array
     {
         $rows = [];
         $nodes = $xpath->query(self::SETTLEMENT.'/ram:ApplicableTradeTax');
@@ -139,8 +139,8 @@ final readonly class FacturXReader implements DocumentReader
             $base = $this->text($xpath, 'ram:BasisAmount', $tax);
             $vat = $this->text($xpath, 'ram:CalculatedAmount', $tax);
             $rate = null === $rate ? null : ReadFormat::rate($rate);
-            $base = null === $base ? null : ReadFormat::minor($base);
-            $vat = null === $vat ? null : ReadFormat::minor($vat);
+            $base = null === $base ? null : ReadFormat::minor($base, $minorUnits);
+            $vat = null === $vat ? null : ReadFormat::minor($vat, $minorUnits);
             if (in_array(null, [$rate, $base, $vat], true)) {
                 return null;
             }

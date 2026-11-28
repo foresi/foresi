@@ -303,7 +303,7 @@ final class PairingApiTest extends ApiTestCase
 
     private function document(string $id, string $amount, string $on): void
     {
-        $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id, '/api/v1/received-documents/'.$id), $this->supplierId, FlowDirection::Out, Money::of($amount, Currency::CZK), new \DateTimeImmutable($on)));
+        $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id, '/api/v1/received-documents/'.$id), $this->supplierId, FlowDirection::Out, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable($on)));
     }
 
     private function considerAll(): void

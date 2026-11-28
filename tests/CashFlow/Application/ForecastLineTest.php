@@ -39,6 +39,6 @@ final class ForecastLineTest extends TestCase
 
     private function flow(): ExpectedFlow
     {
-        return new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1'), FlowDirection::In, Money::of('10.00', Currency::CZK), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Document, 'FV-1');
+        return new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1'), FlowDirection::In, Money::of('10.00', Currency::of('CZK')), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Document, 'FV-1');
     }
 }

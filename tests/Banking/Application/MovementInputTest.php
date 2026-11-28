@@ -22,7 +22,7 @@ final class MovementInputTest extends TestCase
     {
         $parsed = new ParsedMovement(
             MovementDirection::Incoming,
-            Money::of('10.00', Currency::CZK),
+            Money::of('10.00', Currency::of('CZK')),
             'CZ6508000000192000145399',
             'A'.str_repeat('č', BankMovement::MAX_COUNTER_ACCOUNT),
             null,
@@ -45,7 +45,7 @@ final class MovementInputTest extends TestCase
 
     public function testTextsWithinTheirColumnsAndNoneStayAsTheyAre(): void
     {
-        $parsed = new ParsedMovement(MovementDirection::Incoming, Money::of('10.00', Currency::CZK), 'CZ6508000000192000145399', '123456789/0800', null, 'Žlutý kůň s.r.o.', new \DateTimeImmutable('2026-11-20'), null, null, null, null, null);
+        $parsed = new ParsedMovement(MovementDirection::Incoming, Money::of('10.00', Currency::of('CZK')), 'CZ6508000000192000145399', '123456789/0800', null, 'Žlutý kůň s.r.o.', new \DateTimeImmutable('2026-11-20'), null, null, null, null, null);
 
         $input = MovementInput::of($parsed, 'account', null);
 

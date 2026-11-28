@@ -37,5 +37,5 @@ $entityManager->persist($quietSeries);
 $entityManager->flush();
 $recipient = $createParty->createFrom($party(PartyKind::Company, 'Example Recipient a.s.', [PartyRole::Customer], 'billing@example.com', 8, '12345679', 'CZ12345679'));
 $issueInvoice->issue(new InvoiceInput($quietSeries->id(), null, $recipient->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', 'Logo design', '', '', DocumentLanguage::Czech, [
-    new LineInput('Logo design', Quantity::fromString('1'), 'ks', Money::of('8000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    new LineInput('Logo design', Quantity::fromString('1'), 'ks', Money::of('8000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));

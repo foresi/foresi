@@ -144,7 +144,7 @@ final class PairingEdgesTest extends CashFlowTestCase
 
     private function document(string $id, string $amount, string $on): PairableDocument
     {
-        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $this->supplier->id(), FlowDirection::Out, Money::of($amount, Currency::USD), new \DateTimeImmutable($on)));
+        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $this->supplier->id(), FlowDirection::Out, Money::of($amount, Currency::of('USD')), new \DateTimeImmutable($on)));
     }
 
     private function row(string $id): DocumentPairing

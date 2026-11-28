@@ -117,7 +117,7 @@ final readonly class DocumentWarnings
             return false;
         }
         $rate = $document->exchangeRate();
-        if (Currency::CZK !== $total->currency() && !$rate instanceof ExchangeRate) {
+        if (Currency::of('CZK') !== $total->currency() && !$rate instanceof ExchangeRate) {
             return false;
         }
         $czk = $rate instanceof ExchangeRate ? $rate->toCzk($total) : $total;

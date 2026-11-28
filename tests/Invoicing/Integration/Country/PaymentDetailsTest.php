@@ -38,7 +38,7 @@ final class PaymentDetailsTest extends PaymentReadTestCase
     {
         $invoice = $this->invoice();
         $payment = $this->payment(amount: '1000');
-        $this->em->persist(new PaymentAllocation($payment, $this->em->find(Invoice::class, $invoice->id()) ?? throw new \LogicException('No invoice.'), Money::of('1000', Currency::CZK), Money::of('0.50', Currency::CZK)));
+        $this->em->persist(new PaymentAllocation($payment, $this->em->find(Invoice::class, $invoice->id()) ?? throw new \LogicException('No invoice.'), Money::of('1000', Currency::of('CZK')), Money::of('0.50', Currency::of('CZK'))));
         $this->em->flush();
 
         $allocation = $this->details()->of($payment->id())->allocations[0];

@@ -198,11 +198,11 @@ final class ExpectedDocumentsTest extends WebTestCase
             new \DateTimeImmutable($issued),
             null === $due ? null : new \DateTimeImmutable($due),
             new \DateTimeImmutable($issued),
-            Currency::CZK,
-            Money::ofMinor(1_210_000, Currency::CZK),
+            Currency::of('CZK'),
+            Money::ofMinor(1_210_000, Currency::of('CZK')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(210_000, Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor(1_000_000, Currency::of('CZK')), Money::ofMinor(210_000, Currency::of('CZK')))],
         ));
         $em->flush();
 

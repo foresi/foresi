@@ -49,7 +49,7 @@ final readonly class YearEndForecast
     {
         $read = $source->between($from, $to);
         $shares = $this->shares($read->amounts);
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $empty = new AmountTotals($zero, $zero, $zero, $zero);
         $totals = [];
         $byCertainty = [];

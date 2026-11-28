@@ -72,7 +72,7 @@ final class FlatRateFlowsTest extends TaxesTestCase
     public function testAMatchingBankMovementPaysTheFlatRateAdvance(): void
     {
         $bank = new FakeActualSource('banking.movements', [
-            new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm-nov'), FlowDirection::Out, Money::ofMinor(916_200, Currency::CZK), $this->day('2026-11-19'), counterpartyAccount: self::ACCOUNT, variableSymbol: self::SYMBOL),
+            new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm-nov'), FlowDirection::Out, Money::ofMinor(916_200, Currency::of('CZK')), $this->day('2026-11-19'), counterpartyAccount: self::ACCOUNT, variableSymbol: self::SYMBOL),
         ]);
         $estimates = $this->estimates(new DuePayments([new BankLevyPayments(new RuleMovements([$bank]))]));
 

@@ -109,7 +109,7 @@ final readonly class RecordPayment
                 $payment->id(),
                 $this->instanceFirm->get()->id(),
                 EventFacts::amount($payment->amount()),
-                $payment->amount()->currency()->value,
+                $payment->amount()->currency()->code(),
                 EventFacts::day($payment->receivedOn()),
                 EventFacts::direction($payment->direction()),
                 $payment->source()->value,

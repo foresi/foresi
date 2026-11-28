@@ -127,7 +127,7 @@ final class ReadingApplicationTest extends TestCase
 
         $this->application()->apply($document, $this->reading(currency: 'EUR'), $document->version());
 
-        self::assertSame(Currency::EUR, $document->currency());
+        self::assertSame(Currency::of('EUR'), $document->currency());
         self::assertSame(12_100, $document->total()?->minor());
         self::assertNull($document->exchangeRate(), 'The rate of one CZK does not carry over; recording takes the published rate.');
     }
@@ -375,9 +375,9 @@ final class ReadingApplicationTest extends TestCase
         yield 'a typed issue date' => [$with(['issueDate' => $day]), ['issue_date']];
         yield 'a typed tax point date' => [$with(['taxPointDate' => $day]), ['tax_point_date']];
         yield 'a typed due date' => [$with(['dueDate' => $day]), ['due_date']];
-        yield 'a typed total' => [$with(['total' => Money::ofMinor(500, Currency::CZK)]), ['currency', 'total', 'vat_recap']];
-        yield 'a typed recap' => [$with(['vatRecap' => [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100, Currency::CZK), Money::ofMinor(21, Currency::CZK))]]), ['currency', 'total', 'vat_recap']];
-        yield 'a zero total is not typed' => [$with(['total' => Money::ofMinor(0, Currency::CZK)]), []];
+        yield 'a typed total' => [$with(['total' => Money::ofMinor(500, Currency::of('CZK'))]), ['currency', 'total', 'vat_recap']];
+        yield 'a typed recap' => [$with(['vatRecap' => [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100, Currency::of('CZK')), Money::ofMinor(21, Currency::of('CZK')))]]), ['currency', 'total', 'vat_recap']];
+        yield 'a zero total is not typed' => [$with(['total' => Money::ofMinor(0, Currency::of('CZK'))]), []];
         yield 'blank texts are not typed' => [$with(['supplierNumber' => '  ', 'variableSymbol' => " \n"]), []];
         yield 'a kind like the one read is not typed' => [$with(['kind' => ReceivedDocumentKind::TaxInvoice]), []];
     }
@@ -481,7 +481,7 @@ final class ReadingApplicationTest extends TestCase
     {
         $blank = ReceivedDocumentContent::blank(new \DateTimeImmutable('2026-11-02'));
 
-        return new ReceivedDocumentContent($blank->kind, $blank->treatment, null, SupplierSnapshot::none(), $supplierNumber, '', null, null, null, $blank->receivedDate, Currency::CZK, null, null, null, [], null);
+        return new ReceivedDocumentContent($blank->kind, $blank->treatment, null, SupplierSnapshot::none(), $supplierNumber, '', null, null, null, $blank->receivedDate, Currency::of('CZK'), null, null, null, [], null);
     }
 
     private function complete(): ReceivedDocumentContent
@@ -499,11 +499,11 @@ final class ReadingApplicationTest extends TestCase
             new \DateTimeImmutable('2026-10-28'),
             null,
             new \DateTimeImmutable('2026-11-02'),
-            Currency::CZK,
-            Money::ofMinor(121_000, Currency::CZK),
+            Currency::of('CZK'),
+            Money::ofMinor(121_000, Currency::of('CZK')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(21_000, Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::of('CZK')), Money::ofMinor(21_000, Currency::of('CZK')))],
             null,
         );
     }
@@ -528,7 +528,7 @@ final class ReadingApplicationTest extends TestCase
             $changes['taxPointDate'] ?? null,
             $changes['dueDate'] ?? null,
             $blank->receivedDate,
-            Currency::CZK,
+            Currency::of('CZK'),
             $changes['total'] ?? null,
             null,
             null,

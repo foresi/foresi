@@ -152,7 +152,7 @@ final class CashFlowJson
 
         return [
             'firm' => ['id' => $firm->id(), 'name' => $firm->name()],
-            'currency' => Currency::CZK->value,
+            'currency' => Currency::of('CZK')->code(),
             'today' => JsonValues::date($forecast->today),
             'from' => JsonValues::date($forecast->from),
             // The certainties counted: every one unless a filter chose some.
@@ -259,7 +259,7 @@ final class CashFlowJson
      */
     private static function totals(array $byCategory, array $byCertainty): array
     {
-        $total = Money::ofMinor(0, Currency::CZK);
+        $total = Money::ofMinor(0, Currency::of('CZK'));
         foreach ($byCategory as $amount) {
             $total = $total->plus($amount);
         }

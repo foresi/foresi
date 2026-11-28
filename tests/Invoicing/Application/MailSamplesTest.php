@@ -35,7 +35,7 @@ final class MailSamplesTest extends TestCase
     {
         $firm = $this->firm(VatId::fromString('CZ12345695'));
         $values = $this->samples($firm, new User('jana@example.com', 'hash', 'Jana Example'))
-            ->valuesFor(MailTemplateKind::Invoice, DocumentLanguage::Czech, Currency::CZK, 'Sample Customer', 'Faktura');
+            ->valuesFor(MailTemplateKind::Invoice, DocumentLanguage::Czech, Currency::of('CZK'), 'Sample Customer', 'Faktura');
 
         self::assertSame('20260042', $values['number']);
         self::assertSame('19. 11. 2026', $values['issue_date']);
@@ -57,7 +57,7 @@ final class MailSamplesTest extends TestCase
     public function testWithoutASignedInUserTheFirmSends(): void
     {
         $firm = $this->firm(null);
-        $values = $this->samples($firm, null)->valuesFor(MailTemplateKind::Invoice, DocumentLanguage::English, Currency::EUR, 'Sample Customer Ltd', 'Invoice');
+        $values = $this->samples($firm, null)->valuesFor(MailTemplateKind::Invoice, DocumentLanguage::English, Currency::of('EUR'), 'Sample Customer Ltd', 'Invoice');
 
         self::assertSame('Example Firm s.r.o.', $values['sender_name']);
         self::assertSame('', $values['vat_id']);
@@ -70,11 +70,11 @@ final class MailSamplesTest extends TestCase
         $firm = $this->firm(null);
         $samples = $this->samples($firm, null);
 
-        $reminder = $samples->valuesFor(MailTemplateKind::Reminder, DocumentLanguage::English, Currency::EUR, 'C', 'Invoice');
+        $reminder = $samples->valuesFor(MailTemplateKind::Reminder, DocumentLanguage::English, Currency::of('EUR'), 'C', 'Invoice');
         self::assertSame(['9', '1', '7,260.00 EUR'], [$reminder['days_overdue'], $reminder['reminder_step'], str_replace("\u{a0}", ' ', $reminder['amount_due'])]);
         self::assertArrayNotHasKey('original_number', $reminder);
 
-        $correction = $samples->valuesFor(MailTemplateKind::CorrectionDocument, DocumentLanguage::English, Currency::EUR, 'C', 'Corrective tax document');
+        $correction = $samples->valuesFor(MailTemplateKind::CorrectionDocument, DocumentLanguage::English, Currency::of('EUR'), 'C', 'Corrective tax document');
         self::assertSame('20260017', $correction['original_number']);
         self::assertArrayNotHasKey('amount_due', $correction);
     }

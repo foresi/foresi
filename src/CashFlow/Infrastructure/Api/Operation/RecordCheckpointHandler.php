@@ -32,6 +32,6 @@ final readonly class RecordCheckpointHandler implements OperationHandler
         \assert($input instanceof RecordCheckpointInput);
         $checkpoint = $this->writes->checkpoint($input);
 
-        return new OperationOutput(CashFlowJson::checkpoint($checkpoint, $this->access->firm()), \sprintf('Recorded the balance %s %s of %s at the end of %s.', PlannedItemWrites::decimal($checkpoint->amount()), $checkpoint->amount()->currency()->value, $checkpoint->account()->label(), $checkpoint->on()->format('Y-m-d')));
+        return new OperationOutput(CashFlowJson::checkpoint($checkpoint, $this->access->firm()), \sprintf('Recorded the balance %s %s of %s at the end of %s.', PlannedItemWrites::decimal($checkpoint->amount()), $checkpoint->amount()->currency()->code(), $checkpoint->account()->label(), $checkpoint->on()->format('Y-m-d')));
     }
 }

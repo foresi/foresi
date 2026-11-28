@@ -90,7 +90,7 @@ final readonly class OccurrenceFill
 
         $parts = [];
         foreach ($allocation->shares as $index => $share) {
-            $parts[] = [$share->recipient, Money::ofMinor($amounts[$index], Currency::CZK)];
+            $parts[] = [$share->recipient, Money::ofMinor($amounts[$index], Currency::of('CZK'))];
         }
 
         return $parts;

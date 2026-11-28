@@ -80,7 +80,7 @@ final readonly class RecordMovement
                 $account->id(),
                 $movement->direction()->value,
                 $this->decimal($movement->amount()),
-                $movement->amount()->currency()->value,
+                $movement->amount()->currency()->code(),
                 $movement->bookedOn()->format('Y-m-d'),
                 $movement->state()->value,
                 $movement->variableSymbol(),

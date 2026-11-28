@@ -39,24 +39,24 @@ final class CzkAmounts
     public function of(Money $money): ?Money
     {
         $currency = $money->currency();
-        if (Currency::CZK === $currency) {
+        if (Currency::of('CZK') === $currency) {
             return $money;
         }
-        if (\in_array($currency->value, $this->missing, true)) {
+        if (\in_array($currency->code(), $this->missing, true)) {
             return null;
         }
-        if (!isset($this->rates[$currency->value])) {
+        if (!isset($this->rates[$currency->code()])) {
             try {
-                $this->rates[$currency->value] = $this->exchangeRates->rateOn($currency->value, $this->today);
+                $this->rates[$currency->code()] = $this->exchangeRates->rateOn($currency->code(), $this->today);
             } catch (RateNotAvailable $failure) {
-                $this->logger->warning('No rate of {currency} for the cash-flow forecast.', ['currency' => $currency->value, 'exception' => $failure]);
-                $this->missing[] = $currency->value;
+                $this->logger->warning('No rate of {currency} for the cash-flow forecast.', ['currency' => $currency->code(), 'exception' => $failure]);
+                $this->missing[] = $currency->code();
 
                 return null;
             }
         }
-        $rate = $this->rates[$currency->value];
-        $czk = Money::ofMinor($money->minor(), Currency::CZK)->multipliedBy($rate->rate);
+        $rate = $this->rates[$currency->code()];
+        $czk = Money::ofMinor($money->minor(), Currency::of('CZK'))->multipliedBy($rate->rate);
 
         return $czk->dividedBy((string) $rate->amount);
     }

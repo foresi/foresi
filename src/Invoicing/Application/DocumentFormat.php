@@ -11,6 +11,7 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 
 /**
  * Amounts and dates as a document prints them, in its own language. The PDF and
@@ -26,16 +27,12 @@ final readonly class DocumentFormat
      */
     public function money(Money $money, DocumentLanguage $language): string
     {
-        $minor = abs($money->minor());
-        $formatter = new \NumberFormatter($language->value, \NumberFormatter::DECIMAL);
-        $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
-
-        return \sprintf("%s%s%s%02d\u{a0}%s", $money->isNegative() ? '-' : '', $whole, $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100, $this->currency($money->currency(), $language));
+        return \sprintf("%s\u{a0}%s", MoneyFormat::grouped($money, $language->value), $this->currency($money->currency(), $language));
     }
 
     private function currency(Currency $currency, DocumentLanguage $language): string
     {
-        return Currency::CZK === $currency && DocumentLanguage::Czech === $language ? 'Kč' : $currency->value;
+        return Currency::of('CZK') === $currency && DocumentLanguage::Czech === $language ? 'Kč' : $currency->code();
     }
 
     /**

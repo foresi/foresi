@@ -146,7 +146,7 @@ final class ForecastReadsTest extends CashFlowTestCase
     public function testAFulfilledPlannedOccurrenceIsNotReturned(): void
     {
         $item = $this->writes()->create(new CreatePlannedItemInput('out', 'Social insurance advance', 'taxes', '5720.00', '2026-11-20', repeat: 'month', matchVariableSymbol: '4402051234'));
-        $bank = new FakeActualSource('test.bank', [new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::Out, Money::of('5720.00', Currency::CZK), $this->day('2026-11-09'), variableSymbol: '4402051234')]);
+        $bank = new FakeActualSource('test.bank', [new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::Out, Money::of('5720.00', Currency::of('CZK')), $this->day('2026-11-09'), variableSymbol: '4402051234')]);
 
         $read = $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2027-01-31')), [new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class), self::getContainer()->get(PlannedItemVatRule::class))], [$bank]);
 
@@ -156,7 +156,7 @@ final class ForecastReadsTest extends CashFlowTestCase
 
     public function testAnOverdueFlowIsReadOnTheFirstDayInCzkWithItsOwnAmount(): void
     {
-        $source = new FakeSource('test.euro', [$this->flow('test.euro', '1', '2026-11-02', '100.00', currency: Currency::EUR)]);
+        $source = new FakeSource('test.euro', [$this->flow('test.euro', '1', '2026-11-02', '100.00', currency: Currency::of('EUR'))]);
 
         $read = $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2026-12-31')), [$source]);
 
@@ -209,8 +209,10 @@ final class ForecastReadsTest extends CashFlowTestCase
     /**
      * A flow of the source of that key, as a real source gives its own key.
      */
-    private function flow(string $source, string $id, string $on, string $amount, FlowCertainty $certainty = FlowCertainty::Document, FlowCategory $category = FlowCategory::Revenue, Currency $currency = Currency::CZK): ExpectedFlow
+    private function flow(string $source, string $id, string $on, string $amount, FlowCertainty $certainty = FlowCertainty::Document, FlowCategory $category = FlowCategory::Revenue, ?Currency $currency = null): ExpectedFlow
     {
+        $currency ??= Currency::of('CZK');
+
         return new ExpectedFlow($source, new FlowSubject('invoice', $id), FlowDirection::In, Money::of($amount, $currency), $this->day($on), $category, $certainty, 'Invoice '.$id);
     }
 

@@ -44,10 +44,10 @@ final class EditReceivedDocumentTest extends PurchasingTestCase
     {
         $draft = $this->draft();
 
-        $this->editing()->edit($draft, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::EUR, base: 10_000));
+        $this->editing()->edit($draft, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::of('EUR'), base: 10_000));
         self::assertSame('24.31', $this->document($draft)->exchangeRate()?->toString());
 
-        $this->editing()->edit($draft, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::USD, base: 10_000));
+        $this->editing()->edit($draft, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::of('USD'), base: 10_000));
         self::assertNull($this->document($draft)->exchangeRate(), 'A draft without a published rate is kept without one.');
     }
 

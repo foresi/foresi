@@ -315,7 +315,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
                 $row['taxPointDate'],
                 $row['receivedDate'],
                 null === $row['totalMinor'] ? null : Money::ofMinor((int) $row['totalMinor'], $currency),
-                null === $row['vatCzkMinor'] ? null : Money::ofMinor((int) $row['vatCzkMinor'], Currency::CZK),
+                null === $row['vatCzkMinor'] ? null : Money::ofMinor((int) $row['vatCzkMinor'], Currency::of('CZK')),
                 $row['createdAt'],
                 $row['deletedAt'],
                 $row['deletedBy'],

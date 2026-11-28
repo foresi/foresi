@@ -26,7 +26,7 @@ final class ContactDefaultsCardTest extends TestCase
 {
     public function testTheCardListsTheDefaultsOfTheContact(): void
     {
-        $card = $this->card(new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true));
+        $card = $this->card(new InvoicingDefaults(30, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Card, true));
 
         self::assertEquals([new SlotItem('@Invoicing/contact/_defaults_card.html.twig', ['items' => [
             ['label' => '[invoice.contact_defaults.due_days]', 'value' => '[invoice.contact_defaults.days count=30]'],

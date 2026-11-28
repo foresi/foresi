@@ -38,7 +38,7 @@ final readonly class BillingPlanView
             if (BillingEntryView::INVOICED === $view->state || !$view->amount instanceof Money) {
                 continue;
             }
-            $code = $view->amount->currency()->value;
+            $code = $view->amount->currency()->code();
             $totals[$code] = isset($totals[$code]) ? $totals[$code]->plus($view->amount) : $view->amount;
         }
         ksort($totals);

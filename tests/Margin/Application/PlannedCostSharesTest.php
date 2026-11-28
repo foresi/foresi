@@ -493,7 +493,7 @@ final class PlannedCostSharesTest extends KernelTestCase
     {
         $allocation = new Allocation(AllocationKind::Fixed, [
             new AllocationShare(Recipient::own(), rest: true),
-            new AllocationShare(Recipient::client($this->clientA), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
+            new AllocationShare(Recipient::client($this->clientA), amountCzk: Money::ofMinor(60_000, Currency::of('CZK'))),
         ]);
         $document = new CostDocument(self::DOC_1, $this->cloudHost, new \DateTimeImmutable('2026-05-03'), [$this->line('line-1', 67_200)], false, 'EN-d1', '/received-documents/d1');
 
@@ -522,7 +522,7 @@ final class PlannedCostSharesTest extends KernelTestCase
 
     private function line(string $key, int $minor): CostLine
     {
-        return new CostLine($key, 'Hosting', Money::ofMinor($minor, Currency::CZK));
+        return new CostLine($key, 'Hosting', Money::ofMinor($minor, Currency::of('CZK')));
     }
 
     private function whole(string $contactId): Allocation
@@ -533,7 +533,7 @@ final class PlannedCostSharesTest extends KernelTestCase
     private function fixed600(): Allocation
     {
         return new Allocation(AllocationKind::Fixed, [
-            new AllocationShare(Recipient::client($this->clientA), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
+            new AllocationShare(Recipient::client($this->clientA), amountCzk: Money::ofMinor(60_000, Currency::of('CZK'))),
             new AllocationShare(Recipient::own(), rest: true),
         ]);
     }

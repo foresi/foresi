@@ -42,7 +42,7 @@ final class ReceivedDocumentVatTest extends PurchasingTestCase
         self::assertSame([ReceivedDocumentVat::KEY, 'received_document', $id, '/api/v1/received-documents/'.$id], [$document->source, $document->subject->type, $document->subject->id, $document->subject->url]);
         self::assertSame($this->document($id)->evidenceNumber(), $document->label);
         self::assertSame(['2026-11-01', '2026-11-24', 'Europe/Prague', 'Europe/Prague'], [$document->countsOn->format('Y-m-d'), $document->taxPointOn->format('Y-m-d'), $document->countsOn->getTimezone()->getName(), $document->taxPointOn->getTimezone()->getName()]);
-        self::assertSame([0, 'CZK', 21_000, 'CZK', false], [$document->output->minor(), $document->output->currency()->value, $document->input->minor(), $document->input->currency()->value, $document->missingCzk]);
+        self::assertSame([0, 'CZK', 21_000, 'CZK', false], [$document->output->minor(), $document->output->currency()->code(), $document->input->minor(), $document->input->currency()->code(), $document->missingCzk]);
     }
 
     public function testADocumentCountsInItsDeductionMonthNotItsTaxPointMonth(): void
@@ -116,8 +116,8 @@ final class ReceivedDocumentVatTest extends PurchasingTestCase
 
         $document = $this->document($id);
         $document->setLines([
-            new ReceivedDocumentLineInput('Hosting', Money::ofMinor(70_000, Currency::CZK), '21'),
-            new ReceivedDocumentLineInput('Domain', Money::ofMinor(30_000, Currency::CZK), '21'),
+            new ReceivedDocumentLineInput('Hosting', Money::ofMinor(70_000, Currency::of('CZK')), '21'),
+            new ReceivedDocumentLineInput('Domain', Money::ofMinor(30_000, Currency::of('CZK')), '21'),
         ]);
         $this->em->flush();
 

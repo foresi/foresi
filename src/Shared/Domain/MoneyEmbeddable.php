@@ -26,7 +26,7 @@ final class MoneyEmbeddable
 
     public static function fromMoney(Money $money): self
     {
-        return new self($money->minor(), $money->currency()->value);
+        return new self($money->minor(), $money->currency()->code());
     }
 
     public function toMoney(): Money

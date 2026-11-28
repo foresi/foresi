@@ -244,8 +244,8 @@ final class BankMovementTest extends TestCase
         ?UnmatchedReason $reason = UnmatchedReason::NoInvoice,
         MovementDirection $direction = MovementDirection::Incoming,
     ): BankMovement {
-        $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
+        $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::of('CZK'), '', 0);
 
-        return new BankMovement($account, null, $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), $counterAccount, $counterIban, $counterName, null, null, null, $message, null, $fingerprint, MovementTrust::Verified, 'dmarc', $state, $reason);
+        return new BankMovement($account, null, $direction, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), $counterAccount, $counterIban, $counterName, null, null, null, $message, null, $fingerprint, MovementTrust::Verified, 'dmarc', $state, $reason);
     }
 }

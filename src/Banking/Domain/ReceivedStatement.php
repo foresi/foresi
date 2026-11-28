@@ -62,7 +62,7 @@ class ReceivedStatement implements Audited
     #[ORM\Column(name: 'period_to', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $periodTo;
 
-    #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
     private Currency $currency;
 
     #[ORM\Column(name: 'opening_minor', type: 'bigint', nullable: true)]

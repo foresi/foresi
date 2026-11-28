@@ -22,7 +22,7 @@ final class DeprecatedTagsPassTest extends TestCase
         $container = new ContainerBuilder();
         $container->register('acme.vehicles_tool', \stdClass::class)->addTag('app.mcp_read_tool', ['priority' => 5]);
 
-        $this->expectUserDeprecationMessage('Since foresi/shared 0.11: The service "acme.vehicles_tool" is tagged "app.mcp_read_tool", which is deprecated since module API 1.0 and removed in 3.0. Tag it "foresi.shared.mcp_read_tool" instead, or let its interface tag it by autoconfiguration.');
+        $this->expectUserDeprecationMessage('Since foresi/shared 0.11: The service "acme.vehicles_tool" is tagged "app.mcp_read_tool", which is deprecated since module API 1.0 and removed in 4.0. Tag it "foresi.shared.mcp_read_tool" instead, or let its interface tag it by autoconfiguration.');
 
         new DeprecatedTagsPass()->process($container);
 

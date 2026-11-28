@@ -94,7 +94,7 @@ final class CorrectedBalancesTest extends InvoiceTestCase
 
     private function pay(string $invoiceId, string $amount): void
     {
-        $czk = Money::of($amount, Currency::CZK);
+        $czk = Money::of($amount, Currency::of('CZK'));
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $czk)]));
         $this->em->clear();
     }

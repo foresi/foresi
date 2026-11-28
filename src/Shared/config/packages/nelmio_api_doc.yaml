@@ -19,10 +19,11 @@ nelmio_api_doc:
             schemas:
                 Money:
                     type: object
-                    required: [amount_minor, currency]
+                    required: [amount_minor, currency, minor_units]
                     properties:
-                        amount_minor: { type: integer, description: The amount in minor units of the currency. }
-                        currency: { type: string, example: CZK }
+                        amount_minor: { type: integer, description: "The amount in minor units of the currency: 121050 is 1210.50 EUR, 1210 JPY or 121.050 BHD." }
+                        currency: { type: string, pattern: "^[A-Z]{3}$", description: An ISO 4217 code., example: CZK }
+                        minor_units: { type: integer, description: "The decimals of the currency, as ISO 4217 gives them: 2 for EUR, 0 for JPY, 3 for BHD. amount_minor divided by 10 to this power is the amount.", example: 2 }
                 Address:
                     type: object
                     required: [street, city, postal_code, country_code]

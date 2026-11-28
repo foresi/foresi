@@ -47,7 +47,7 @@ final readonly class MarginCell
         $this->access->denyUnlessStaff();
         $first = $this->ranges->month($month);
         [$clientId, $recipient] = $this->rowOf($row);
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
 
         $revenue = [];
         $revenueTotal = $zero;

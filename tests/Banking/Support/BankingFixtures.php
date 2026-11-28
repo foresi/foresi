@@ -60,13 +60,15 @@ trait BankingFixtures
     protected function incoming(
         string $amount,
         ?string $vs = '20260001',
-        Currency $currency = Currency::CZK,
+        ?Currency $currency = null,
         ?string $counterIban = self::COUNTER_IBAN,
         ?string $messageId = null,
         string $bookedOn = '2026-11-20',
         MovementDirection $direction = MovementDirection::Incoming,
         ?string $accountId = null,
     ): MovementInput {
+        $currency ??= Currency::of('CZK');
+
         return new MovementInput(
             $accountId ?? $this->account->id(),
             $messageId,
@@ -110,6 +112,6 @@ trait BankingFixtures
 
     protected function czk(string $amount): Money
     {
-        return Money::of($amount, Currency::CZK);
+        return Money::of($amount, Currency::of('CZK'));
     }
 }

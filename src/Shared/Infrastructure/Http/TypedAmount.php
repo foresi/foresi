@@ -10,6 +10,7 @@ namespace Foresi\Shared\Infrastructure\Http;
 
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 
 /**
  * An amount of a form field that is not negative, such as a rate: read as people
@@ -18,8 +19,6 @@ use Foresi\Shared\Domain\Money;
  */
 final class TypedAmount
 {
-    private const string AMOUNT = '/^\d{1,13}(?:\.\d{1,2})?$/D';
-
     /**
      * @return Money|false|null null for a blank field, false for text that is no amount
      */
@@ -30,7 +29,11 @@ final class TypedAmount
         }
         $decimal = TypedNumber::decimal($typed, $locale);
 
-        return 1 === preg_match(self::AMOUNT, $decimal) ? Money::of($decimal, $currency) : false;
+        // As many decimals as the currency has: "12.345" for BHD, none for JPY.
+        $digits = $currency->minorUnits();
+        $pattern = 0 === $digits ? '/^\d{1,15}$/D' : \sprintf('/^\d{1,13}(?:\.\d{1,%d})?$/D', $digits);
+
+        return 1 === preg_match($pattern, $decimal) ? Money::of($decimal, $currency) : false;
     }
 
     /**
@@ -41,10 +44,7 @@ final class TypedAmount
         if (!$money instanceof Money) {
             return '';
         }
-        $unit = 10 ** $money->currency()->minorUnits();
-        $minor = abs($money->minor());
-        $separator = new \NumberFormatter($locale, \NumberFormatter::DECIMAL)->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
 
-        return \sprintf('%s%d%s%0'.$money->currency()->minorUnits().'d', $money->isNegative() ? '-' : '', intdiv($minor, $unit), $separator, $minor % $unit);
+        return MoneyFormat::field($money, $locale);
     }
 }

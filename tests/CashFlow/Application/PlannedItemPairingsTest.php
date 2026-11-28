@@ -395,7 +395,7 @@ final class PlannedItemPairingsTest extends CashFlowTestCase
 
     private function document(string $id, string $amount, string $on, ?Party $supplier = null): PairableDocument
     {
-        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), ($supplier ?? $this->supplier)->id(), FlowDirection::Out, Money::of($amount, Currency::USD), new \DateTimeImmutable($on)));
+        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), ($supplier ?? $this->supplier)->id(), FlowDirection::Out, Money::of($amount, Currency::of('USD')), new \DateTimeImmutable($on)));
     }
 
     private function considerAll(): void

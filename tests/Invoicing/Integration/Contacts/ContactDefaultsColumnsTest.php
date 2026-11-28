@@ -66,7 +66,7 @@ final class ContactDefaultsColumnsTest extends TestCase
 
     public function testTheValuesComeFromTheLoadedPageAndElseFromTheContact(): void
     {
-        $loaded = new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true, false, Money::ofMinor(150000, Currency::EUR));
+        $loaded = new InvoicingDefaults(30, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Card, true, false, Money::ofMinor(150000, Currency::of('EUR')));
         $columns = $this->columns(InvoicingDefaults::standard(), ['loaded' => $loaded]);
         $columns->load(['loaded']);
         $attributes = $this->byKey($columns);
@@ -74,7 +74,7 @@ final class ContactDefaultsColumnsTest extends TestCase
         $values = static fn (string $id): array => array_map(static fn (Attribute $attribute): mixed => $attribute->value($id), $attributes);
         self::assertEquals([
             'default_due_days' => 30, 'currency' => 'EUR', 'payment_method' => PaymentMethod::Card, 'language' => DocumentLanguage::English,
-            'reverse_charge' => true, 'reminders' => false, 'hourly_rate' => Money::ofMinor(150000, Currency::EUR),
+            'reverse_charge' => true, 'reminders' => false, 'hourly_rate' => Money::ofMinor(150000, Currency::of('EUR')),
         ], $values('loaded'));
         self::assertEquals([
             'default_due_days' => 14, 'currency' => 'CZK', 'payment_method' => PaymentMethod::BankTransfer, 'language' => DocumentLanguage::Czech,
@@ -90,7 +90,7 @@ final class ContactDefaultsColumnsTest extends TestCase
     public function testANewRowHasTheDefaultsItIsGivenElseTheStandardOnes(): void
     {
         $party = new Party(PartyKind::Person, 'Example Customer', null, null, '');
-        $defaults = new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true);
+        $defaults = new InvoicingDefaults(30, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Card, true);
 
         self::assertSame($defaults, new PartyInvoicingDefault($party, $defaults)->defaults());
         self::assertTrue(new PartyInvoicingDefault($party)->defaults()->equals(InvoicingDefaults::standard()));

@@ -98,7 +98,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
 
     public function testWhatIsLeftOutTakesTheDefaultsOfTheFormForTheCustomer(): void
     {
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::BankTransfer, true));
         $this->em->flush();
 
         $invoice = $this->stored($this->writes->create(new CreateInvoiceInput(
@@ -189,7 +189,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
     public function testNewLinesOfAChangeTakeTheReverseChargeOfTheCustomer(): void
     {
         $id = $this->created();
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
         $this->em->flush();
 
         $this->writes->update(new UpdateInvoiceInput(invoiceId: $id, lines: [['text' => 'Review', 'unit_price' => '500.00']]));
@@ -260,7 +260,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
         self::assertSame($id, $this->writes->restore(new RestoreInvoiceInput($id)));
         self::assertFalse($this->stored($id)->isTrashed());
 
-        $money = Money::of('1210.00', Currency::CZK);
+        $money = Money::of('1210.00', Currency::of('CZK'));
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-10'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($id, $money)]));
         $this->em->flush();
         $paid = $this->refused(fn (): string => $this->writes->trash(new TrashInvoiceInput($id, 'Issued by mistake.')));

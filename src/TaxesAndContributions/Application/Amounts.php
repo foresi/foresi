@@ -103,7 +103,7 @@ final readonly class Amounts
     public function openAt(\DateTimeImmutable $day, ProfileView $profile): OpenAmountsView
     {
         $day = new \DateTimeImmutable($day->format('Y-m-d'), $this->clock->timezone());
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $sums = [];
         foreach (AmountKind::cases() as $kind) {
             $sums[$kind->value] = [$zero, $zero, $zero];
@@ -139,7 +139,7 @@ final readonly class Amounts
             if (!$gross instanceof Money) {
                 continue;
             }
-            if (Currency::CZK !== $amount->gross->currency()) {
+            if (Currency::of('CZK') !== $amount->gross->currency()) {
                 $unverified[] = AmountsView::UNVERIFIED_FX_PAYMENT_DAY;
             }
             $net = $this->czk($amount->net, $day, $rates, $missing) ?? $gross;
@@ -203,7 +203,7 @@ final readonly class Amounts
      */
     private function view(\DateTimeImmutable $from, \DateTimeImmutable $to, ProfileView $profile, array $amounts, array $unavailable, array $restricted): AmountsView
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $rates = [];
         $missing = [];
         $unverified = [];
@@ -220,7 +220,7 @@ final readonly class Amounts
             }
             $net = $this->czk($amount->net, $amount->paidOn, $rates, $missing) ?? $gross;
             $vat = $gross->minus($net);
-            if (Currency::CZK !== $amount->gross->currency()) {
+            if (Currency::of('CZK') !== $amount->gross->currency()) {
                 $unverified[] = AmountsView::UNVERIFIED_FX_PAYMENT_DAY;
             }
             $payer = 'yes' === $profile->valueOn(StatusKind::VatPayer, $amount->paidOn)?->value;
@@ -270,7 +270,7 @@ final readonly class Amounts
      */
     private function czk(Money $money, \DateTimeImmutable $day, array &$rates, array &$missing): ?Money
     {
-        $currency = $money->currency()->value;
+        $currency = $money->currency()->code();
         $date = $day->format('Y-m-d');
         if (!\array_key_exists($date, $rates[$currency] ?? [])) {
             try {
@@ -289,7 +289,7 @@ final readonly class Amounts
         }
         [$units, $rate] = $known;
 
-        return Money::ofMinor($money->minor(), Currency::CZK)->multipliedBy($rate)->dividedBy((string) $units);
+        return Money::ofMinor($money->minor(), Currency::of('CZK'))->multipliedBy($rate)->dividedBy((string) $units);
     }
 
     /**

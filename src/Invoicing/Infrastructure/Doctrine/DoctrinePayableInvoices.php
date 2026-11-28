@@ -40,7 +40,7 @@ final readonly class DoctrinePayableInvoices implements PayableInvoices
     public function open(Currency $currency, string $text, array $ids, int $limit): array
     {
         $where = 'i.deletedAt IS NULL AND i.currency = :currency';
-        $parameters = ['currency' => $currency->value];
+        $parameters = ['currency' => $currency->code()];
         $found = [];
         $text = trim($text);
         if ('' !== $text) {

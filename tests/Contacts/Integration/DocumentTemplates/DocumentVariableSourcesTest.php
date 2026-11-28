@@ -40,8 +40,8 @@ final class DocumentVariableSourcesTest extends ContactTestCase
     {
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Firm Street 7', 'Example City', '110 00', 'CZ'), VatStatus::Registered, '');
         $this->em->persist($firm);
-        $other = FirmBankAccount::open(Iban::fromString('CZ5508000000001234567899'), Currency::CZK, 'Savings', 2);
-        $primary = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, 'Main', 1);
+        $other = FirmBankAccount::open(Iban::fromString('CZ5508000000001234567899'), Currency::of('CZK'), 'Savings', 2);
+        $primary = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::of('CZK'), 'Main', 1);
         $primary->markPrimary(true);
         $this->em->persist($other);
         $this->em->persist($primary);

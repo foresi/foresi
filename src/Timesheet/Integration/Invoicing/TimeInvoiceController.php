@@ -212,7 +212,7 @@ final class TimeInvoiceController extends AbstractController
             // Only the rate of a deal line is named: it is the one set outside the project, the person and the client.
             'rateSource' => RateSource::DealLine === $candidate->source ? $this->translator->trans('timesheet.invoice.rate_of_deal_line') : null,
             'rateMinor' => $rate?->minor(),
-            'rateCurrency' => $rate?->currency()->value,
+            'rateCurrency' => $rate?->currency()->code(),
             'rateScale' => $rate instanceof Money ? 10 ** $rate->currency()->minorUnits() : null,
             'groups' => $groups,
         ];
@@ -246,7 +246,7 @@ final class TimeInvoiceController extends AbstractController
         }
         $lines = TimeLines::of($times, $grouping, $rounding);
         $hundredths = array_sum(array_map(static fn (TimeLine $line): int => intdiv($line->hours()->tenThousandths(), 100), $lines)) + intdiv($unpriced * 100 + 30, 60);
-        $currencies = array_unique(array_map(static fn (TimeLine $line): string => $line->rate->currency()->value, $lines));
+        $currencies = array_unique(array_map(static fn (TimeLine $line): string => $line->rate->currency()->code(), $lines));
         $amount = null;
         if (0 === $unpriced && 1 === \count($currencies)) {
             $sum = array_reduce(\array_slice($lines, 1), static fn (Money $sum, TimeLine $line): Money => $sum->plus($line->amount()), $lines[0]->amount());

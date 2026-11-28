@@ -434,7 +434,7 @@ final class InvoicePdfTest extends InvoiceTestCase
     #[DataProvider('longValues')]
     public function testValuesNeverBreakInsideACell(string $price, string $quantity, string $unit): void
     {
-        $document = $this->issued([new LineInput('Work', Quantity::fromString($quantity), $unit, Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]);
+        $document = $this->issued([new LineInput('Work', Quantity::fromString($quantity), $unit, Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]);
         $rendered = $this->render($document);
         $text = PdfTools::text($rendered->bytes);
 
@@ -492,7 +492,7 @@ final class InvoicePdfTest extends InvoiceTestCase
 
     public function testATableThatCannotFitFailsLoudly(): void
     {
-        $document = $this->issued([new LineInput('Work', Quantity::fromString('1'), str_repeat('m', 32), Money::of('123456789012.34', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]);
+        $document = $this->issued([new LineInput('Work', Quantity::fromString('1'), str_repeat('m', 32), Money::of('123456789012.34', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]);
 
         $this->expectException(UndrawableDocument::class);
         $this->render($document);
@@ -603,7 +603,7 @@ final class InvoicePdfTest extends InvoiceTestCase
     public function testAReminderOfAPartPaidInvoiceAsksForWhatIsLeft(): void
     {
         $id = $this->issue->issue($this->input([$this->line()]))->id();
-        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($id, Money::of('500.00', Currency::CZK));
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($id, Money::of('500.00', Currency::of('CZK')));
         $code = self::getContainer()->get(InvoicingCountries::class)->for('CZ')->paymentCode($document);
 
         $text = $this->textOf($document);
@@ -619,7 +619,7 @@ final class InvoicePdfTest extends InvoiceTestCase
     {
         $id = $this->issue->issue($this->input([$this->line()], ['paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null]))->id();
 
-        $text = $this->textOf(self::getContainer()->get(IssuedDocumentFactory::class)->of($id, Money::of('500.00', Currency::CZK)));
+        $text = $this->textOf(self::getContainer()->get(IssuedDocumentFactory::class)->of($id, Money::of('500.00', Currency::of('CZK'))));
 
         self::assertStringContainsString('Zbývá uhradit', $text);
         self::assertStringContainsString('500,00 Kč', $text);
@@ -632,14 +632,14 @@ final class InvoicePdfTest extends InvoiceTestCase
         $factory = self::getContainer()->get(IssuedDocumentFactory::class);
 
         foreach (['1210.00', '1500.00'] as $owed) {
-            $document = $factory->of($id, Money::of($owed, Currency::CZK));
+            $document = $factory->of($id, Money::of($owed, Currency::of('CZK')));
 
             self::assertNull($document->leftToPay, $owed);
             self::assertSame(121000, $document->toPay()->minor(), $owed);
         }
         self::assertSame(121000, $factory->of($id)->toPay()->minor());
-        self::assertSame(120999, $factory->of($id, Money::of('1209.99', Currency::CZK))->toPay()->minor());
-        self::assertStringNotContainsString('Zbývá uhradit', $this->textOf($factory->of($id, Money::of('1210.00', Currency::CZK))));
+        self::assertSame(120999, $factory->of($id, Money::of('1209.99', Currency::of('CZK')))->toPay()->minor());
+        self::assertStringNotContainsString('Zbývá uhradit', $this->textOf($factory->of($id, Money::of('1210.00', Currency::of('CZK')))));
     }
 
     public function testACreditNoteNamesWhatItCorrectsAndAsksForNothing(): void
@@ -784,7 +784,7 @@ final class InvoicePdfTest extends InvoiceTestCase
 
     private function credit(string $price): LineInput
     {
-        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
     }
 
     private function reverseCharge(?string $code): LineInput
@@ -794,7 +794,7 @@ final class InvoicePdfTest extends InvoiceTestCase
 
     private function discounted(string $price, PriceType $type, string $quantity, string $discount): LineInput
     {
-        return new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of($price, Currency::CZK), $type, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString($discount));
+        return new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of($price, Currency::of('CZK')), $type, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString($discount));
     }
 
     private function render(IssuedDocument $document): RenderedPdf

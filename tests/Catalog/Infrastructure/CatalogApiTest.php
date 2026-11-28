@@ -56,7 +56,7 @@ final class CatalogApiTest extends ApiTestCase
         self::assertIsString($id);
         self::assertResponseHeaderSame('Location', '/api/v1/catalog/products/'.$id);
         $created = $this->json()['data'];
-        self::assertSame(['amount_minor' => 2500000, 'currency' => 'CZK'], $this->at('data', 'unit_price'));
+        self::assertSame(['amount_minor' => 2500000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'unit_price'));
         self::assertSame(['recurring', 'month', 1, 12, false], [$this->at('data', 'billing_kind'), $this->at('data', 'recurrence_unit'), $this->at('data', 'interval'), $this->at('data', 'cycles'), $this->at('data', 'archived')]);
         $this->get('/api/v1/catalog/products/'.$id, secret: $this->writer);
         self::assertSame($created, $this->json()['data']);

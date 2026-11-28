@@ -160,7 +160,7 @@ abstract class BankScreenTestCase extends WebTestCase
                 ($account ?? $this->account)->id(),
                 null,
                 $direction,
-                Money::of($amount, Currency::CZK),
+                Money::of($amount, Currency::of('CZK')),
                 new \DateTimeImmutable($bookedOn),
                 '123456789/0800',
                 $counterIban,

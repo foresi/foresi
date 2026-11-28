@@ -104,7 +104,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
     public function testATaxDocumentOnPaymentIsNeverReminded(): void
     {
         $advance = $this->issue->issue($this->input(overrides: ['seriesId' => null, 'kind' => DocumentKind::Advance, 'taxPointDate' => null, 'dueDate' => new \DateTimeImmutable('2026-11-15')]));
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-10'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-10'), Money::of('1210.00', Currency::of('CZK')), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::of('CZK')))]));
         $document = $this->em->getConnection()->fetchOne('SELECT id FROM invoice WHERE advance_invoice_id = ?', [$advance->id()]);
         self::assertIsString($document);
         $this->delivered->mark($document);
@@ -158,7 +158,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->em->flush();
         $this->em->clear();
         $settings = $this->settings();
-        $settings->change(true, 7, 7, Money::of('500', Currency::CZK), new \DateTimeImmutable('2026-11-01'));
+        $settings->change(true, 7, 7, Money::of('500', Currency::of('CZK')), new \DateTimeImmutable('2026-11-01'));
 
         $due = $this->remindable->due($settings, $this->today(), 1);
 
@@ -196,7 +196,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
 
         // Below the minimum in the home currency, it is left out.
         $settings = $stored->get();
-        $settings->change(true, 7, 7, Money::of('1300', Currency::CZK), new \DateTimeImmutable('2026-11-30'));
+        $settings->change(true, 7, 7, Money::of('1300', Currency::of('CZK')), new \DateTimeImmutable('2026-11-30'));
         $this->em->flush();
         self::assertSame([], self::getContainer()->get(ReminderPreview::class)->tomorrow());
     }
@@ -229,7 +229,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         // The stored delays and minimum count, as they would once switched on.
         $stored = self::getContainer()->get(ReminderSettings::class);
         $settings = $stored->get();
-        $settings->change(false, 3, 7, Money::of('1300', Currency::CZK), new \DateTimeImmutable('2026-11-30'));
+        $settings->change(false, 3, 7, Money::of('1300', Currency::of('CZK')), new \DateTimeImmutable('2026-11-30'));
         $stored->save($settings);
         $this->em->flush();
         self::assertSame([], $this->plannedDays());
@@ -314,7 +314,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
     private function customerWithFlag(bool $send): Party
     {
         $party = $this->customer();
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
         $this->em->flush();
 
         return $party;

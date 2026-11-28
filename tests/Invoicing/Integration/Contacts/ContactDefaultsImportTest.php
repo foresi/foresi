@@ -15,6 +15,7 @@ use Foresi\Invoicing\Contract\InvoicingDefaults;
 use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Integration\Contacts\ContactDefaultsImport;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\TestCase;
 
@@ -36,20 +37,20 @@ final class ContactDefaultsImportTest extends TestCase
 
     public function testARowSetsWhatItSaysAndKeepsTheRest(): void
     {
-        $base = new InvoicingDefaults(30, Currency::EUR, InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
+        $base = new InvoicingDefaults(30, Currency::of('EUR'), InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
 
         $this->import($base)->write(self::CONTACT, ['display_name' => 'Acme', 'due_days' => 7, 'currency' => 'USD'], false, false);
 
         self::assertNotNull($this->written);
         self::assertSame(7, $this->written->dueDays);
-        self::assertSame(Currency::USD, $this->written->currency);
+        self::assertSame(Currency::of('USD'), $this->written->currency);
         self::assertSame(PaymentMethod::Cash, $this->written->paymentMethod);
         self::assertTrue($this->written->reverseCharge);
     }
 
     public function testEmptyCellsClearToTheStandardOnlyWhenAsked(): void
     {
-        $base = new InvoicingDefaults(30, Currency::EUR, InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
+        $base = new InvoicingDefaults(30, Currency::of('EUR'), InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
         $empty = ['display_name' => 'Acme', 'due_days' => null, 'currency' => null, 'payment_method' => null];
 
         $this->import($base)->write(self::CONTACT, $empty, false, false);
@@ -57,7 +58,7 @@ final class ContactDefaultsImportTest extends TestCase
 
         $this->import($base)->write(self::CONTACT, $empty, true, false);
         self::assertNotNull($this->written);
-        self::assertTrue($this->written->equals(new InvoicingDefaults(14, Currency::CZK, $base->language, PaymentMethod::BankTransfer, true)));
+        self::assertTrue($this->written->equals(new InvoicingDefaults(14, Currency::of('CZK'), $base->language, PaymentMethod::BankTransfer, true)));
     }
 
     public function testTheColumnsAreFoundByTheNamesTheyUsuallyHave(): void
@@ -66,14 +67,14 @@ final class ContactDefaultsImportTest extends TestCase
 
         self::assertSame([
             ['due_days', ['splatnost', 'due days'], []],
-            ['currency', ['mena', 'currency'], array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())],
+            ['currency', ['mena', 'currency'], Currencies::currentCodes()],
             ['payment_method', ['zpusob platby', 'forma uhrady', 'payment method'], ['bank_transfer', 'cash', 'card']],
         ], $columns);
     }
 
     public function testAPaymentMethodGivenWinsOverTheOneKept(): void
     {
-        $base = new InvoicingDefaults(30, Currency::EUR, InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
+        $base = new InvoicingDefaults(30, Currency::of('EUR'), InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
 
         $this->import($base)->write(self::CONTACT, ['payment_method' => 'card'], true, false);
 
@@ -92,7 +93,7 @@ final class ContactDefaultsImportTest extends TestCase
 
     public function testAnUndoPutsBackWhatTheSnapshotHeld(): void
     {
-        $before = new InvoicingDefaults(21, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true, false);
+        $before = new InvoicingDefaults(21, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Card, true, false);
         $snapshot = $this->import($before)->snapshot(self::CONTACT);
 
         $this->import(InvoicingDefaults::standard())->restore(self::CONTACT, $snapshot);

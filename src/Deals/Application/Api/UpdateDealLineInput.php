@@ -44,7 +44,7 @@ final readonly class UpdateDealLineInput
         public string|Omitted|null $quantity = new Omitted(),
         #[Field('The price of one unit without VAT, a decimal number such as "1500.00"; null for no price.')]
         public string|Omitted|null $unitPrice = new Omitted(),
-        #[Field('The currency of the price, ISO 4217.', enum: DealLineRules::CURRENCIES)]
+        #[Field('The currency of the price, an ISO 4217 code such as EUR (GET /api/v1/currencies lists them).', pattern: Field::CURRENCY)]
         public string|Omitted $currency = new Omitted(),
         #[Field('one_off for a line billed once, recurring for one billed on a period, time_based for one billed by the hour at the unit price.', enum: DealLineRules::BILLING_KINDS)]
         public string|Omitted $billingKind = new Omitted(),

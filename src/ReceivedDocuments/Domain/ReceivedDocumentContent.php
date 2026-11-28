@@ -56,6 +56,6 @@ final readonly class ReceivedDocumentContent
      */
     public static function blank(?\DateTimeImmutable $receivedDate = null): self
     {
-        return new self(ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, null, SupplierSnapshot::none(), '', '', null, null, null, $receivedDate, Currency::CZK, null, null, null, [], null);
+        return new self(ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, null, SupplierSnapshot::none(), '', '', null, null, null, $receivedDate, Currency::of('CZK'), null, null, null, [], null);
     }
 }

@@ -56,7 +56,7 @@ final class InvoiceFormReaderTest extends TestCase
         self::assertSame('2.5000', $line->quantity->toDecimal());
         self::assertSame('h', $line->unit);
         self::assertSame(120050, $line->price->minor());
-        self::assertSame(Currency::CZK, $line->price->currency());
+        self::assertSame(Currency::of('CZK'), $line->price->currency());
         self::assertSame(PriceType::WithVat, $line->priceType);
         self::assertSame(TaxTreatment::Standard, $line->treatment);
         self::assertSame(VatRateKind::Reduced, $line->rateKind);
@@ -360,7 +360,7 @@ final class InvoiceFormReaderTest extends TestCase
 
     public function testTheLinesAloneCanBeRead(): void
     {
-        $lines = new InvoiceFormReader(new LocaleSwitcher('cs', []))->lines(Request::create('/', 'POST', ['lines' => [['text' => '', 'price' => '100', 'vat' => 'base', 'priceType' => 'with_vat']]]), Currency::CZK);
+        $lines = new InvoiceFormReader(new LocaleSwitcher('cs', []))->lines(Request::create('/', 'POST', ['lines' => [['text' => '', 'price' => '100', 'vat' => 'base', 'priceType' => 'with_vat']]]), Currency::of('CZK'));
 
         self::assertSame([], $lines->errors);
         self::assertCount(1, $lines->lines);
@@ -370,7 +370,7 @@ final class InvoiceFormReaderTest extends TestCase
     {
         $blank = ['text' => '', 'price' => '', 'vat' => 'base', 'priceType' => 'without_vat'];
 
-        self::assertCount(2, new InvoiceFormReader(new LocaleSwitcher('cs', []))->lines(Request::create('/', 'POST', ['lines' => [$blank, $blank]]), Currency::CZK)->lines);
+        self::assertCount(2, new InvoiceFormReader(new LocaleSwitcher('cs', []))->lines(Request::create('/', 'POST', ['lines' => [$blank, $blank]]), Currency::of('CZK'))->lines);
     }
 
     /**
@@ -413,6 +413,6 @@ final class InvoiceFormReaderTest extends TestCase
             'language' => 'en', 'version' => '3',
         ], $changes);
 
-        return new InvoiceFormReader(new LocaleSwitcher('cs', []))->read(Request::create('/', 'POST', array_filter($post, static fn (mixed $value): bool => null !== $value)), Currency::CZK);
+        return new InvoiceFormReader(new LocaleSwitcher('cs', []))->read(Request::create('/', 'POST', array_filter($post, static fn (mixed $value): bool => null !== $value)), Currency::of('CZK'));
     }
 }

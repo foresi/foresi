@@ -164,7 +164,7 @@ abstract class PurchasingTestCase extends KernelTestCase
         string $issue = '2026-10-28',
         ?string $taxPoint = '2026-10-28',
         ?string $received = '2026-11-02',
-        Currency $currency = Currency::CZK,
+        ?Currency $currency = null,
         int $base = 100_000,
         ?int $vat = null,
         ?ExchangeRate $rate = null,
@@ -172,6 +172,7 @@ abstract class PurchasingTestCase extends KernelTestCase
         ?string $supplyCode = null,
         ?array $lines = null,
     ): ReceivedDocumentInput {
+        $currency ??= Currency::of('CZK');
         $vat ??= $treatment->isSelfAssessed() || PurchaseTaxTreatment::NotVatDocument === $treatment ? 0 : intdiv($base * 21, 100);
         $recap = $kind->needsVatRecap() ? [new VatRecapLine(VatRate::of(PurchaseTaxTreatment::NotVatDocument === $treatment ? '0' : '21'), Money::ofMinor($base, $currency), Money::ofMinor($vat, $currency))] : [];
 

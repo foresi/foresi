@@ -1,6 +1,6 @@
 # 4. Money as integer minor units
 
-* Status: accepted
+* Status: accepted, superseded in part by [ADR 0050](0050-currency-as-data.md) (which currencies exist and their minor units)
 * Date: 2026-10-29
 
 ## Context and problem statement

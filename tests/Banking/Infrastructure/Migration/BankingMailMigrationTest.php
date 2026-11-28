@@ -205,7 +205,7 @@ final class BankingMailMigrationTest extends KernelTestCase
             'parser_id' => 'cz.kb', 'parser_version' => 1, 'failure' => null, 'failure_detail' => null, 'attempts' => 2, 'processed_at' => '2026-11-20 12:00:05',
         ]);
         $container->get(RecordMovement::class)->record(
-            new MovementInput($this->account->id(), self::MESSAGE, MovementDirection::Incoming, Money::of('150.00', Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, 'Example Buyer Ltd', '2026001', null, null, null, null),
+            new MovementInput($this->account->id(), self::MESSAGE, MovementDirection::Incoming, Money::of('150.00', Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), null, null, 'Example Buyer Ltd', '2026001', null, null, null, null),
             new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC),
         );
         $this->em->flush();

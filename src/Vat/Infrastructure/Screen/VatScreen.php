@@ -10,6 +10,7 @@ namespace Foresi\Vat\Infrastructure\Screen;
 
 use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Ui\Format\MoneyText;
 use Foresi\Vat\Application\CalculationStep;
 use Foresi\Vat\Application\PaymentView;
@@ -363,12 +364,13 @@ final readonly class VatScreen
      */
     private function amount(Money $money): string
     {
-        if (0 !== $money->minor() % 100) {
+        $factor = MoneyFormat::factor($money->currency());
+        if (0 !== $money->minor() % $factor) {
             return $this->money->shown($money);
         }
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
 
-        return \sprintf("%s\u{a0}%s", $formatter->format(intdiv($money->minor(), 100), \NumberFormatter::TYPE_INT64), $this->money->unit($money->currency()));
+        return \sprintf("%s\u{a0}%s", $formatter->format(intdiv($money->minor(), $factor), \NumberFormatter::TYPE_INT64), $this->money->unit($money->currency()));
     }
 
     /**

@@ -118,7 +118,7 @@ final class BillingPlanController extends AbstractController
         $values = [
             'amount' => $amount instanceof Money ? $this->screen->plainAmount($amount) : '',
             'percent' => '',
-            'currency' => $amount?->currency()->value ?? $this->defaultCurrency($detail),
+            'currency' => $amount?->currency()->code() ?? $this->defaultCurrency($detail),
             'expectedOn' => $entry->expectedOn()?->format('Y-m-d') ?? '',
             'text' => $entry->text(),
         ];

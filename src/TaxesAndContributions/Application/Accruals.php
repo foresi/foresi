@@ -81,7 +81,7 @@ final readonly class Accruals
             if ($rest < 0 || [] === $free) {
                 return self::allocated($levies, array_sum($minimums) > 0 ? $minimums : array_map(static fn (): int => 1, $months));
             }
-            $shares = self::allocated(Money::ofMinor($rest, Currency::CZK), array_map(static fn (array $month): int => $month[0], $free));
+            $shares = self::allocated(Money::ofMinor($rest, Currency::of('CZK')), array_map(static fn (array $month): int => $month[0], $free));
             $low = array_filter($shares, static fn (int $share, string $key): bool => $share < $minimums[$key], \ARRAY_FILTER_USE_BOTH);
             if ([] === $low) {
                 return [...$minimums, ...$shares];
@@ -104,6 +104,6 @@ final readonly class Accruals
 
     private static function czk(int $minor): Money
     {
-        return Money::ofMinor($minor, Currency::CZK);
+        return Money::ofMinor($minor, Currency::of('CZK'));
     }
 }

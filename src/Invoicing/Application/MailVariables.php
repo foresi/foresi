@@ -107,7 +107,7 @@ final readonly class MailVariables
             'description' => $document->description,
             'issue_date' => $this->format->date($document->issueDate, $language),
             'due_date' => $this->format->date($document->dueDate, $language),
-            'currency' => $document->currency->value,
+            'currency' => $document->currency->code(),
             'document_type' => $this->titles->of($document),
             'customer_name' => $document->customer->name,
             'amount_vat' => $this->format->money($document->vat, $language),

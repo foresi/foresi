@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  *
  * Only the tags of interfaces in a Contract namespace are here: the tags of
  * internal interfaces were renamed without an old name. The map is kept as long
- * as the aliases of the classes that moved into Contract, until module API 3.0.
+ * as the aliases of the classes that moved into Contract, until module API 4.0.
  */
 final class DeprecatedTagsPass implements CompilerPassInterface
 {
@@ -84,7 +84,7 @@ final class DeprecatedTagsPass implements CompilerPassInterface
                         $definition->addTag($new, \is_array($attributes) ? $attributes : []);
                     }
                 }
-                trigger_deprecation('foresi/shared', '0.11', 'The service "%s" is tagged "%s", which is deprecated since module API 1.0 and removed in 3.0. Tag it "%s" instead, or let its interface tag it by autoconfiguration.', $id, $old, $new);
+                trigger_deprecation('foresi/shared', '0.11', 'The service "%s" is tagged "%s", which is deprecated since module API 1.0 and removed in 4.0. Tag it "%s" instead, or let its interface tag it by autoconfiguration.', $id, $old, $new);
             }
         }
     }

@@ -305,7 +305,7 @@ final class FirmMailController extends AbstractController
             'remindersLocked' => !$settings->enabled() && !$this->reminders->canSwitchOn(),
             'remindersOn' => $settings->enabled(),
             'maxReminders' => FirmReminders::MAX_STEPS,
-            'homeCurrency' => $home instanceof Currency ? $home->value : '',
+            'homeCurrency' => $home instanceof Currency ? $home->code() : '',
             'tomorrow' => $home instanceof Currency && $settings->enabled() ? array_map($this->previewRow(...), $this->preview->tomorrow()) : [],
             // While off: what switching on today would send over the coming days.
             'planned' => $home instanceof Currency && !$settings->enabled() ? array_map(fn (PlannedReminder $planned): array => $this->previewRow($planned->invoice) + ['on' => $planned->on], $this->preview->ifSwitchedOnToday()) : [],

@@ -183,7 +183,7 @@ final class SendInvoiceTest extends SendingTestCase
     public function testAnUndrawableDocumentIsRefusedBeforeAnythingIsStored(): void
     {
         // A table that cannot fit the page at any size of type.
-        $invoice = $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('m', 32), Money::of('123456789012.34', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]));
+        $invoice = $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('m', 32), Money::of('123456789012.34', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]));
         // The directory is shared with the tests that run beside this one, so the port is watched instead.
         $files = new class implements SentFiles {
             public int $stored = 0;
@@ -497,7 +497,7 @@ final class SendInvoiceTest extends SendingTestCase
                 $this->asked[] = $document->toPay()->minor();
                 if (1 === \count($this->asked)) {
                     // The customer's part payment is recorded while the reminder is drawn.
-                    $czk = Money::of('210.00', Currency::CZK);
+                    $czk = Money::of('210.00', Currency::of('CZK'));
                     $this->record->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($this->invoiceId, $czk)]));
                 }
 

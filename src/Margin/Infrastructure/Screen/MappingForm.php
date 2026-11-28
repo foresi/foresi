@@ -13,6 +13,7 @@ use Foresi\Margin\Application\SetLineAllocationInput;
 use Foresi\Margin\Application\TermView;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\Translation\LocaleSwitcher;
@@ -29,7 +30,6 @@ final readonly class MappingForm
 {
     public const int ROWS = 4;
     private const int MAX_ROWS = 10;
-    private const string AMOUNT = '/^\d{1,13}(?:\.\d{1,2})?$/D';
 
     public function __construct(private LocaleSwitcher $locales)
     {
@@ -120,7 +120,7 @@ final readonly class MappingForm
                     if (false === $amount) {
                         return 'margin.screen.error.amount';
                     }
-                    $share['amount'] = $amount instanceof Money ? \sprintf('%d.%02d', intdiv($amount->minor(), 100), abs($amount->minor()) % 100) : null;
+                    $share['amount'] = $amount instanceof Money ? MoneyFormat::decimal($amount) : null;
                 }
             }
             $shares[] = $share;
@@ -136,7 +136,10 @@ final readonly class MappingForm
         }
         $decimal = TypedNumber::decimal($typed, $this->locales->getLocale());
 
-        return 1 === preg_match(self::AMOUNT, $decimal) ? Money::of($decimal, Currency::CZK) : false;
+        $currency = Currency::of('CZK');
+        $digits = $currency->minorUnits();
+
+        return 1 === preg_match(0 === $digits ? '/^\d{1,13}$/D' : \sprintf('/^\d{1,13}(?:\.\d{1,%d})?$/D', $digits), $decimal) ? Money::of($decimal, $currency) : false;
     }
 
     private function decimal(string $decimal): string
@@ -146,7 +149,7 @@ final readonly class MappingForm
 
     private function field(?Money $money): string
     {
-        return $money instanceof Money ? \sprintf('%d%s%02d', intdiv(abs($money->minor()), 100), $this->separator(), abs($money->minor()) % 100) : '';
+        return $money instanceof Money ? MoneyFormat::field($money, $this->locales->getLocale()) : '';
     }
 
     private function separator(): string

@@ -23,7 +23,7 @@ final class InvoicingDefaultsTest extends TestCase
         $defaults = InvoicingDefaults::standard();
 
         self::assertSame(14, $defaults->dueDays);
-        self::assertSame(Currency::CZK, $defaults->currency);
+        self::assertSame(Currency::of('CZK'), $defaults->currency);
         self::assertSame(DocumentLanguage::Czech, $defaults->language);
         self::assertSame(PaymentMethod::BankTransfer, $defaults->paymentMethod);
         self::assertFalse($defaults->reverseCharge);
@@ -33,40 +33,40 @@ final class InvoicingDefaultsTest extends TestCase
     public function testTheReminderFlagTakesPartInEquality(): void
     {
         $on = $this->defaults(14);
-        $off = new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::Cash, true, false);
+        $off = new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Cash, true, false);
 
         self::assertTrue($on->sendReminders);
         self::assertFalse($off->sendReminders);
         self::assertFalse($on->equals($off));
-        self::assertTrue($off->equals(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::Cash, true, false)));
+        self::assertTrue($off->equals(new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Cash, true, false)));
     }
 
     public function testEveryValueTakesPartInEquality(): void
     {
-        $base = new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true);
+        $base = new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true);
 
-        self::assertTrue($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
-        self::assertFalse($base->equals(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
-        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
-        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, false, true)));
-        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::Cash, false, true)));
-        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true, true)));
-        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false)));
+        self::assertTrue($base->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::Cash, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false)));
     }
 
     public function testTheHourlyRateIsOptionalNeverNegativeAndTakesPartInEquality(): void
     {
-        $base = new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true);
-        $rated = new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::EUR));
+        $base = new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true);
+        $rated = new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::of('EUR')));
 
         self::assertNull($base->hourlyRate());
-        self::assertEquals(Money::of('1200', Currency::EUR), $rated->hourlyRate());
+        self::assertEquals(Money::of('1200', Currency::of('EUR')), $rated->hourlyRate());
         self::assertFalse($base->equals($rated));
-        self::assertFalse($rated->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::USD))));
-        self::assertTrue($rated->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::EUR))));
+        self::assertFalse($rated->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::of('USD')))));
+        self::assertTrue($rated->equals(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::of('EUR')))));
 
         $this->expectException(\DomainException::class);
-        new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('-1', Currency::CZK));
+        new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('-1', Currency::of('CZK')));
     }
 
     #[DataProvider('validDueDays')]
@@ -105,6 +105,6 @@ final class InvoicingDefaultsTest extends TestCase
 
     private function defaults(int $days): InvoicingDefaults
     {
-        return new InvoicingDefaults($days, Currency::EUR, DocumentLanguage::English, PaymentMethod::Cash, true);
+        return new InvoicingDefaults($days, Currency::of('EUR'), DocumentLanguage::English, PaymentMethod::Cash, true);
     }
 }

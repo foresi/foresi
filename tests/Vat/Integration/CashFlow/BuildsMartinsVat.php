@@ -78,7 +78,7 @@ trait BuildsMartinsVat
     {
         $day = $this->day($on);
 
-        return new DocumentVat('invoicing.issued_vat', new VatSubject('invoice', 'd'.$on, null), 'D'.$on, $day, $day, Money::ofMinor($output, Currency::CZK), Money::ofMinor($input, Currency::CZK));
+        return new DocumentVat('invoicing.issued_vat', new VatSubject('invoice', 'd'.$on, null), 'D'.$on, $day, $day, Money::ofMinor($output, Currency::of('CZK')), Money::ofMinor($input, Currency::of('CZK')));
     }
 
     private function day(string $day): \DateTimeImmutable
@@ -88,6 +88,6 @@ trait BuildsMartinsVat
 
     private function czk(int $czk): Money
     {
-        return Money::ofMinor($czk * 100, Currency::CZK);
+        return Money::ofMinor($czk * 100, Currency::of('CZK'));
     }
 }

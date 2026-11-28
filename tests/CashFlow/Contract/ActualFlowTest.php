@@ -48,13 +48,13 @@ final class ActualFlowTest extends TestCase
 
     public function testADocumentNeverMeetsARule(): void
     {
-        $document = new ActualFlow('invoicing.invoices', new FlowSubject('invoice', 'i1'), FlowDirection::Out, Money::ofMinor(100, Currency::CZK), new \DateTimeImmutable('2026-11-20'), 'c1', '123/0100', '1');
+        $document = new ActualFlow('invoicing.invoices', new FlowSubject('invoice', 'i1'), FlowDirection::Out, Money::ofMinor(100, Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), 'c1', '123/0100', '1');
 
         self::assertFalse($document->meets('123/0100', '1'));
     }
 
     private function movement(?string $account, ?string $symbol): ActualFlow
     {
-        return new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm1'), FlowDirection::Out, Money::ofMinor(100, Currency::CZK), new \DateTimeImmutable('2026-11-20'), counterpartyAccount: $account, variableSymbol: $symbol);
+        return new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm1'), FlowDirection::Out, Money::ofMinor(100, Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), counterpartyAccount: $account, variableSymbol: $symbol);
     }
 }

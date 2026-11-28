@@ -184,7 +184,7 @@ final class IntakeStatementTest extends InvoiceBankingTestCase
     public function testAStatementOfAnotherAccountIsRefused(): void
     {
         $this->expectException(StatementRefused::class);
-        $this->intake->submit(new BankStatement('DE89370400440532013000', Currency::CZK, []), $this->uploaded());
+        $this->intake->submit(new BankStatement('DE89370400440532013000', Currency::of('CZK'), []), $this->uploaded());
     }
 
     private function uploaded(): MovementProvenance
@@ -201,20 +201,20 @@ final class IntakeStatementTest extends InvoiceBankingTestCase
 
         return new BankStatement(
             $this->account->iban(),
-            Currency::CZK,
+            Currency::of('CZK'),
             $entries,
             null,
             null === $number ? null : StatementSequence::withinYear($number, 2026),
             $from,
             $from->modify('last day of this month'),
-            null === $opening ? null : Money::of($opening, Currency::CZK),
-            null === $closing ? null : Money::of($closing, Currency::CZK),
+            null === $opening ? null : Money::of($opening, Currency::of('CZK')),
+            null === $closing ? null : Money::of($closing, Currency::of('CZK')),
         );
     }
 
     private function entry(string $amount, ?string $reference, ?string $counterIban = null): ParsedMovement
     {
-        return new ParsedMovement(MovementDirection::Incoming, Money::of($amount, Currency::CZK), $this->account->iban(), '123456789/0800', $counterIban, 'Example Customer a.s.', new \DateTimeImmutable('2026-11-20'), '20260001', '0308', null, 'Payment for an invoice', $reference);
+        return new ParsedMovement(MovementDirection::Incoming, Money::of($amount, Currency::of('CZK')), $this->account->iban(), '123456789/0800', $counterIban, 'Example Customer a.s.', new \DateTimeImmutable('2026-11-20'), '20260001', '0308', null, 'Payment for an invoice', $reference);
     }
 
     /**

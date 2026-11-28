@@ -60,14 +60,14 @@ final class DocumentWarningsTest extends PurchasingTestCase
 
     public function testASimplifiedReceiptInAnotherCurrencyIsHeldToTheLimitInCrowns(): void
     {
-        $eur = $this->recording()->create($this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, currency: Currency::EUR, base: 40_000, rate: ExchangeRate::of('25')));
+        $eur = $this->recording()->create($this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, currency: Currency::of('EUR'), base: 40_000, rate: ExchangeRate::of('25')));
 
         self::assertSame([ReceivedDocumentWarning::SIMPLIFIED_OVER_LIMIT], $eur->warnings->codes(), '484 EUR is 12,100 CZK.');
     }
 
     public function testASimplifiedReceiptInAnotherCurrencyWithinTheLimitInCrownsDoesNotWarn(): void
     {
-        $eur = $this->recording()->create($this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, currency: Currency::EUR, base: 10_000, rate: ExchangeRate::of('25')));
+        $eur = $this->recording()->create($this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, currency: Currency::of('EUR'), base: 10_000, rate: ExchangeRate::of('25')));
 
         self::assertTrue($eur->warnings->isEmpty(), '121 EUR is 3,025 CZK.');
     }
@@ -76,7 +76,7 @@ final class DocumentWarningsTest extends PurchasingTestCase
     {
         $draft = $this->draft();
 
-        $saved = $this->editing()->edit($draft, $this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, currency: Currency::USD, base: 2_000_000));
+        $saved = $this->editing()->edit($draft, $this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, currency: Currency::of('USD'), base: 2_000_000));
 
         self::assertNull($saved->document->exchangeRate());
         self::assertTrue($saved->warnings->isEmpty(), 'Its value in crowns is not known.');

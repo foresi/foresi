@@ -105,11 +105,11 @@ final class TaxDocumentQueueListsTest extends TestCase
 
     private function missing(string $number, string $customer, string $amount, string $deadline, string $receivedOn = '2026-11-01'): MissingTaxDocument
     {
-        return new MissingTaxDocument('a-'.$number, $number, 'Example Firm s.r.o.', $customer, 'p-'.$number, new \DateTimeImmutable($receivedOn), Money::of($amount, Currency::CZK), new \DateTimeImmutable($deadline), 0);
+        return new MissingTaxDocument('a-'.$number, $number, 'Example Firm s.r.o.', $customer, 'p-'.$number, new \DateTimeImmutable($receivedOn), Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable($deadline), 0);
     }
 
     private function uncorrected(string $number, bool $deducted): UncorrectedTaxDocument
     {
-        return new UncorrectedTaxDocument('d-'.$number, $number, 'Example Customer a.s.', Money::of('121.00', Currency::CZK), false, $deducted, new \DateTimeImmutable('2026-11-05'), new \DateTimeImmutable('2026-11-20'), 2);
+        return new UncorrectedTaxDocument('d-'.$number, $number, 'Example Customer a.s.', Money::of('121.00', Currency::of('CZK')), false, $deducted, new \DateTimeImmutable('2026-11-05'), new \DateTimeImmutable('2026-11-20'), 2);
     }
 }

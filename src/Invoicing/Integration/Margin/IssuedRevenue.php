@@ -100,8 +100,8 @@ final readonly class IssuedRevenue implements MarginRevenueSource
         $document = $this->documents->of($id);
         $stored = $this->store->snapshot($id);
         $invoice = $stored->invoice;
-        $zero = Money::ofMinor(0, Currency::CZK);
-        $net = VatRecap::total(VatRecap::of([$document], Currency::CZK), Currency::CZK)->base;
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
+        $net = VatRecap::total(VatRecap::of([$document], Currency::of('CZK')), Currency::of('CZK'))->base;
         $lines = [];
         // The stored lines carry their ids and are the ones the document was built from.
         foreach ($stored->lines as $line) {
@@ -137,6 +137,6 @@ final readonly class IssuedRevenue implements MarginRevenueSource
 
     private function converted(Money $amount, string $rate): Money
     {
-        return Money::ofMinor($amount->minor(), Currency::CZK)->multipliedBy($rate);
+        return Money::ofMinor($amount->minor(), Currency::of('CZK'))->multipliedBy($rate);
     }
 }

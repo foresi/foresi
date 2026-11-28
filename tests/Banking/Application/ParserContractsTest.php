@@ -23,8 +23,8 @@ final class ParserContractsTest extends TestCase
 {
     public function testAResultCarriesItsMovements(): void
     {
-        $first = $this->movement(Money::ofMinor(123450, Currency::CZK));
-        $second = $this->movement(Money::ofMinor(100, Currency::CZK));
+        $first = $this->movement(Money::ofMinor(123450, Currency::of('CZK')));
+        $second = $this->movement(Money::ofMinor(100, Currency::of('CZK')));
 
         $result = ParseResult::withMovements([$first, $second]);
 
@@ -56,7 +56,7 @@ final class ParserContractsTest extends TestCase
 
     public function testAMovementKeepsWhatTheBankWrote(): void
     {
-        $movement = $this->movement(Money::ofMinor(123450, Currency::CZK));
+        $movement = $this->movement(Money::ofMinor(123450, Currency::of('CZK')));
 
         self::assertSame(MovementDirection::Incoming, $movement->direction);
         self::assertSame(123450, $movement->amount->minor());
@@ -71,8 +71,8 @@ final class ParserContractsTest extends TestCase
      */
     public static function notPositive(): iterable
     {
-        yield 'zero' => [Money::ofMinor(0, Currency::CZK)];
-        yield 'negative' => [Money::ofMinor(-1, Currency::CZK)];
+        yield 'zero' => [Money::ofMinor(0, Currency::of('CZK'))];
+        yield 'negative' => [Money::ofMinor(-1, Currency::of('CZK'))];
     }
 
     #[DataProvider('notPositive')]

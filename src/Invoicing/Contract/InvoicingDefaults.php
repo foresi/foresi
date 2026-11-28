@@ -28,7 +28,7 @@ final readonly class InvoicingDefaults
     #[ORM\Column(name: 'hourly_rate_minor', type: 'bigint', nullable: true)]
     private ?int $hourlyRateMinor;
 
-    #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(name: 'hourly_rate_currency', type: 'currency', length: 3, nullable: true, options: ['fixed' => true])]
     private ?Currency $hourlyRateCurrency;
 
     /**
@@ -37,7 +37,7 @@ final readonly class InvoicingDefaults
     public function __construct(
         #[ORM\Column(name: 'due_days', type: 'integer')]
         public int $dueDays,
-        #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+        #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
         public Currency $currency,
         #[ORM\Column(type: 'string', length: 2, enumType: DocumentLanguage::class, options: ['fixed' => true])]
         public DocumentLanguage $language,
@@ -61,7 +61,7 @@ final readonly class InvoicingDefaults
 
     public static function standard(): self
     {
-        return new self(self::DEFAULT_DUE_DAYS, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false);
+        return new self(self::DEFAULT_DUE_DAYS, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false);
     }
 
     public function hourlyRate(): ?Money

@@ -60,7 +60,7 @@ final readonly class RecordReceivedDocumentInput
         public ?string $dueDate = null,
         #[Field('The day the firm received it, YYYY-MM-DD; today when left out. It decides the period the VAT is deducted in.', format: 'date')]
         public ?string $receivedDate = null,
-        #[Field('The currency, ISO 4217, such as CZK or EUR.', maxLength: 3)]
+        #[Field('The currency, an ISO 4217 code such as CZK or EUR (GET /api/v1/currencies lists them).', pattern: Field::CURRENCY)]
         public string $currency = 'CZK',
         #[Field('The VAT recap, one line per rate: "rate:base:vat" or "rate:base:vat:stated_vat_czk", such as "21:1000.00:210.00". Needed for a tax invoice and a simplified receipt.', items: 'string')]
         public array $vatRecap = [],

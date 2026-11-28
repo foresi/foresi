@@ -57,18 +57,18 @@ final class AmountsTest extends TaxesTestCase
     {
         $share = new VatShare(1_000_000, 1_210_000);
 
-        [$net, $vat] = $share->split(Money::ofMinor(605_000, Currency::CZK));
+        [$net, $vat] = $share->split(Money::ofMinor(605_000, Currency::of('CZK')));
 
         self::assertSame([500_000, 105_000], [$net->minor(), $vat->minor()]);
         // 1.00 of 12,100 is 0.8264… net: nothing is lost, and the unit left over goes to the net.
-        self::assertSame([83, 17], array_map(static fn (Money $part): int => $part->minor(), $share->split(Money::ofMinor(100, Currency::CZK))));
-        self::assertSame([-500_000, -105_000], array_map(static fn (Money $part): int => $part->minor(), $share->split(Money::ofMinor(-605_000, Currency::CZK))), 'A refund splits the same way, below zero.');
-        self::assertSame([1, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(1, 2)->split(Money::ofMinor(1, Currency::CZK))), 'The unit left over goes to the net.');
-        self::assertSame([700, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(0, 0)->split(Money::ofMinor(700, Currency::CZK))), 'Without a gross, all of it is net.');
-        self::assertSame([0, 300], array_map(static fn (Money $part): int => $part->minor(), new VatShare(0, 1_000)->split(Money::ofMinor(300, Currency::CZK))));
-        self::assertSame([500, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(-10, 20)->split(Money::ofMinor(500, Currency::CZK))), 'A net against its gross has no ratio.');
-        self::assertSame([500, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(30, 20)->split(Money::ofMinor(500, Currency::CZK))), 'Nor a VAT below zero.');
-        self::assertSame(Currency::EUR, new VatShare(10, 12)->split(Money::ofMinor(12, Currency::EUR))[1]->currency());
+        self::assertSame([83, 17], array_map(static fn (Money $part): int => $part->minor(), $share->split(Money::ofMinor(100, Currency::of('CZK')))));
+        self::assertSame([-500_000, -105_000], array_map(static fn (Money $part): int => $part->minor(), $share->split(Money::ofMinor(-605_000, Currency::of('CZK')))), 'A refund splits the same way, below zero.');
+        self::assertSame([1, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(1, 2)->split(Money::ofMinor(1, Currency::of('CZK')))), 'The unit left over goes to the net.');
+        self::assertSame([700, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(0, 0)->split(Money::ofMinor(700, Currency::of('CZK')))), 'Without a gross, all of it is net.');
+        self::assertSame([0, 300], array_map(static fn (Money $part): int => $part->minor(), new VatShare(0, 1_000)->split(Money::ofMinor(300, Currency::of('CZK')))));
+        self::assertSame([500, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(-10, 20)->split(Money::ofMinor(500, Currency::of('CZK')))), 'A net against its gross has no ratio.');
+        self::assertSame([500, 0], array_map(static fn (Money $part): int => $part->minor(), new VatShare(30, 20)->split(Money::ofMinor(500, Currency::of('CZK')))), 'Nor a VAT below zero.');
+        self::assertSame(Currency::of('EUR'), new VatShare(10, 12)->split(Money::ofMinor(12, Currency::of('EUR')))[1]->currency());
     }
 
     public function testTheSumsAreByMonthKindAndSourceAndTheTotalsByKind(): void
@@ -108,15 +108,15 @@ final class AmountsTest extends TaxesTestCase
     {
         $amounts = $this->amounts([
             new FakeAmountSource('invoicing.payments', [
-                $this->amount('invoicing.payments', 'eur', AmountKind::Income, '2026-11-13', 100_000, 100_000, Currency::EUR),
-                $this->amount('invoicing.payments', 'later', AmountKind::Income, '2026-11-17', 12_100, 10_000, Currency::EUR),
+                $this->amount('invoicing.payments', 'eur', AmountKind::Income, '2026-11-13', 100_000, 100_000, Currency::of('EUR')),
+                $this->amount('invoicing.payments', 'later', AmountKind::Income, '2026-11-17', 12_100, 10_000, Currency::of('EUR')),
             ]),
             new FakeAmountSource('received-documents.payments', []),
         ])->year(2026);
 
         // 1,000 EUR at 25.000 on 13 November, not at today's 26.000.
         self::assertSame([2_500_000, 2_500_000, 0, 2_500_000], [$amounts->lines[0]->grossCzk->minor(), $amounts->lines[0]->netCzk->minor(), $amounts->lines[0]->vatCzk->minor(), $amounts->lines[0]->countedCzk->minor()]);
-        self::assertSame(Currency::CZK, $amounts->lines[0]->grossCzk->currency());
+        self::assertSame(Currency::of('CZK'), $amounts->lines[0]->grossCzk->currency());
         self::assertSame([314_600, 260_000, 54_600], [$amounts->lines[1]->grossCzk->minor(), $amounts->lines[1]->netCzk->minor(), $amounts->lines[1]->vatCzk->minor()], 'On the 17th the rate of the 16th holds.');
         self::assertSame(1_000 * 100, $amounts->lines[0]->amount->gross->minor(), 'The amount itself stays in its currency.');
         self::assertSame([AmountsView::UNVERIFIED_FX_PAYMENT_DAY], $amounts->unverified);
@@ -128,8 +128,8 @@ final class AmountsTest extends TaxesTestCase
         $logger = new RecordingLogger();
         $amounts = $this->amounts([
             new FakeAmountSource('invoicing.payments', [
-                $this->amount('invoicing.payments', 'usd', AmountKind::Income, '2026-11-13', 100_000, 100_000, Currency::USD),
-                $this->amount('invoicing.payments', 'usd2', AmountKind::Income, '2026-11-14', 100_000, 100_000, Currency::USD),
+                $this->amount('invoicing.payments', 'usd', AmountKind::Income, '2026-11-13', 100_000, 100_000, Currency::of('USD')),
+                $this->amount('invoicing.payments', 'usd2', AmountKind::Income, '2026-11-14', 100_000, 100_000, Currency::of('USD')),
                 $this->amount('invoicing.payments', 'czk', AmountKind::Income, '2026-11-13', 50_000, 50_000),
             ]),
             new FakeAmountSource('received-documents.payments', []),
@@ -153,8 +153,8 @@ final class AmountsTest extends TaxesTestCase
                 $this->amount('invoicing.payments', 'from', AmountKind::Income, '2026-11-12', 1_210_000, 1_000_000),
             ]),
             new FakeAmountSource('other.payments', [
-                $this->amount('other.payments', 'eur', AmountKind::Income, '2026-11-13', 0, 0, Currency::EUR),
-                $this->amount('other.payments', 'eur2', AmountKind::Income, '2026-11-13', 0, 0, Currency::EUR),
+                $this->amount('other.payments', 'eur', AmountKind::Income, '2026-11-13', 0, 0, Currency::of('EUR')),
+                $this->amount('other.payments', 'eur2', AmountKind::Income, '2026-11-13', 0, 0, Currency::of('EUR')),
             ]),
             new FakeAmountSource('received-documents.payments', [
                 $this->amount('received-documents.payments', 'cost', AmountKind::Cost, '2026-11-12', 121_000, 100_000),
@@ -212,7 +212,7 @@ final class AmountsTest extends TaxesTestCase
         self::assertSame(['invoicing.payments', 'received-documents.payments'], $amounts->unavailableSources);
         self::assertSame([0, 0, 0, 0], $this->figures($amounts->totalOf(AmountKind::Income)));
         self::assertSame([0, 0, 0, 0], $this->figures($amounts->totalOf(AmountKind::Cost)));
-        self::assertSame(Currency::CZK, $amounts->totalOf(AmountKind::Cost)->counted->currency());
+        self::assertSame(Currency::of('CZK'), $amounts->totalOf(AmountKind::Cost)->counted->currency());
         self::assertSame([], $amounts->sums);
     }
 
@@ -275,8 +275,9 @@ final class AmountsTest extends TaxesTestCase
         return new Amounts($container->get(ProfileReads::class), $sources, $container->get(ExchangeRates::class), $container->get(InstanceClock::class), $logger ?? new NullLogger());
     }
 
-    private function amount(string $source, string $id, AmountKind $kind, string $paidOn, int $gross, int $net, Currency $currency = Currency::CZK): ActualAmount
+    private function amount(string $source, string $id, AmountKind $kind, string $paidOn, int $gross, int $net, ?Currency $currency = null): ActualAmount
     {
+        $currency ??= Currency::of('CZK');
         $zone = new \DateTimeZone('Europe/Prague');
 
         return new ActualAmount($source, new Subject('document', $id, '/api/v1/documents/'.$id), $kind, new \DateTimeImmutable($paidOn, $zone), Money::ofMinor($gross, $currency), Money::ofMinor($net, $currency), Money::ofMinor($gross - $net, $currency), new \DateTimeImmutable($paidOn, $zone), false);

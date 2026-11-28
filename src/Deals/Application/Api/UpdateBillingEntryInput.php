@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Deals\Application\Api;
 
-use Foresi\Deals\Application\DealLineRules;
 use Foresi\Deals\Domain\BillingPlanEntry;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
@@ -38,7 +37,7 @@ final readonly class UpdateBillingEntryInput
         public string $entryId,
         #[Field('A one_off entry: the amount without VAT, a decimal number such as "5000.00".')]
         public string|Omitted $amount = new Omitted(),
-        #[Field('A one_off entry: the currency of the amount, ISO 4217.', enum: DealLineRules::CURRENCIES)]
+        #[Field('A one_off entry: the currency of the amount, an ISO 4217 code such as EUR.', pattern: Field::CURRENCY)]
         public string|Omitted $currency = new Omitted(),
         #[Field('A one_off entry: the share of the deal\'s one-off value in the currency, such as "50"; the amount it makes is stored.')]
         public string|Omitted $percent = new Omitted(),

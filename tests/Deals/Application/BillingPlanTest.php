@@ -211,14 +211,14 @@ final class BillingPlanTest extends SalesTestCase
         $this->typedLine($deal, 'Report', '1000.00', currency: 'EUR');
         $this->deals()->win(new WinDealInput($deal->id()));
         [$czk, $eur] = array_map(static fn (BillingEntryView $view): BillingPlanEntry => $view->entry, $this->reads()->deal($deal->id())->billingPlan->entries);
-        self::assertSame(['CZK', 'EUR'], [$czk->amount()?->currency()->value, $eur->amount()?->currency()->value]);
+        self::assertSame(['CZK', 'EUR'], [$czk->amount()?->currency()->code(), $eur->amount()?->currency()->code()]);
 
         self::assertSame('The one-off entries would exceed the deal\'s one-off value in CZK; 500.00 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), amount: '500.01')))->getMessage());
 
         $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $eur->id()));
         $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), currency: 'EUR'));
         $moved = $this->entry($deal, $czk->id());
-        self::assertSame([50_000, 'EUR'], [$moved->amount()?->minor(), $moved->amount()?->currency()->value]);
+        self::assertSame([50_000, 'EUR'], [$moved->amount()?->minor(), $moved->amount()?->currency()->code()]);
 
         // What is planned is never more than the value: the left over is said, or none when the plan is above it.
         $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), amount: '600.00'));

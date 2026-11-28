@@ -90,7 +90,7 @@ final class RecurringPreviewTest extends TestCase
 
     private function input(Recurrence $recurrence, string $description = 'Hosting', TaxPointRule $taxPoint = TaxPointRule::IssueDate, int $dueDays = 14): RecurringInput
     {
-        $line = new LineInput('Hosting', Quantity::fromString('1'), 'ks', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Hosting', Quantity::fromString('1'), 'ks', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return new RecurringInput(null, 'customer', PaymentMethod::BankTransfer, null, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, $taxPoint, $dueDays, RecurringDelivery::Send);
     }

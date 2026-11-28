@@ -178,7 +178,7 @@ abstract class RecurringWorker extends KernelTestCase
      */
     private static function input(array $ids, array $texts): RecurringInput
     {
-        $lines = array_map(static fn (string $text): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')), $texts);
+        $lines = array_map(static fn (string $text): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')), $texts);
         $recurrence = new Recurrence(new \DateTimeImmutable($ids['today']), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null);
 
         return new RecurringInput($ids['series'], $ids['customer'], PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, $lines, $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send);

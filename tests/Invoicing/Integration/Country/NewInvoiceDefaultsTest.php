@@ -60,7 +60,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         self::assertSame(PaymentMethod::BankTransfer, $draft->paymentMethod);
         self::assertSame(self::IBAN, $draft->bankAccount);
         self::assertSame(DocumentLanguage::Czech, $draft->language);
-        self::assertSame(Currency::CZK, $draft->currency);
+        self::assertSame(Currency::of('CZK'), $draft->currency);
         self::assertSame(VatRegime::Payer, $draft->regime);
         self::assertNull($draft->customerId);
         self::assertNull($draft->currencyNotice);
@@ -187,7 +187,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     {
         $draft = $this->defaults->withCustomer(
             $this->defaults->for(),
-            $this->option(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, false)),
+            $this->option(new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::Cash, false)),
         );
 
         self::assertSame($this->customer->id(), $draft->customerId);
@@ -208,7 +208,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testReverseChargeFromTheContactFillsLines(): void
     {
-        $draft = $this->defaults->withCustomer($this->twoLines(), $this->option(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
+        $draft = $this->defaults->withCustomer($this->twoLines(), $this->option(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
 
         foreach ($draft->lines as $line) {
             self::assertSame(TaxTreatment::ReverseCharge, $line->treatment);
@@ -218,7 +218,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testAnotherCustomerTakesReverseChargeBack(): void
     {
-        $charged = $this->defaults->withCustomer($this->twoLines(), $this->option(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
+        $charged = $this->defaults->withCustomer($this->twoLines(), $this->option(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
 
         $draft = $this->defaults->withCustomer($charged, $this->option(InvoicingDefaults::standard()));
 
@@ -241,7 +241,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     {
         $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
-        $draft = $this->defaults->withCustomer($this->defaults->for(), $this->option(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
+        $draft = $this->defaults->withCustomer($this->defaults->for(), $this->option(new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
 
         self::assertSame(TaxTreatment::NotApplicable, $draft->lines[0]->treatment);
     }
@@ -250,18 +250,18 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     {
         $draft = $this->defaults->withCustomer(
             $this->defaults->for(),
-            $this->option(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false)),
+            $this->option(new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false)),
         );
 
-        self::assertSame(Currency::CZK, $draft->currency);
-        self::assertSame(Currency::EUR, $draft->currencyNotice);
+        self::assertSame(Currency::of('CZK'), $draft->currency);
+        self::assertSame(Currency::of('EUR'), $draft->currencyNotice);
     }
 
     public function testAHomeCurrencyContactClearsTheNotice(): void
     {
         $foreign = $this->defaults->withCustomer(
             $this->defaults->for(),
-            $this->option(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false)),
+            $this->option(new InvoicingDefaults(14, Currency::of('EUR'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false)),
         );
 
         self::assertNull($this->defaults->withCustomer($foreign, $this->option(InvoicingDefaults::standard()))->currencyNotice);

@@ -200,7 +200,7 @@ final class UndatedFlowsTest extends CashFlowTestCase
 
     private function undated(string $id, string $label, string $amount, FlowDirection $direction = FlowDirection::In, FlowCategory $category = FlowCategory::Revenue, FlowCertainty $certainty = FlowCertainty::Deal, ?string $subject = null, string $source = 'test.deals'): UndatedFlow
     {
-        return new UndatedFlow($source, new FlowSubject('deal', $id, null, $subject), $direction, Money::of($amount, Currency::CZK), $category, $certainty, $label);
+        return new UndatedFlow($source, new FlowSubject('deal', $id, null, $subject), $direction, Money::of($amount, Currency::of('CZK')), $category, $certainty, $label);
     }
 
     private function checkpoint(): void

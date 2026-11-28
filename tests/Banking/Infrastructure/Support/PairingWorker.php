@@ -93,15 +93,15 @@ abstract class PairingWorker extends KernelTestCase
         for ($i = 0; $i < $invoices; ++$i) {
             $symbol = (string) (2026100 + $i);
             // 1,000.00 with 21 % VAT: 1,210.00 to pay.
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $invoice = $issue->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, self::IBAN, $symbol, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
             $ids['invoices'][] = $invoice->id();
             foreach (['first', 'second'] as $notice) {
-                $input = new MovementInput($account->id(), null, MovementDirection::Incoming, Money::of(self::AMOUNT, Currency::CZK), $day, '123456789/0800', null, 'Example Customer a.s.', $symbol, null, null, null, $notice.'-'.$i);
+                $input = new MovementInput($account->id(), null, MovementDirection::Incoming, Money::of(self::AMOUNT, Currency::of('CZK')), $day, '123456789/0800', null, 'Example Customer a.s.', $symbol, null, null, null, $notice.'-'.$i);
                 $ids[$notice][] = $record->record($input, $verified)->id();
             }
             if ($paired) {
-                $container->get(PairMovement::class)->pair($ids['first'][$i], [new Allocation($invoice->id(), Money::of(self::AMOUNT, Currency::CZK))]);
+                $container->get(PairMovement::class)->pair($ids['first'][$i], [new Allocation($invoice->id(), Money::of(self::AMOUNT, Currency::of('CZK')))]);
             }
         }
 
@@ -128,7 +128,7 @@ abstract class PairingWorker extends KernelTestCase
                 $results[] = match ($job) {
                     'auto-first' => null === $pairing->auto($ids['first'][$slot]) ? 'left' : 'paired',
                     'auto-second' => null === $pairing->auto($ids['second'][$slot]) ? 'left' : 'paired',
-                    'manual-first' => '' !== $pairing->pair($ids['first'][$slot], [new Allocation($invoice, Money::of(self::AMOUNT, Currency::CZK))]) ? 'paired' : 'no id',
+                    'manual-first' => '' !== $pairing->pair($ids['first'][$slot], [new Allocation($invoice, Money::of(self::AMOUNT, Currency::of('CZK')))]) ? 'paired' : 'no id',
                     'unpair-first' => self::unpaired($ids['first'][$slot]),
                     'cancel-first' => self::cancelled($ids['first'][$slot]),
                     default => throw new \InvalidArgumentException('Unknown job.'),
