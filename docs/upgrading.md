@@ -125,7 +125,7 @@ at the top of its minor version, with the same text (see
 
 ### 0.13
 
-#### [0.13.0](https://github.com/foresi/foresi/releases/tag/v0.13.0): any ISO 4217 currency (#PRNUM)
+#### [0.13.0](https://github.com/foresi/foresi/releases/tag/v0.13.0): any ISO 4217 currency (#373)
 
 - No migration: amounts and their currency codes are stored as before.
 - REST API and MCP: every money object gains `minor_units`; read it instead of assuming two decimals. A currency input takes any current ISO 4217 code and refuses an unknown one with `400 invalid_parameter`; a decimal amount has at most the currency's minor units. `GET /api/v1/currencies` and the MCP tool `foresi_list_currencies` list the codes. Reconnect MCP clients so they reload their tool lists.
