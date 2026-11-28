@@ -41,6 +41,15 @@ interface SalesStore
      */
     public function linesOf(string $dealId): array;
 
+    /**
+     * The lines of several deals in one read, as a list of deals shows their values.
+     *
+     * @param list<string> $dealIds
+     *
+     * @return array<string, list<DealLine>> by deal id, each in its order; a deal without lines is missing
+     */
+    public function linesOfDeals(array $dealIds): array;
+
     /** The line linked to the project, whatever its deal's state; null for none. */
     public function lineOfProject(string $projectId): ?DealLine;
 

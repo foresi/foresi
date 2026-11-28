@@ -35,7 +35,7 @@ The owner signs in as `perf@example.com` with `perf-password-1`, or with `PERF_P
 
 The pages are the dashboard, the lists of contacts (also searched), invoices, received documents, projects, tasks and deals, one contact, invoice, project and task, the time week and report, cash flow, and the API lists of contacts, invoices and time entries.
 
-When a change adds a query to a page on purpose, raise that page's budget in `tests/Perf/PageQueryCountTest.php` in the same pull request. `KNOWN_GROWTH` lists the pages known to run a query per record, with the most queries they may run on the larger set until that is fixed.
+When a change adds a query to a page on purpose, raise that page's budget in `tests/Perf/PageQueryCountTest.php` in the same pull request.
 
 **Not checked:** wall time on pull requests, SQLite timings, browser metrics (Lighthouse, Web Vitals), and the 200,000-row import limit, which takes hours at today's speed and is measured on demand only.
 
@@ -95,6 +95,6 @@ Measured on 2026-11-26 on a MacBook M1 Pro (8 cores, 32 GB), PHP 8.4.17, Postgre
 
 **Import of 10,000 contacts:** create 169 rows/s, **update 15 rows/s** (budget 150), so undo was not reached. Measured under heavy load earlier the same day, create ran at 28 rows/s.
 
-**Queries a page:** 120 to 213 on every HTML page, 9 or 10 on the API. Of those, 85 to 117 are the same lookup of the person's membership role. The deals board grows from 189 to 352 queries with ten times the data (`KNOWN_GROWTH`).
+**Queries a page:** 120 to 213 on every HTML page, 9 or 10 on the API. Of those, 85 to 117 are the same lookup of the person's membership role. The deals board grew from 189 to 352 queries with ten times the data until it read the clients and the lines of its deals once for the whole list (2026-11-28).
 
 **Seed of the large set, in rows a second, measured under load:** contacts 20, invoices 14, payments 98, received documents 13, tasks 38, deals 56, activities 83, time entries 11,600 (written in bulk). Everything but the time entries goes through the application services. Payments pay what an invoice asks (`payable()`). The invoices are issued in date order over five years, and the seed adds the deal stages and activity types a schema made by Doctrine lacks.

@@ -84,6 +84,25 @@ final readonly class DoctrineSalesStore implements SalesStore
         return $lines;
     }
 
+    public function linesOfDeals(array $dealIds): array
+    {
+        if ([] === $dealIds) {
+            return [];
+        }
+        $byDeal = [];
+        foreach (array_chunk(array_values(array_unique($dealIds)), 1000) as $chunk) {
+            /** @var list<DealLine> $lines */
+            $lines = $this->em->createQuery('SELECT l FROM '.DealLine::class.' l WHERE l.dealId IN (:ids) ORDER BY l.position ASC, l.id ASC')
+                ->setParameter('ids', $chunk)
+                ->getResult();
+            foreach ($lines as $line) {
+                $byDeal[$line->dealId()][] = $line;
+            }
+        }
+
+        return $byDeal;
+    }
+
     public function lineOfProject(string $projectId): ?DealLine
     {
         return $this->em->getRepository(DealLine::class)->findOneBy(['projectId' => $projectId]);
