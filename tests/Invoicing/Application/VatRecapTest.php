@@ -31,12 +31,12 @@ final class VatRecapTest extends TestCase
     {
         $lines = VatRecap::of([
             // An advance is no tax document, and one before the invoices stops none of them.
-            $this->document(DocumentKind::Advance, Currency::CZK, '1', [$this->summary(TaxTreatment::Standard, '21.00', '999.00', '209.79', '1208.79')]),
-            $this->document(DocumentKind::Invoice, Currency::EUR, '25', [
+            $this->document(DocumentKind::Advance, Currency::of('CZK'), '1', [$this->summary(TaxTreatment::Standard, '21.00', '999.00', '209.79', '1208.79')]),
+            $this->document(DocumentKind::Invoice, Currency::of('EUR'), '25', [
                 $this->summary(TaxTreatment::Exempt, null, '100.00', '0.00', '100.00'),
                 $this->summary(TaxTreatment::Standard, '12.00', '100.00', '12.00', '112.00'),
             ]),
-            $this->document(DocumentKind::Invoice, Currency::CZK, '1', [
+            $this->document(DocumentKind::Invoice, Currency::of('CZK'), '1', [
                 $this->summary(TaxTreatment::NotApplicable, null, '50.00', '0.00', '50.00'),
                 $this->summary(TaxTreatment::ReverseCharge, null, '200.00', '0.00', '200.00'),
                 $this->summary(TaxTreatment::Standard, null, '40.00', '0.00', '40.00'),
@@ -44,8 +44,8 @@ final class VatRecapTest extends TestCase
                 $this->summary(TaxTreatment::Standard, '12.00', '10.00', '1.20', '11.20'),
                 $this->summary(TaxTreatment::Standard, '21.00', '1000.00', '210.00', '1210.00'),
             ]),
-            $this->document(DocumentKind::CorrectionDocument, Currency::CZK, '1', [$this->summary(TaxTreatment::Standard, '21.00', '500.00', '105.00', '605.00')]),
-        ], Currency::CZK);
+            $this->document(DocumentKind::CorrectionDocument, Currency::of('CZK'), '1', [$this->summary(TaxTreatment::Standard, '21.00', '500.00', '105.00', '605.00')]),
+        ], Currency::of('CZK'));
 
         self::assertSame([
             ['standard', 2100, 'CZK', 150000, 31500, 181500],
@@ -56,15 +56,15 @@ final class VatRecapTest extends TestCase
             ['exempt', null, 'CZK', 250000, 0, 250000],
             ['not_applicable', null, 'CZK', 5000, 0, 5000],
         ], array_map($this->row(...), $lines));
-        self::assertSame(['standard', null, 'CZK', 710000, 61620, 771620], $this->row(VatRecap::total($lines, Currency::CZK)));
+        self::assertSame(['standard', null, 'CZK', 710000, 61620, 771620], $this->row(VatRecap::total($lines, Currency::of('CZK'))));
     }
 
     public function testNothingTaxedGivesNoLineAndAZeroTotal(): void
     {
-        $lines = VatRecap::of([$this->document(DocumentKind::Advance, Currency::CZK, '1', [$this->summary(TaxTreatment::Standard, '21.00', '100.00', '21.00', '121.00')])], Currency::EUR);
+        $lines = VatRecap::of([$this->document(DocumentKind::Advance, Currency::of('CZK'), '1', [$this->summary(TaxTreatment::Standard, '21.00', '100.00', '21.00', '121.00')])], Currency::of('EUR'));
 
         self::assertSame([], $lines);
-        self::assertSame(['standard', null, 'EUR', 0, 0, 0], $this->row(VatRecap::total($lines, Currency::EUR)));
+        self::assertSame(['standard', null, 'EUR', 0, 0, 0], $this->row(VatRecap::total($lines, Currency::of('EUR'))));
     }
 
     /**
@@ -72,12 +72,12 @@ final class VatRecapTest extends TestCase
      */
     private function row(VatRecapLine $line): array
     {
-        return [$line->treatment->value, $line->rate?->basisPoints(), $line->base->currency()->value, $line->base->minor(), $line->vat->minor(), $line->gross->minor()];
+        return [$line->treatment->value, $line->rate?->basisPoints(), $line->base->currency()->code(), $line->base->minor(), $line->vat->minor(), $line->gross->minor()];
     }
 
     private function summary(TaxTreatment $treatment, ?string $rate, string $base, string $vat, string $gross): RateSummary
     {
-        return new RateSummary($treatment, null === $rate ? null : Percent::fromString($rate), Money::of($base, Currency::CZK), Money::of($vat, Currency::CZK), Money::of($gross, Currency::CZK));
+        return new RateSummary($treatment, null === $rate ? null : Percent::fromString($rate), Money::of($base, Currency::of('CZK')), Money::of($vat, Currency::of('CZK')), Money::of($gross, Currency::of('CZK')));
     }
 
     /**

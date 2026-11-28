@@ -82,7 +82,7 @@ final class MatcherTest extends InvoiceBankingTestCase
     public function testTheLimitComesFromTheFirmsCountry(): void
     {
         self::assertSame(99, $this->matcher->settlementLimit($this->movement('999.01')));
-        self::assertNull($this->matcher->settlementLimit($this->movement('999.01', Currency::EUR)));
+        self::assertNull($this->matcher->settlementLimit($this->movement('999.01', Currency::of('EUR'))));
     }
 
     public function testLeadingZerosInVsStillMatch(): void
@@ -91,7 +91,7 @@ final class MatcherTest extends InvoiceBankingTestCase
 
         $found = $this->matcher->candidates($this->movement('1210.00', vs: '0002026001'));
 
-        self::assertSame([[$invoice->id(), $invoice->number(), 121000, 'CZK', 'Example Customer a.s.', '2026-11-15']], array_map(static fn (Candidate $candidate): array => [$candidate->invoiceId, $candidate->number, $candidate->remaining->minor(), $candidate->remaining->currency()->value, $candidate->customerName, $candidate->dueDate->format('Y-m-d')], $found));
+        self::assertSame([[$invoice->id(), $invoice->number(), 121000, 'CZK', 'Example Customer a.s.', '2026-11-15']], array_map(static fn (Candidate $candidate): array => [$candidate->invoiceId, $candidate->number, $candidate->remaining->minor(), $candidate->remaining->currency()->code(), $candidate->customerName, $candidate->dueDate->format('Y-m-d')], $found));
     }
 
     public function testATrashedOrPaidInvoiceIsNoCandidate(): void
@@ -114,7 +114,7 @@ final class MatcherTest extends InvoiceBankingTestCase
     {
         // Invoices are in the home currency only, so the movement is the one in another.
         $this->issue->issue($this->input());
-        $movement = $this->movement('1210.00', Currency::EUR);
+        $movement = $this->movement('1210.00', Currency::of('EUR'));
 
         $decision = $this->decide($movement, $this->matcher->candidates($movement), new PairingRules(true, false));
 
@@ -145,8 +145,9 @@ final class MatcherTest extends InvoiceBankingTestCase
     /**
      * On an account in the currency of the movement, unless one is given.
      */
-    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MovementTrust $trust = MovementTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
+    private function movement(string $amount, ?Currency $currency = null, ?string $vs = '20260001', MovementTrust $trust = MovementTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
+        $currency ??= Currency::of('CZK');
         if (!$account instanceof FirmBankAccount) {
             $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, 'DE89370400440532013000', $currency));
         }

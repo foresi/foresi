@@ -66,14 +66,14 @@ final class TaxesApiTest extends ApiTestCase
         self::assertIsString($statusId);
 
         $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'sickness_insurance', 'value' => 'on', 'valid_from' => '2026-01-01', 'base' => '10000.00']);
-        self::assertSame(['amount_minor' => 1000000, 'currency' => 'CZK'], $this->at('data', 'base'));
+        self::assertSame(['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'base'));
 
         $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2026', self::YEAR);
         self::assertResponseIsSuccessful();
         self::assertSame(2026, $this->at('data', 'year'));
         self::assertSame(['months' => 6, 'ztp_p' => false, 'low_income' => false], $this->at('data', 'spouse'));
-        self::assertSame([['type' => 'pension_products', 'amount' => ['amount_minor' => 2400000, 'currency' => 'CZK']]], $this->at('data', 'deductions'));
-        self::assertSame(['amount_minor' => 12000000, 'currency' => 'CZK'], $this->at('data', 'other_bases', 'employment'));
+        self::assertSame([['type' => 'pension_products', 'amount' => ['amount_minor' => 2400000, 'currency' => 'CZK', 'minor_units' => 2]]], $this->at('data', 'deductions'));
+        self::assertSame(['amount_minor' => 12000000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'other_bases', 'employment'));
         $year = $this->json()['data'];
 
         $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/authorities/health', ['account' => '1234567890/0300', 'variable_symbol' => '8501011234']);
@@ -119,7 +119,7 @@ final class TaxesApiTest extends ApiTestCase
         $this->get('/api/v1/taxes-and-contributions/amounts?year=2025', secret: $this->owner);
         self::assertResponseIsSuccessful();
         self::assertSame(['2025-01-01', '2025-12-31'], [$this->at('data', 'from'), $this->at('data', 'to')]);
-        self::assertSame(['gross' => ['amount_minor' => 0, 'currency' => 'CZK'], 'net' => ['amount_minor' => 0, 'currency' => 'CZK'], 'vat' => ['amount_minor' => 0, 'currency' => 'CZK'], 'counted' => ['amount_minor' => 0, 'currency' => 'CZK']], $this->at('data', 'totals', 'income'));
+        self::assertSame(['gross' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'net' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'vat' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'counted' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2]], $this->at('data', 'totals', 'income'));
         self::assertSame(['non_deductible_costs', 'assets'], $this->at('data', 'known_gaps'));
         $amounts = $this->json()['data'];
 

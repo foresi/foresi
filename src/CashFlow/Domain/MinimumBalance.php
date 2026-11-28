@@ -46,7 +46,7 @@ class MinimumBalance implements Audited
 
     public function change(Money $amount): void
     {
-        if (Currency::CZK !== $amount->currency()) {
+        if (Currency::of('CZK') !== $amount->currency()) {
             throw new \InvalidArgumentException('A minimum balance is in CZK, the currency of the forecast.');
         }
         $this->amountMinor = $amount->minor();
@@ -59,6 +59,6 @@ class MinimumBalance implements Audited
 
     public function amount(): Money
     {
-        return Money::ofMinor($this->amountMinor, Currency::CZK);
+        return Money::ofMinor($this->amountMinor, Currency::of('CZK'));
     }
 }

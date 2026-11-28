@@ -46,7 +46,7 @@ final readonly class PeriodWrites
         if (1 !== preg_match('/^-?[0-9]{1,13}(\.[0-9]{1,2})?\z/', trim($input->amount))) {
             throw VatRefused::invalid('amount_invalid', 'amount', 'An amount is a decimal number in CZK with at most two decimals, such as "1500.00", negative for a refund.');
         }
-        $amount = Money::of(trim($input->amount), Currency::CZK);
+        $amount = Money::of(trim($input->amount), Currency::of('CZK'));
         $this->transaction->run(function () use ($key, $amount): void {
             $this->entry($key)->enterReturnAmount($amount);
             $this->events->record(new VatPeriodChanged(VatPeriodChanged::RETURN_AMOUNT, $key));

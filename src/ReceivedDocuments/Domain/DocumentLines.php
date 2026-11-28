@@ -113,7 +113,7 @@ final class DocumentLines
                 $bases[] = null;
                 continue;
             }
-            $sofar = $given[$key] ?? Money::ofMinor(0, Currency::CZK);
+            $sofar = $given[$key] ?? Money::ofMinor(0, Currency::of('CZK'));
             $czk = $last[$key] === $index ? $target->minus($sofar) : $rate->toCzk($line->base);
             $given[$key] = $sofar->plus($czk);
             $bases[] = $czk;

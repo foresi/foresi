@@ -17,11 +17,11 @@ use Foresi\Shared\Domain\Money;
 final class JsonValues
 {
     /**
-     * @return array{amount_minor: int, currency: string}
+     * @return array{amount_minor: int, currency: string, minor_units: int}
      */
     public static function money(Money $money): array
     {
-        return ['amount_minor' => $money->minor(), 'currency' => $money->currency()->value];
+        return ['amount_minor' => $money->minor(), 'currency' => $money->currency()->code(), 'minor_units' => $money->currency()->minorUnits()];
     }
 
     public static function date(?\DateTimeImmutable $day): ?string

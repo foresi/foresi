@@ -690,7 +690,7 @@ final class InvoiceController extends AbstractController
             'newKey' => self::NEW_TITLES[$context->kind->value] ?? 'invoice.new',
             'issuerCountry' => $this->issuerCountry($context),
             'issuerName' => $invoice?->issuer()->name ?? $firm->name(),
-            'currency' => $context->currency->value,
+            'currency' => $context->currency->code(),
             'dueDays' => $this->dueDays($values),
             'vatOptions' => $this->options->vat($context, $taxPoint),
             'priceTypes' => $this->options->priceTypes(),
@@ -882,7 +882,7 @@ final class InvoiceController extends AbstractController
         }
         $currency = $this->picker->option($party)->defaults->currency;
 
-        return $currency === $context->currency ? null : $currency->value;
+        return $currency === $context->currency ? null : $currency->code();
     }
 
     /**

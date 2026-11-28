@@ -20,11 +20,11 @@ final class FirmBankAccountTest extends TestCase
 
     public function testExposesItsData(): void
     {
-        $account = FirmBankAccount::open(Iban::fromString('cz65 0800 0000 1920 0014 5399'), Currency::EUR, ' Main ', 3);
+        $account = FirmBankAccount::open(Iban::fromString('cz65 0800 0000 1920 0014 5399'), Currency::of('EUR'), ' Main ', 3);
 
         self::assertTrue(Id::isValid($account->id()));
         self::assertSame(self::IBAN, $account->iban());
-        self::assertSame(Currency::EUR, $account->currency());
+        self::assertSame(Currency::of('EUR'), $account->currency());
         self::assertSame('Main', $account->label());
         self::assertSame(3, $account->position());
         self::assertFalse($account->isPrimary());
@@ -37,10 +37,10 @@ final class FirmBankAccountTest extends TestCase
         $account = $this->account();
 
         $account->relabel('  Savings ');
-        $account->changeCurrency(Currency::USD);
+        $account->changeCurrency(Currency::of('USD'));
 
         self::assertSame('Savings', $account->label());
-        self::assertSame(Currency::USD, $account->currency());
+        self::assertSame(Currency::of('USD'), $account->currency());
     }
 
     public function testALabelHasAtMostAHundredCharacters(): void
@@ -65,7 +65,7 @@ final class FirmBankAccountTest extends TestCase
     public function testALongLabelIsRefusedWhenOpening(): void
     {
         $this->expectException(\DomainException::class);
-        FirmBankAccount::open(Iban::fromString(self::IBAN), Currency::CZK, str_repeat('x', 101), 0);
+        FirmBankAccount::open(Iban::fromString(self::IBAN), Currency::of('CZK'), str_repeat('x', 101), 0);
     }
 
     public function testIsMarkedAndUnmarkedPrimary(): void
@@ -115,6 +115,6 @@ final class FirmBankAccountTest extends TestCase
 
     private function account(): FirmBankAccount
     {
-        return FirmBankAccount::open(Iban::fromString(self::IBAN), Currency::CZK, '', 0);
+        return FirmBankAccount::open(Iban::fromString(self::IBAN), Currency::of('CZK'), '', 0);
     }
 }

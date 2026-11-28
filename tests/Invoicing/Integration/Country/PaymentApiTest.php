@@ -33,7 +33,7 @@ final class PaymentApiTest extends ApiTestCase
             'id' => $payment->id(),
             'firm' => ['id' => $this->firmId, 'name' => 'Example Firm s.r.o.'],
             'received_on' => '2026-11-12',
-            'amount' => ['amount_minor' => 100000, 'currency' => 'CZK'],
+            'amount' => ['amount_minor' => 100000, 'currency' => 'CZK', 'minor_units' => 2],
             'direction' => 'incoming',
             'method' => 'bank_transfer',
             'source' => 'manual',
@@ -43,8 +43,8 @@ final class PaymentApiTest extends ApiTestCase
             'created_at' => new \DateTimeImmutable('2026-11-10 12:00:00')->format(\DATE_ATOM),
             'allocations' => [[
                 'invoice' => ['id' => $invoice->id(), 'number' => $invoice->number()],
-                'amount' => ['amount_minor' => 100000, 'currency' => 'CZK'],
-                'settlement' => ['amount_minor' => 0, 'currency' => 'CZK'],
+                'amount' => ['amount_minor' => 100000, 'currency' => 'CZK', 'minor_units' => 2],
+                'settlement' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2],
             ]],
         ];
 

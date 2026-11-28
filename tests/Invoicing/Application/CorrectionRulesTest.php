@@ -28,7 +28,7 @@ final class CorrectionRulesTest extends InvoiceTestCase
     {
         $series = new Series('Tax documents', SeriesFormat::fromString('D{NNN}'), DocumentKind::PaymentTaxDocument);
         $copy = DocumentParties::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
-        $document = new Invoice($series, 'D1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::PaymentTaxDocument), null, new \DateTimeImmutable('2026-11-01'));
+        $document = new Invoice($series, 'D1', VatRegime::Payer, TotalRounding::None, Currency::of('CZK'), $copy, $this->input()->change($this->customer, $copy, DocumentKind::PaymentTaxDocument), null, new \DateTimeImmutable('2026-11-01'));
 
         self::assertFalse($document->isReplaced());
     }

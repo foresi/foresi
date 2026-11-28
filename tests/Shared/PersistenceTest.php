@@ -33,7 +33,7 @@ final class PersistenceTest extends KernelTestCase
 
     public function testMoneyRoundTripsThroughTheDatabase(): void
     {
-        $price = new TestPrice(Money::of('-1234.56', Currency::EUR));
+        $price = new TestPrice(Money::of('-1234.56', Currency::of('EUR')));
         $this->em->persist($price);
         $this->em->flush();
         $id = $price->id();
@@ -42,12 +42,12 @@ final class PersistenceTest extends KernelTestCase
         $loaded = $this->em->find(TestPrice::class, $id);
 
         self::assertInstanceOf(TestPrice::class, $loaded);
-        self::assertTrue(Money::of('-1234.56', Currency::EUR)->equals($loaded->price()));
+        self::assertTrue(Money::of('-1234.56', Currency::of('EUR'))->equals($loaded->price()));
     }
 
     public function testMinorUnitsAreStoredAsIntegerWithTheCurrencyCode(): void
     {
-        $this->em->persist(new TestPrice(Money::of('10.05', Currency::CZK)));
+        $this->em->persist(new TestPrice(Money::of('10.05', Currency::of('CZK'))));
         $this->em->flush();
 
         $row = $this->em->getConnection()->fetchAssociative('SELECT amount_minor, currency FROM test_price');

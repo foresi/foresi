@@ -54,7 +54,7 @@ final class BillingPlanFlowsTest extends CashFlowTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->em->flush();
 
         // Planned in this order, each a second after the one before.

@@ -85,7 +85,7 @@ final class CorrectionRulesTest extends InvoiceTestCase
     public function testATreatmentWithoutARateIsATreatmentOfItsOwn(): void
     {
         $original = $this->issue->issue($this->input([$this->line('1000.00', treatment: TaxTreatment::Exempt, kind: null)], ['variableSymbol' => '']));
-        $line = new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'));
 
         self::assertEquals([new IssueProblem('lines.0.vat', 'invoice.problem.correction_rate_unknown')], $this->check($this->correction($original, [$line])));
     }
@@ -250,7 +250,7 @@ final class CorrectionRulesTest extends InvoiceTestCase
 
     private function credit(string $price, VatRateKind $kind = VatRateKind::Base): LineInput
     {
-        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, $kind, null, Percent::fromString('0'));
+        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, $kind, null, Percent::fromString('0'));
     }
 
     /**

@@ -46,7 +46,7 @@ final readonly class InvoicingOverview
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $last = $now->modify('first day of last month');
 
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         [$unpaid, $unpaidCount, $overdue, $overdueCount] = [$zero, 0, $zero, 0];
         $ages = [$zero, $zero, $zero];
         // Keyed by name, which PHP turns into an int when it is one: "42" stays a name.
@@ -82,7 +82,7 @@ final readonly class InvoicingOverview
 
     private function month(string $month): MonthInvoiced
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         [$count, $base, $vat, $total] = [0, $zero, $zero, $zero];
         foreach (self::TAX_KINDS as $kind) {
             $sums = $this->store->sums(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind, month: $month));

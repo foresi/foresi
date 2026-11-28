@@ -68,8 +68,8 @@ final readonly class IssuedDocumentVat implements VatDocumentSource
                 $document->number,
                 $taxPoint,
                 $taxPoint,
-                VatRecap::total(VatRecap::of([$document], Currency::CZK), Currency::CZK)->vat,
-                Money::ofMinor(0, Currency::CZK),
+                VatRecap::total(VatRecap::of([$document], Currency::of('CZK')), Currency::of('CZK'))->vat,
+                Money::ofMinor(0, Currency::of('CZK')),
             );
         }
     }

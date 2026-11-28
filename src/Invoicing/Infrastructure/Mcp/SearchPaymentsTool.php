@@ -51,7 +51,7 @@ final readonly class SearchPaymentsTool implements ReadTool
         return 'Searches the payments of the organisation\'s sales documents, received money and refunds, newest first. Cancelled payments are left out unless include_cancelled is true. '
             .'Every argument narrows the search; with none, it returns the newest payments. '
             .'Returns {items, next_cursor}: each payment has its id, firm, day, amount, direction, method, source, note, the bank movement it came from, when it was cancelled, and the documents it is allocated to with the amounts. '
-            .'Money is {amount_minor, currency}, in hundredths of the currency; amounts are positive both ways, the direction tells which way the money went. '
+            .'Money is {amount_minor, currency, minor_units}: amount_minor in minor units, minor_units the decimals of the currency; amounts are positive both ways, the direction tells which way the money went. '
             .'When next_cursor is not null, more payments match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_search_invoices for an invoice_id.';
     }

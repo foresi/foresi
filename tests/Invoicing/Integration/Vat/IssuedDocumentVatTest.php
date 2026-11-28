@@ -37,7 +37,7 @@ final class IssuedDocumentVatTest extends AdvanceTestCase
         self::assertSame([IssuedDocumentVat::KEY, 'invoice', $invoice->id(), '/api/v1/invoices/'.$invoice->id()], [$document->source, $document->subject->type, $document->subject->id, $document->subject->url]);
         self::assertSame($this->reloaded($invoice)->number(), $document->label);
         self::assertSame(['2026-11-20', '2026-11-20', 'Europe/Prague'], [$document->countsOn->format('Y-m-d'), $document->taxPointOn->format('Y-m-d'), $document->countsOn->getTimezone()->getName()]);
-        self::assertSame([210_000, 'CZK', 0, 'CZK', false], [$document->output->minor(), $document->output->currency()->value, $document->input->minor(), $document->input->currency()->value, $document->missingCzk]);
+        self::assertSame([210_000, 'CZK', 0, 'CZK', false], [$document->output->minor(), $document->output->currency()->code(), $document->input->minor(), $document->input->currency()->code(), $document->missingCzk]);
     }
 
     public function testOnlyTheTaxPointsOfTheDaysAskedCount(): void

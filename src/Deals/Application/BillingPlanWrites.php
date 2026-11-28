@@ -116,7 +116,7 @@ final readonly class BillingPlanWrites
                     throw SalesRefused::invalid('amount_not_one_off', 'amount', 'A recurring entry takes its amount from its line; change the line instead.');
                 }
                 $current = $entry->amount();
-                $currency = $input->currency instanceof Omitted ? $current?->currency()->value : $input->currency;
+                $currency = $input->currency instanceof Omitted ? $current?->currency()->code() : $input->currency;
                 $amount = $input->amount instanceof Omitted ? null : $input->amount;
                 $percent = $input->percent instanceof Omitted ? null : $input->percent;
                 // Only a currency given keeps the amount it had, in the new currency.
@@ -296,7 +296,7 @@ final readonly class BillingPlanWrites
         $currency ??= 1 === \count($value) ? array_key_first($value) : throw SalesRefused::invalid('currency_required', 'currency', 'Name the currency of the amount: the deal has one-off lines in '.(0 === \count($value) ? 'none' : 'several').'.');
         $code = Currency::tryFrom($currency);
         if (!$code instanceof Currency) {
-            throw SalesRefused::invalid('currency_unknown', 'currency', 'The currency is one of '.implode(', ', DealLineRules::CURRENCIES).'.');
+            throw SalesRefused::invalid('currency_unknown', 'currency', 'The currency is not an ISO 4217 code; GET /api/v1/currencies lists them.');
         }
         if (null !== $amount && null !== $percent) {
             throw SalesRefused::invalid('amount_and_percent', 'percent', 'Give the amount or the percent, not both.');
@@ -306,7 +306,7 @@ final readonly class BillingPlanWrites
             if (1 !== preg_match(self::PERCENT, $percent) || (float) $percent <= 0.0 || (float) $percent > 100.0) {
                 throw SalesRefused::invalid('percent_invalid', 'percent', 'The percent is more than 0 and at most 100, with up to two decimals, such as "50".');
             }
-            $base = $value[$code->value] ?? throw SalesRefused::invalid('percent_no_value', 'percent', 'The deal has no one-off value in this currency to take a percent of.');
+            $base = $value[$code->code()] ?? throw SalesRefused::invalid('percent_no_value', 'percent', 'The deal has no one-off value in this currency to take a percent of.');
             $share = BillingAmounts::share($base, $percent);
             if (!$this->positive($share)) {
                 throw SalesRefused::invalid('amount_invalid', 'percent', 'A planned invoice is for more than zero.');
@@ -330,7 +330,7 @@ final readonly class BillingPlanWrites
      */
     private function checkPlanned(Deal $deal, Money $amount, ?BillingPlanEntry $changed): void
     {
-        $value = DealValues::of($this->store->linesOf($deal->id()))->oneOff[$amount->currency()->value] ?? Money::ofMinor(0, $amount->currency());
+        $value = DealValues::of($this->store->linesOf($deal->id()))->oneOff[$amount->currency()->code()] ?? Money::ofMinor(0, $amount->currency());
         $planned = $amount;
         foreach ($this->store->billingPlanOf($deal->id()) as $entry) {
             $other = $entry->amount();
@@ -340,7 +340,7 @@ final readonly class BillingPlanWrites
         }
         if ($planned->minor() > $value->minor()) {
             $left = $value->minus($planned->minus($amount));
-            throw SalesRefused::invalid('plan_exceeds_value', 'amount', \sprintf('The one-off entries would exceed the deal\'s one-off value in %s; %s is left to plan.', $amount->currency()->value, $left->isNegative() ? '0' : $this->decimal($left)));
+            throw SalesRefused::invalid('plan_exceeds_value', 'amount', \sprintf('The one-off entries would exceed the deal\'s one-off value in %s; %s is left to plan.', $amount->currency()->code(), $left->isNegative() ? '0' : $this->decimal($left)));
         }
     }
 

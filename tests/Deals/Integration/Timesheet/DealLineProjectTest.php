@@ -54,7 +54,7 @@ final class DealLineProjectTest extends SalesTestCase
         $this->projects = self::getContainer()->get(ManageProjects::class);
         $this->time = self::getContainer()->get(ManageTime::class);
         $this->dud = $this->projects->create('DUD', $this->client->id());
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->dud->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->dud->id(), Money::of('1000', Currency::of('CZK')));
     }
 
     public function testTheLineTakesTheProjectAndItsTimeTakesTheLinesRate(): void
@@ -141,7 +141,7 @@ final class DealLineProjectTest extends SalesTestCase
         $again = $rates->rateFor($this->dud->id());
 
         self::assertNotNull($first);
-        self::assertTrue($first->equals(Money::of('1200', Currency::CZK)));
+        self::assertTrue($first->equals(Money::of('1200', Currency::of('CZK'))));
         self::assertSame($first, $again, 'kept for the request');
 
         $this->assertRate('1300', RateSource::DealLine);
@@ -250,7 +250,7 @@ final class DealLineProjectTest extends SalesTestCase
         $resolved = self::getContainer()->get(RateResolver::class)->resolve($this->dud->id(), $this->owner->id());
 
         self::assertNotNull($resolved, $message);
-        self::assertTrue(Money::of($amount, Currency::CZK)->equals($resolved->rate), $message);
+        self::assertTrue(Money::of($amount, Currency::of('CZK'))->equals($resolved->rate), $message);
         self::assertSame($source, $resolved->source, $message);
     }
 }

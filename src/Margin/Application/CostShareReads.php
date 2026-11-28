@@ -43,7 +43,7 @@ final readonly class CostShareReads
         return array_map(static fn (array $row): array => [
             'month' => $row['month']->format('Y-m'),
             'recipient' => $row['recipient'],
-            'amount' => Money::ofMinor((int) $row['minor'], Currency::CZK),
+            'amount' => Money::ofMinor((int) $row['minor'], Currency::of('CZK')),
         ], $rows);
     }
 

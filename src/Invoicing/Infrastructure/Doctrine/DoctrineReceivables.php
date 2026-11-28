@@ -55,7 +55,7 @@ final readonly class DoctrineReceivables implements Receivables
         foreach ($rows as $row) {
             $today = $todays[$row['country']] ??= $this->todayIn($row['country']);
             $days = $row['dueDate']->format('Y-m-d') < $today ? new \DateTimeImmutable($row['dueDate']->format('Y-m-d'))->diff(new \DateTimeImmutable($today))->days : 0;
-            $remaining = Money::ofMinor((int) $row['due'] - (int) $row['paid'], Currency::CZK)->multipliedBy($row['rate']);
+            $remaining = Money::ofMinor((int) $row['due'] - (int) $row['paid'], Currency::of('CZK'))->multipliedBy($row['rate']);
             $receivables[] = new Receivable($row['customer'], $remaining, $days);
         }
 

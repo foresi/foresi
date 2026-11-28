@@ -50,6 +50,6 @@ final class BillingPlanEntryTest extends TestCase
 
     private function entry(string $amount, string $text = ''): BillingPlanEntry
     {
-        return BillingPlanEntry::oneOff(Id::generate(), Money::of($amount, Currency::CZK), null, $text, new \DateTimeImmutable('2026-11-23'));
+        return BillingPlanEntry::oneOff(Id::generate(), Money::of($amount, Currency::of('CZK')), null, $text, new \DateTimeImmutable('2026-11-23'));
     }
 }

@@ -192,7 +192,7 @@ final class PairingOnRecordingTest extends CashFlowTestCase
 
     private function input(string $day, string $total): ReceivedDocumentInput
     {
-        $vat = Money::of($total, Currency::CZK)->minor();
+        $vat = Money::of($total, Currency::of('CZK'))->minor();
         $base = intdiv($vat * 100, 121);
 
         return new ReceivedDocumentInput(
@@ -205,11 +205,11 @@ final class PairingOnRecordingTest extends CashFlowTestCase
             new \DateTimeImmutable($day),
             null,
             new \DateTimeImmutable($day),
-            Currency::CZK,
-            Money::ofMinor($vat, Currency::CZK),
+            Currency::of('CZK'),
+            Money::ofMinor($vat, Currency::of('CZK')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::CZK), Money::ofMinor($vat - $base, Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::of('CZK')), Money::ofMinor($vat - $base, Currency::of('CZK')))],
         );
     }
 

@@ -172,8 +172,8 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->holdMonth('2026-12');
         // The tax point is 30 November in Prague, which is still 29 November in UTC for the first hour of the day.
-        $november = $this->invoice(self::I1, $this->clientA, '2026-11-30', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::L2, null, Money::ofMinor(5_000, Currency::CZK))]);
-        $this->invoice(self::I2, $this->clientA, '2026-12-01', [new RevenueLine(self::L3, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $november = $this->invoice(self::I1, $this->clientA, '2026-11-30', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK'))), new RevenueLine(self::L2, null, Money::ofMinor(5_000, Currency::of('CZK')))]);
+        $this->invoice(self::I2, $this->clientA, '2026-12-01', [new RevenueLine(self::L3, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         self::assertSame('2026-11-30T00:00:00+01:00', $november->taxPointOn->format(\DATE_ATOM), 'the invoice is in the hour between Prague and UTC midnight');
         self::assertSame('2026-11-29', $november->taxPointOn->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d'));
@@ -191,7 +191,7 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
         $stranger = $this->contact('Client C');
-        $this->invoice(self::I1, $stranger, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $stranger, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         self::assertSame(0, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
@@ -202,7 +202,7 @@ final class RebillTest extends KernelTestCase
     public function testALineWithoutALinkOrAnOccurrenceIsNotPaired(): void
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->invoice(self::I1, $this->clientA, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::L2, self::LINE_B, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK'))), new RevenueLine(self::L2, self::LINE_B, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         self::assertSame(0, $this->pairOnIssue->pair(self::I1), 'no occurrence holds the day, and line B has no link');
         self::assertSame(0, $this->pairOnIssue->pair('unknown'));
@@ -212,7 +212,7 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->invoice(self::I1, $this->clientA, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         self::assertSame(1, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
@@ -248,7 +248,7 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
         $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $this->pairOnIssue->pair(self::I1);
         $this->em->flush();
 
@@ -260,7 +260,7 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
         $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $this->pairOnIssue->pair(self::I1);
         $this->em->flush();
 
@@ -340,7 +340,7 @@ final class RebillTest extends KernelTestCase
     {
         $this->holdMonth('2026-11');
         $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
 
@@ -354,9 +354,9 @@ final class RebillTest extends KernelTestCase
     public function testAHandPairingIsRefusedWhenItCannotBeRight(): void
     {
         $this->holdMonth('2026-11');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $stranger = $this->contact('Client C');
-        $this->invoice(self::I2, $stranger, '2026-11-20', [new RevenueLine(self::OTHER, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I2, $stranger, '2026-11-20', [new RevenueLine(self::OTHER, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         $this->assertRefusal(MarginRefused::UNKNOWN_INVOICE_LINE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('nope', self::CLOUD_HOST, '2026-11-01'));
         $this->assertRefusal(MarginRefused::UNKNOWN_PLANNED_ITEM, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, '0197a1de-0000-7000-8000-0000000000e9', '2026-11-01'));
@@ -371,7 +371,7 @@ final class RebillTest extends KernelTestCase
     public function testAHandPairingTakesAnyDayOfThePeriodAndStoresTheOccurrence(): void
     {
         $this->holdMonth('2026-11');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         $view = $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-20');
 
@@ -429,7 +429,7 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->holdMonth('2026-12');
         // 1 December in New York: the same date read as midnight UTC would be 19:00 on 30 November there.
-        $this->invoice(self::I1, $this->clientA, '2026-12-01', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::HAND, null, Money::ofMinor(5_000, Currency::CZK))], $zone);
+        $this->invoice(self::I1, $this->clientA, '2026-12-01', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK'))), new RevenueLine(self::HAND, null, Money::ofMinor(5_000, Currency::of('CZK')))], $zone);
 
         self::assertSame(1, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
@@ -458,7 +458,7 @@ final class RebillTest extends KernelTestCase
 
     public function testAHandPairingToAnIncomeItemIsRefused(): void
     {
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
 
         $this->assertRefusal(MarginRefused::NOT_AN_EXPENSE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, self::RETAINER, '2026-11-01'));
     }
@@ -468,7 +468,7 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
         $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $this->pairOnIssue->pair(self::I1);
         $this->em->flush();
         self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'));
@@ -507,7 +507,7 @@ final class RebillTest extends KernelTestCase
 
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->invoice(self::I1, $capitals, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::HAND, null, Money::ofMinor(5_000, Currency::CZK))]);
+        $this->invoice(self::I1, $capitals, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK'))), new RevenueLine(self::HAND, null, Money::ofMinor(5_000, Currency::of('CZK')))]);
         self::assertSame(1, $this->pairOnIssue->pair(self::I1));
         $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
         $this->em->flush();
@@ -527,7 +527,7 @@ final class RebillTest extends KernelTestCase
         $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), self::ELSEWHERE, self::I0, $this->clientB, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
         $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), self::PAIRED, self::I1, $this->clientB, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
         $this->em->flush();
-        $money = Money::ofMinor(100_000, Currency::CZK);
+        $money = Money::ofMinor(100_000, Currency::of('CZK'));
         // Client B bears a share of Cloud Host but not of Voice API.
         $this->invoice(self::I1, $this->clientB, '2026-11-10', [new RevenueLine(self::HAND, null, $money), new RevenueLine(self::UNLINKED, self::LINE_A, $money), new RevenueLine(self::VOICE_LINE, self::LINE_A2, $money), new RevenueLine(self::PAIRED, self::LINE_B, $money), new RevenueLine(self::L1, self::LINE_B, $money)]);
 
@@ -540,7 +540,7 @@ final class RebillTest extends KernelTestCase
     public function testAChangeInsideAnOuterTransactionIsFlushedWhenTheCallReturns(): void
     {
         $this->holdMonth('2026-11');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $connection = $this->em->getConnection();
         $rows = static fn (string $table): mixed => $connection->fetchOne('SELECT COUNT(*) FROM '.$table);
         $link = $this->em->getClassMetadata(RebillLink::class)->getTableName();
@@ -662,7 +662,7 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->links->set(self::LINE_B, self::CLOUD_HOST);
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::HAND2, null, Money::ofMinor(5_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK'))), new RevenueLine(self::HAND2, null, Money::ofMinor(5_000, Currency::of('CZK')))]);
         $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
         $this->manual->pair(self::HAND2, self::CLOUD_HOST, '2026-11-01');
 
@@ -683,7 +683,7 @@ final class RebillTest extends KernelTestCase
     {
         $this->holdMonth('2026-11');
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
         unset($this->pairings->items[self::CLOUD_HOST]);
 
@@ -698,8 +698,8 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->invoice(self::I2, $this->clientA, '2026-11-21', [new RevenueLine(self::L2, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
+        $this->invoice(self::I2, $this->clientA, '2026-11-21', [new RevenueLine(self::L2, self::LINE_A, Money::ofMinor(100_000, Currency::of('CZK')))]);
         $this->pairOnIssue->pair(self::I1);
         $this->pairOnIssue->pair(self::I2);
         $this->em->flush();
@@ -785,7 +785,7 @@ final class RebillTest extends KernelTestCase
      */
     private function invoice(string $id, string $customerId, string $taxPoint, array $lines, ?\DateTimeZone $zone = null): RevenueDocument
     {
-        $document = new RevenueDocument($id, 'FV-'.$id, 'invoice', $customerId, new \DateTimeImmutable($taxPoint, $zone ?? new \DateTimeZone('Europe/Prague')), Money::ofMinor(100_000, Currency::CZK), '/invoicing/'.$id, $lines);
+        $document = new RevenueDocument($id, 'FV-'.$id, 'invoice', $customerId, new \DateTimeImmutable($taxPoint, $zone ?? new \DateTimeZone('Europe/Prague')), Money::ofMinor(100_000, Currency::of('CZK')), '/invoicing/'.$id, $lines);
         $this->revenue->documents[] = $document;
 
         return $document;

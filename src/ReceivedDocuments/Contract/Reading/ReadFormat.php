@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\ReceivedDocuments\Contract\Reading;
 
+use Foresi\Shared\Domain\Currency;
+
 /**
  * Turns the text of a file into the typed values of a reading. A text that does
  * not fit the format gives null, and the reader leaves that one value out; it
@@ -16,19 +18,29 @@ namespace Foresi\ReceivedDocuments\Contract\Reading;
 final class ReadFormat
 {
     /**
-     * Minor units (two decimals) of a non-negative decimal amount with a point.
+     * Minor units of a non-negative decimal amount with a point, in a currency with
+     * $minorUnits decimals (two unless told otherwise); more decimals than that give null.
      */
-    public static function minor(string $text): ?int
+    public static function minor(string $text, int $minorUnits = 2): ?int
     {
         if (1 !== preg_match('/^(\d{1,15})(?:\.(\d+))?$/D', trim($text), $found)) {
             return null;
         }
         $fraction = rtrim($found[2] ?? '', '0');
-        if (\strlen($fraction) > 2) {
+        if (\strlen($fraction) > $minorUnits) {
             return null;
         }
 
-        return (int) $found[1] * 100 + (int) str_pad($fraction, 2, '0');
+        return (int) $found[1] * 10 ** $minorUnits + (int) str_pad($fraction, $minorUnits, '0');
+    }
+
+    /**
+     * How many decimals the amounts of a document in this currency have: two when the
+     * document names none or one that is no currency.
+     */
+    public static function minorUnits(?string $currency): int
+    {
+        return null === $currency ? 2 : (Currency::tryFrom($currency)?->minorUnits() ?? 2);
     }
 
     /**

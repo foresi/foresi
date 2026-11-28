@@ -105,7 +105,7 @@ final class ImportPaymentTest extends AdvanceTestCase
             PaymentRefused::NOTE_TOO_LONG => $this->payment($advance, ['note' => str_repeat('n', Payment::MAX_NOTE + 1)]),
             PaymentRefused::TRASHED => $this->payment($trashed),
             PaymentRefused::NOT_PAYABLE => $this->payment($tax),
-            PaymentRefused::CURRENCY_MISMATCH => $this->payment($advance, ['amount' => Money::of('10.00', Currency::EUR)]),
+            PaymentRefused::CURRENCY_MISMATCH => $this->payment($advance, ['amount' => Money::of('10.00', Currency::of('EUR'))]),
             PaymentRefused::FUTURE_DATE => $this->payment($advance, ['receivedOn' => new \DateTimeImmutable('2026-11-21')]),
         ];
 

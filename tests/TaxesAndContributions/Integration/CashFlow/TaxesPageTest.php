@@ -78,19 +78,19 @@ final class TaxesPageTest extends WebTestCase
         // Every month of the year counts, and the planned income as stated; the planned tax is left out.
         self::assertSame('/taxes-and-contributions/steps/2026/actual/social?part=year_end', $crawler->filter('[data-taxes-year-end-cell="social"] a[data-sheet]')->attr('href'));
         self::assertStringEndsWith('– show how the year end is computed', $this->text($crawler, '[data-taxes-year-end-cell="social"] a'));
-        self::assertSame("10,000\u{a0}Kč – show how the year end is computed", $this->text($crawler, '[data-taxes-year-end-cell="income"] a'));
-        self::assertSame("0\u{a0}Kč – show how the year end is computed", $this->text($crawler, '[data-taxes-year-end-cell="costs"] a'));
-        self::assertSame("0\u{a0}Kč – show how it is computed", $this->text($crawler, '[data-taxes-row="income"] td a'));
+        self::assertSame("10,000\u{a0}CZK – show how the year end is computed", $this->text($crawler, '[data-taxes-year-end-cell="income"] a'));
+        self::assertSame("0\u{a0}CZK – show how the year end is computed", $this->text($crawler, '[data-taxes-year-end-cell="costs"] a'));
+        self::assertSame("0\u{a0}CZK – show how it is computed", $this->text($crawler, '[data-taxes-row="income"] td a'));
         self::assertSame('/taxes-and-contributions/steps/2026/actual/all?part=year_end', $crawler->filter('[data-taxes-year-end-cell="take_home"] a')->attr('href'));
         // Under it, the forecast part by certainty, with what it could not split.
         self::assertSame(['document', 'schedule', 'plan'], $crawler->filter('[data-taxes-forecast-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-taxes-forecast-row')));
-        self::assertSame("Planned items Income 10,000\u{a0}Kč Costs 0\u{a0}Kč", $this->text($crawler, '[data-taxes-forecast-row="plan"]'));
-        self::assertSame("Open documents Income 0\u{a0}Kč Costs 0\u{a0}Kč", $this->text($crawler, '[data-taxes-forecast-row="document"]'));
+        self::assertSame("Planned items Income 10,000\u{a0}CZK Costs 0\u{a0}CZK", $this->text($crawler, '[data-taxes-forecast-row="plan"]'));
+        self::assertSame("Open documents Income 0\u{a0}CZK Costs 0\u{a0}CZK", $this->text($crawler, '[data-taxes-forecast-row="document"]'));
         self::assertSame('recurring invoices and planned items count as entered, with no VAT split', $this->text($crawler, '[data-taxes-forecast-notes]'));
         // No income yet, main activity assumed January to November: eleven months of the minimum base 17,139 at 29.2 %.
         $social = $crawler->filter('[data-taxes-row="social"] a[data-sheet]');
         self::assertSame('/taxes-and-contributions/steps/2026/actual/social', $social->attr('href'));
-        self::assertSame("55,051\u{a0}Kč – show how it is computed", $this->text($crawler, '[data-taxes-row="social"] a[data-sheet]'));
+        self::assertSame("55,051\u{a0}CZK – show how it is computed", $this->text($crawler, '[data-taxes-row="social"] a[data-sheet]'));
         self::assertSame('/taxes-and-contributions/steps/2026/actual/income_tax', $crawler->filter('[data-taxes-row="income_tax"] a')->attr('href'));
         self::assertSame('/taxes-and-contributions/steps/2026/actual/child_benefit', $crawler->filter('[data-taxes-row="child_bonus"] a')->attr('href'));
         self::assertSame('/taxes-and-contributions/steps/2026/actual/all', $crawler->filter('[data-taxes-row="take_home"] a')->attr('href'));
@@ -104,9 +104,9 @@ final class TaxesPageTest extends WebTestCase
         self::assertSame('/taxes-and-contributions/steps/2026/lump_60/profit', $crawler->filter('[data-taxes-comparison-row="profit"] a')->eq(1)->attr('href'));
 
         // The credits, translated by their key, the amounts from the rule set.
-        self::assertStringContainsString("Taxpayer credit Every taxpayer: 30,840\u{a0}Kč a year. 30,840\u{a0}Kč Claimed", $this->text($crawler, '[data-taxes-credit="taxpayer"]'));
+        self::assertStringContainsString("Taxpayer credit Every taxpayer: 30,840\u{a0}CZK a year. 30,840\u{a0}CZK Claimed", $this->text($crawler, '[data-taxes-credit="taxpayer"]'));
         self::assertStringContainsString('Not claimed', $this->text($crawler, '[data-taxes-credit="disability"]'));
-        self::assertStringContainsString("from 100\u{a0}Kč when the income reaches 134,400\u{a0}Kč", $this->text($crawler, '[data-taxes-credit="child_benefit"]'));
+        self::assertStringContainsString("from 100\u{a0}CZK when the income reaches 134,400\u{a0}CZK", $this->text($crawler, '[data-taxes-credit="child_benefit"]'));
 
         self::assertStringContainsString('activity is assumed', $this->text($crawler, '[data-taxes-warnings]'));
         self::assertStringContainsString('An estimate, not a basis for the tax return.', $this->text($crawler, '[data-taxes-footer]'));

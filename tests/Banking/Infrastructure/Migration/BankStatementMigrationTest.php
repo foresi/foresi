@@ -83,7 +83,7 @@ final class BankStatementMigrationTest extends KernelTestCase
         ]);
         $record = self::getContainer()->get(RecordMovement::class);
         $verdict = new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC);
-        $input = static fn (?string $message, string $amount): MovementInput => new MovementInput($account->id(), $message, MovementDirection::Incoming, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, 'Example Buyer Ltd', '2026001', null, null, null, null);
+        $input = static fn (?string $message, string $amount): MovementInput => new MovementInput($account->id(), $message, MovementDirection::Incoming, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable('2026-11-20'), null, null, 'Example Buyer Ltd', '2026001', null, null, null, null);
         $parsed = $record->record($input(self::MESSAGE, '150.00'), $verdict)->id();
         $unparsed = $record->record($input(null, '160.00'), $verdict)->id();
         $this->em->flush();

@@ -31,9 +31,9 @@ final class ModuleApiCheckTest extends TestCase
 
     public function testAModuleOfAnotherMajorIsNamedWithItsRange(): void
     {
-        $graph = $this->graph(['acme-fleet' => '^3.0', 'acme-tools' => '^2.0 || ^3.0']);
+        $graph = $this->graph(['acme-fleet' => '^4.0', 'acme-tools' => '^3.0 || ^4.0']);
 
-        self::assertSame(['acme-fleet (acme/fleet) requires foresi/module-api ^3.0.'], ModuleApiCheck::problems($graph));
+        self::assertSame(['acme-fleet (acme/fleet) requires foresi/module-api ^4.0.'], ModuleApiCheck::problems($graph));
     }
 
     public function testAModuleRequiringNoModuleApiIsRefused(): void
@@ -70,14 +70,14 @@ final class ModuleApiCheckTest extends TestCase
     public function testTheContainerIsNotBuiltWithModulesThatDoNotSuit(): void
     {
         $this->expectException(InvalidManifest::class);
-        $this->expectExceptionMessageIsOrContains('This Foresi provides the module API '.ModuleApi::VERSION.', which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^3.0. acme-tools (acme/tools) requires no foresi/module-api;');
+        $this->expectExceptionMessageIsOrContains('This Foresi provides the module API '.ModuleApi::VERSION.', which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^4.0. acme-tools (acme/tools) requires no foresi/module-api;');
 
-        ModuleApiCheck::assertCompatible($this->graph(['acme-fleet' => '^3.0', 'acme-tools' => null]));
+        ModuleApiCheck::assertCompatible($this->graph(['acme-fleet' => '^4.0', 'acme-tools' => null]));
     }
 
     public function testModulesThatSuitPass(): void
     {
-        ModuleApiCheck::assertCompatible($this->graph(['acme-fleet' => '^2.0']));
+        ModuleApiCheck::assertCompatible($this->graph(['acme-fleet' => '^3.0']));
 
         $this->addToAssertionCount(1);
     }

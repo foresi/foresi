@@ -101,7 +101,7 @@ final class CustomerPickerTest extends InvoiceTestCase
 
     public function testPicksTheInvoicingDefaultsOfTheContact(): void
     {
-        $defaults = new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true);
+        $defaults = new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::Cash, true);
         self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), $defaults);
         $this->em->flush();
 

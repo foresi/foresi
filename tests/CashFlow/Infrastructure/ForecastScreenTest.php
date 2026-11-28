@@ -71,7 +71,7 @@ final class ForecastScreenTest extends CashFlowTestCase
     private function items(FlowDirection $direction, array $flags): array
     {
         $container = self::getContainer();
-        $flow = new ExpectedFlow('test.estimate', new FlowSubject('tax_payment', 'vat-2026-11', '/api/v1/example/vat-2026-11'), $direction, Money::of('1890.00', Currency::CZK), new \DateTimeImmutable('2026-12-28', new \DateTimeZone('Europe/Prague')), FlowCategory::Vat, FlowCertainty::Estimate, 'VAT 2026-11', $flags);
+        $flow = new ExpectedFlow('test.estimate', new FlowSubject('tax_payment', 'vat-2026-11', '/api/v1/example/vat-2026-11'), $direction, Money::of('1890.00', Currency::of('CZK')), new \DateTimeImmutable('2026-12-28', new \DateTimeZone('Europe/Prague')), FlowCategory::Vat, FlowCertainty::Estimate, 'VAT 2026-11', $flags);
         $forecasts = new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(InstanceClock::class), $container->get(ExchangeRates::class), new NullLogger(), [new FakeSource('test.estimate', [$flow])], []);
         $period = $forecasts->of(null, 1)->periods[0];
 

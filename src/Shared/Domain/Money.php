@@ -27,7 +27,7 @@ final readonly class Money
 
     public static function ofMinor(int $minor, Currency $currency): self
     {
-        return new self(BrickMoney::ofMinor($minor, $currency->value), $currency);
+        return new self(BrickMoney::ofMinor($minor, $currency->code()), $currency);
     }
 
     /**
@@ -39,7 +39,7 @@ final readonly class Money
     public static function of(string $decimal, Currency $currency): self
     {
         return self::wrap(
-            static fn (): BrickMoney => BrickMoney::of($decimal, $currency->value, roundingMode: RoundingMode::HalfUp),
+            static fn (): BrickMoney => BrickMoney::of($decimal, $currency->code(), roundingMode: RoundingMode::HalfUp),
             $currency,
         );
     }
@@ -165,7 +165,7 @@ final readonly class Money
 
     public function equals(self $other): bool
     {
-        return $this->currency === $other->currency && $this->minor() === $other->minor();
+        return $this->currency->equals($other->currency) && $this->minor() === $other->minor();
     }
 
     public function format(string $locale): string
@@ -193,8 +193,8 @@ final readonly class Money
 
     private function assertSameCurrency(self $other): void
     {
-        if ($this->currency !== $other->currency) {
-            throw new CurrencyMismatch(\sprintf('Cannot combine %s with %s.', $this->currency->value, $other->currency->value));
+        if (!$this->currency->equals($other->currency)) {
+            throw new CurrencyMismatch(\sprintf('Cannot combine %s with %s.', $this->currency->code(), $other->currency->code()));
         }
     }
 }

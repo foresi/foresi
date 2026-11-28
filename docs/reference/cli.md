@@ -399,7 +399,7 @@ bin/console app:modules:check [options]
 
 | Option | Value | Default | Description |
 | --- | --- | --- | --- |
-| `--api` | required | `'2.0.0'` | The module API version to check against, such as 2.0; the one this Foresi provides when left out. |
+| `--api` | required | `'3.0.0'` | The module API version to check against, such as 4.0; the one this Foresi provides when left out. |
 
 ### app:modules:deptrac
 

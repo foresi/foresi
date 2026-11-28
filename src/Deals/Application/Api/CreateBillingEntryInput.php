@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Deals\Application\Api;
 
-use Foresi\Deals\Application\DealLineRules;
 use Foresi\Deals\Domain\BillingEntryKind;
 use Foresi\Deals\Domain\BillingPlanEntry;
 use Foresi\Shared\Contract\Operation\Field;
@@ -38,7 +37,7 @@ final readonly class CreateBillingEntryInput
         public string $kind = 'one_off',
         #[Field('A one_off entry: the amount without VAT, a decimal number such as "5000.00". Leave it out when percent is given.')]
         public ?string $amount = null,
-        #[Field('A one_off entry: the currency of the amount, ISO 4217; the deal\'s one-off currency when it has one only.', enum: DealLineRules::CURRENCIES)]
+        #[Field('A one_off entry: the currency of the amount, ISO 4217; the deal\'s one-off currency when it has one only.', pattern: Field::CURRENCY)]
         public ?string $currency = null,
         #[Field('A one_off entry: the share of the deal\'s one-off value in the currency, such as "50" for half; the amount it makes is stored, rounded to minor units.')]
         public ?string $percent = null,

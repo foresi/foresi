@@ -50,7 +50,7 @@ final readonly class RecurringInvoiceJson
             'name' => $template->name(),
             'state' => $template->state()->value,
             'trashed' => $template->isTrashed(),
-            'currency' => $template->currency()->value,
+            'currency' => $template->currency()->code(),
             'customer' => ['id' => $template->customer()->id(), 'name' => $template->customer()->displayName()],
             'series' => $template->series() instanceof \Foresi\Invoicing\Domain\Series ? ['id' => $template->series()->id(), 'name' => $template->series()->name()] : null,
             ...$this->content($template->paymentMethod()->value, $template->bankAccount(), $template->constantSymbol(), $template->orderNumber(), $template->description(), $template->textBefore(), $template->textAfter(), $template->language()->value),

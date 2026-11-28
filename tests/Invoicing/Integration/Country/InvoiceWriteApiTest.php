@@ -43,7 +43,7 @@ final class InvoiceWriteApiTest extends ApiTestCase
         self::assertSame('2026-11-02', $this->at('data', 'tax_point_date'));
         // The due days of a customer with no settings of its own.
         self::assertSame('2026-11-16', $this->at('data', 'due_date'));
-        self::assertSame(['amount_minor' => 242_000, 'currency' => 'CZK'], $this->at('data', 'total'));
+        self::assertSame(['amount_minor' => 242_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'total'));
         self::assertSame('Consulting', $this->at('data', 'description'));
         $number = $this->at('data', 'number');
         $created = $this->json()['data'];
@@ -74,7 +74,7 @@ final class InvoiceWriteApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/invoices/'.$id, ['lines' => [['text' => 'Review', 'unit_price' => '500.00']], 'order_number' => 'PO-7']);
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['amount_minor' => 60_500, 'currency' => 'CZK'], $this->at('data', 'total'));
+        self::assertSame(['amount_minor' => 60_500, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'total'));
         self::assertSame('PO-7', $this->at('data', 'order_number'));
         self::assertSame('2026-11-16', $this->at('data', 'due_date'));
         $lines = $this->at('data', 'lines');
@@ -85,7 +85,7 @@ final class InvoiceWriteApiTest extends ApiTestCase
         self::assertFalse($call['isError'] ?? false);
         $this->get('/api/v1/invoices/'.$id, secret: $this->writer);
         self::assertSame('2026-11-30', $this->at('data', 'due_date'));
-        self::assertSame(['amount_minor' => 60_500, 'currency' => 'CZK'], $this->at('data', 'total'));
+        self::assertSame(['amount_minor' => 60_500, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'total'));
         self::assertSame('PO-7', $this->at('data', 'order_number'));
     }
 

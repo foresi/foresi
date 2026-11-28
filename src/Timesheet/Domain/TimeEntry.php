@@ -91,7 +91,7 @@ class TimeEntry implements Audited, AuditRooted
     #[ORM\Column(name: 'invoiced_rate_minor', type: 'bigint', nullable: true)]
     private ?int $invoicedRateMinor = null;
 
-    #[ORM\Column(name: 'invoiced_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(name: 'invoiced_rate_currency', type: 'currency', length: 3, nullable: true, options: ['fixed' => true])]
     private ?Currency $invoicedRateCurrency = null;
 
     /** The minutes billed: the minutes worked, rounded up as the invoice asked. */

@@ -137,7 +137,7 @@ final readonly class ReceivedDocumentContents
      */
     private function rate(ReceivedDocumentInput $input, bool $complete): array
     {
-        if (Currency::CZK === $input->currency || $input->exchangeRate instanceof ExchangeRate) {
+        if (Currency::of('CZK') === $input->currency || $input->exchangeRate instanceof ExchangeRate) {
             return [$input->exchangeRate, $input->exchangeRateDate];
         }
         $day = $input->taxPointDate ?? $input->issueDate;
@@ -146,7 +146,7 @@ final readonly class ReceivedDocumentContents
             return [null, null];
         }
         try {
-            $published = $this->rates->rateOn($input->currency->value, $day);
+            $published = $this->rates->rateOn($input->currency->code(), $day);
         } catch (RateNotAvailable) {
             if ($complete) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE);

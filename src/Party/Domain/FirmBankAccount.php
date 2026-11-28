@@ -48,7 +48,7 @@ class FirmBankAccount implements Audited
 
     private function __construct(
         Iban $iban,
-        #[ORM\Column(type: 'string', length: 3, enumType: Currency::class)]
+        #[ORM\Column(type: 'currency', length: 3)]
         private Currency $currency,
         string $label,
         #[ORM\Column(type: 'integer')]

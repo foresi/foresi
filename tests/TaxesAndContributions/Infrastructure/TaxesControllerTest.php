@@ -55,7 +55,7 @@ final class TaxesControllerTest extends WebTestCase
     {
         $this->signedIn(Role::Owner);
         $day = static fn (string $day): \DateTimeImmutable => new \DateTimeImmutable($day, new \DateTimeZone('Europe/Prague'));
-        $czk = Money::ofMinor(500_500, Currency::CZK);
+        $czk = Money::ofMinor(500_500, Currency::of('CZK'));
         $paid = new DuePayment(Authority::Social, DuePayment::KIND_ADVANCE, '2026-10', $day('2026-10-01'), $day('2026-10-31'), $czk, DuePayment::STATE_PAID, '1/0100', '1', 'm1', $day('2026-10-30'));
         $open = new DuePayment(Authority::Health, DuePayment::KIND_ADVANCE, '2026-11', $day('2026-11-01'), $day('2026-12-08'), $czk);
         $estimate = new EstimateView(2026, $day('2026-11-20'), null, null, null, null, null, [], [], [], payments: [$paid, $open]);

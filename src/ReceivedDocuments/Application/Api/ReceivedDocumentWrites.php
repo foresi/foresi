@@ -256,7 +256,7 @@ final readonly class ReceivedDocumentWrites
 
     private static function money(string $value, Currency $currency, string $field): Money
     {
-        if (1 !== preg_match('/^-?\d{1,15}(\.\d{1,'.$currency->minorUnits().'})?$/D', $value)) {
+        if (1 !== preg_match('/^-?\d{1,15}'.(0 === $currency->minorUnits() ? '' : '(\.\d{1,'.$currency->minorUnits().'})?').'$/D', $value)) {
             throw PurchasingRefused::unreadable(PurchasingRefused::AMOUNT, $field, \sprintf('The amount must be a decimal with at most %d places, such as "1210.00".', $currency->minorUnits()));
         }
 
@@ -319,7 +319,7 @@ final readonly class ReceivedDocumentWrites
             VatRate::of($parts[0]),
             self::money($parts[1], $currency, 'vatRecap'),
             self::money($parts[2], $currency, 'vatRecap'),
-            isset($parts[3]) ? self::money($parts[3], Currency::CZK, 'vatRecap') : null,
+            isset($parts[3]) ? self::money($parts[3], Currency::of('CZK'), 'vatRecap') : null,
         );
     }
 }

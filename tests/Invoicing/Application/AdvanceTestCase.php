@@ -124,6 +124,6 @@ abstract class AdvanceTestCase extends InvoiceTestCase
 
     protected function czk(string $amount): Money
     {
-        return Money::of($amount, Currency::CZK);
+        return Money::of($amount, Currency::of('CZK'));
     }
 }

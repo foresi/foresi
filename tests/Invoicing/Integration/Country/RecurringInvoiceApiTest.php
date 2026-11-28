@@ -549,7 +549,7 @@ final class RecurringInvoiceApiTest extends ApiTestCase
             $em = $this->em();
             $customer = new Party(PartyKind::Company, 'Example Buyer GmbH', new RegistrationNumber('CZ', '27082440'), VatId::fromString('CZ27082440'), '+420 000 000 001');
             $em->persist($customer);
-            self::getContainer()->get(PartyInvoicingDefaults::class)->change($customer->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($customer->id(), new InvoicingDefaults(30, Currency::of('CZK'), DocumentLanguage::English, PaymentMethod::BankTransfer, true));
             $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Buyer Street 3', 'Buyer City', '300 00', 'CZ')));
             $em->persist(new PartyEmail($customer, 'buyer@example.com', EmailPurpose::Invoices));
 

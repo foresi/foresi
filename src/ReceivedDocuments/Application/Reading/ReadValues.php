@@ -42,7 +42,7 @@ final class ReadValues
         return match ($field) {
             ReadField::Kind => \is_string($value) && null !== ReceivedDocumentKind::tryFrom($value),
             ReadField::IssueDate, ReadField::TaxPointDate, ReadField::DueDate => self::date($value) instanceof \DateTimeImmutable,
-            ReadField::Currency => \is_string($value) && null !== Currency::tryFrom($value),
+            ReadField::Currency => \is_string($value) && Currency::tryFrom($value) instanceof Currency,
             ReadField::Total => \is_int($value),
             ReadField::VatRecap => null !== self::recap($value),
             default => \is_string($value),
@@ -57,7 +57,7 @@ final class ReadValues
     {
         $value = $reading->get(ReadField::Currency)?->value;
 
-        return \is_string($value) && null === Currency::tryFrom($value);
+        return \is_string($value) && !Currency::tryFrom($value) instanceof Currency;
     }
 
     /**
@@ -86,7 +86,7 @@ final class ReadValues
             ReadField::IssueDate => $document->issueDate()?->format('Y-m-d') === $value,
             ReadField::TaxPointDate => $document->taxPointDate()?->format('Y-m-d') === $value,
             ReadField::DueDate => $document->dueDate()?->format('Y-m-d') === $value,
-            ReadField::Currency => $document->currency()->value === $value,
+            ReadField::Currency => $document->currency()->code() === $value,
             ReadField::Total => \is_int($value) && $document->total() instanceof \Foresi\Shared\Domain\Money && abs($document->total()->minor()) === abs($value),
             ReadField::VatRecap => self::sameRecap($document, $value),
             ReadField::SupplierName => self::sameSupplier($document, $reading),

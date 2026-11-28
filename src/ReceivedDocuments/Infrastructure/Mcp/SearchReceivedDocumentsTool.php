@@ -57,7 +57,7 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
             .'unpaid: true returns the recorded documents with something left to pay, due_before the ones due before a day; together they are the payables of a period. '
             .'view_id lists what a saved view holds (find views with foresi_list_views; it needs the views:read scope) and filter adds conditions in the format of foresi_list_lists, such as {"conditions": [{"field": "kind", "op": "is", "value": "credit_note"}]}; a condition on trashed decides it instead of the trashed argument. '
             .'Returns {items, next_cursor, applied_view}: each document has its id, firm, state, kind, treatment, evidence number, supplier, supplier number, variable symbol, dates, total, base, VAT, what is paid and what remains. '
-            .'Money is {amount_minor, currency}, in hundredths of the currency; a credit note has a negative total, while paid and remaining are positive. '
+            .'Money is {amount_minor, currency, minor_units}: amount_minor in minor units, minor_units the decimals of the currency; a credit note has a negative total, while paid and remaining are positive. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
             .'reading narrows to the documents whose file has that state of reading (a recorded document keeps its reading too), source to how a document came in. '
             .'Use foresi_search_contacts for a supplier_id.';

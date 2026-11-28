@@ -71,9 +71,9 @@ final readonly class ReceivedDocumentVat implements VatDocumentSource
             ->setParameter('to', $to->format('Y-m-d'))
             ->getArrayResult();
         $zone = $from->getTimezone();
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         foreach ($rows as $row) {
-            $vat = Money::ofMinor($row['vat'] ?? 0, Currency::CZK);
+            $vat = Money::ofMinor($row['vat'] ?? 0, Currency::of('CZK'));
             // A recorded document without a tax point of its own is taxed on its issue date (ADR 0028).
             $taxPoint = ($row['taxPoint'] ?? $row['issue'])->format('Y-m-d');
             yield new DocumentVat(

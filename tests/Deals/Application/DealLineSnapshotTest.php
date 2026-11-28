@@ -44,7 +44,7 @@ final class DealLineSnapshotTest extends SalesTestCase
         self::assertSame('month', $kept->unit());
         self::assertSame('2.000', $kept->quantity());
         self::assertSame(150_000, $kept->unitPrice()?->minor());
-        self::assertSame(Currency::EUR, $kept->unitPrice()->currency());
+        self::assertSame(Currency::of('EUR'), $kept->unitPrice()->currency());
         self::assertSame(BillingKind::Recurring, $kept->billingKind());
         self::assertSame(RecurrenceUnit::Month, $kept->recurrenceUnit());
         self::assertSame(1, $kept->interval());
@@ -127,7 +127,7 @@ final class DealLineSnapshotTest extends SalesTestCase
         $this->assertRefused('quantity_not_positive', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', quantity: '0.000')));
         $this->assertRefused('unit_price_invalid', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', unitPrice: '-5.00')));
         $this->assertRefused('unit_price_invalid', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', unitPrice: '5.001')));
-        $this->assertRefused('currency_unknown', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', unitPrice: '5.00', currency: 'GBP')));
+        $this->assertRefused('currency_unknown', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', unitPrice: '5.00', currency: 'XYZ')));
         $this->assertRefused('billing_kind_unknown', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', billingKind: 'hourly')));
         $this->assertRefused('one_off_recurrence', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', interval: 1)));
         $this->assertRefused('recurrence_unit_required', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', billingKind: 'recurring', interval: 1)));

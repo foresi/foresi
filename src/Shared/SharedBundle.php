@@ -10,6 +10,7 @@ namespace Foresi\Shared;
 
 use Foresi\Shared\Application\SystemMail;
 use Foresi\Shared\Infrastructure\Doctrine\CastTextFunction;
+use Foresi\Shared\Infrastructure\Doctrine\CurrencyType;
 use Foresi\Shared\Infrastructure\Kernel\DeprecatedTagsPass;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
@@ -45,6 +46,7 @@ final class SharedBundle extends ModuleBundle
         }
         // A JSON list column, such as a contact's roles, is matched as text (DqlConditions).
         $builder->prependExtensionConfig('doctrine', ['orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]]]);
+        $builder->prependExtensionConfig('doctrine', ['dbal' => ['types' => [CurrencyType::NAME => CurrencyType::class]]]);
         if ('test' === $container->env()) {
             // The entities only the tests of this module map.
             $builder->prependExtensionConfig('doctrine', ['orm' => ['mappings' => ['SharedFixtures' => [

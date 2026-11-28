@@ -52,8 +52,8 @@ final readonly class BillingPlans
                 default => BillingEntryView::PLANNED,
             };
             $views[] = new BillingEntryView($entry, $amount, $line, $document, $state);
-            if (BillingEntryKind::OneOff === $entry->kind() && $amount instanceof Money && isset($notPlanned[$amount->currency()->value])) {
-                $notPlanned[$amount->currency()->value] = $notPlanned[$amount->currency()->value]->minus($amount);
+            if (BillingEntryKind::OneOff === $entry->kind() && $amount instanceof Money && isset($notPlanned[$amount->currency()->code()])) {
+                $notPlanned[$amount->currency()->code()] = $notPlanned[$amount->currency()->code()]->minus($amount);
             }
         }
 

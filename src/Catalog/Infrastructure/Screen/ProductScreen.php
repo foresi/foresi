@@ -12,6 +12,7 @@ use Foresi\Catalog\Application\ProductRules;
 use Foresi\Catalog\Contract\BillingKind;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Ui\Format\MoneyText;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -81,7 +82,7 @@ final readonly class ProductScreen
             'description' => $product?->description() ?? '',
             'unit' => $product?->unit() ?? '',
             'unitPrice' => $price instanceof Money ? $this->decimal($price) : '',
-            'currency' => $price?->currency()->value ?? 'CZK',
+            'currency' => $price?->currency()->code() ?? 'CZK',
             'billingKind' => $product?->billingKind()->value ?? BillingKind::OneOff->value,
             'recurrenceUnit' => ($product instanceof Product ? $product->recurrenceUnit()?->value : null) ?? 'month',
             'interval' => (string) ($product?->interval() ?? 1),
@@ -97,15 +98,13 @@ final readonly class ProductScreen
         return [
             'billingKinds' => array_combine(ProductRules::BILLING_KINDS, array_map(fn (string $kind): string => $this->trans('catalog.billing_kind.'.$kind), ProductRules::BILLING_KINDS)),
             'units' => array_combine(ProductRules::UNITS, array_map(fn (string $unit): string => $this->trans('catalog.product.unit_of_time.'.$unit), ProductRules::UNITS)),
-            'currencies' => array_combine(ProductRules::CURRENCIES, ProductRules::CURRENCIES),
+            'currencies' => \Foresi\Shared\Domain\Currencies::choices(),
         ];
     }
 
     private function decimal(Money $money): string
     {
-        $minor = $money->minor();
-
-        return intdiv($minor, 100).'.'.str_pad((string) ($minor % 100), 2, '0', \STR_PAD_LEFT);
+        return MoneyFormat::decimal($money);
     }
 
     /**

@@ -41,7 +41,7 @@ final readonly class FixedParser implements BankMessageParser
     {
         return ParseResult::withMovements([new ParsedMovement(
             MovementDirection::Incoming,
-            Money::of('150.00', Currency::CZK),
+            Money::of('150.00', Currency::of('CZK')),
             'CZ6508000000192000145399',
             '123-4567890123/0100',
             'CZ1001000001234567890123',

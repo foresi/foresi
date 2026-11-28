@@ -137,7 +137,7 @@ final class ForecastsTest extends CashFlowTestCase
     {
         $this->checkpoint('2026-11-17', '50000.00');
         $on = new \DateTimeImmutable('2026-11-20', new \DateTimeZone('Europe/Prague'));
-        $labelled = static fn (string $id, ?string $subject): ExpectedFlow => new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, null, $subject), FlowDirection::In, Money::of('100.00', Currency::CZK), $on, FlowCategory::Revenue, FlowCertainty::Document, 'Faktura '.$id);
+        $labelled = static fn (string $id, ?string $subject): ExpectedFlow => new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, null, $subject), FlowDirection::In, Money::of('100.00', Currency::of('CZK')), $on, FlowCategory::Revenue, FlowCertainty::Document, 'Faktura '.$id);
         $source = new FakeSource('test.invoices', [$labelled('FV-3', 'Šťastný s.r.o.'), $labelled('FV-4', null), $labelled('ŽÁDOST', null)]);
 
         $ids = fn (string $text): array => $this->ids($this->forecast(sources: [$source], months: 1, text: $text)->periods[0]->lines);
@@ -333,13 +333,13 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertSame(2450000, $forecast->opening->minor());
         $balance = $forecast->accounts[1]->balance ?? throw new \LogicException('No balance.');
         self::assertSame(100000, $balance->minor());
-        self::assertSame(Currency::EUR, $balance->currency());
+        self::assertSame(Currency::of('EUR'), $balance->currency());
         self::assertSame(2450000, $forecast->accounts[1]->amount?->minor());
         $line = $forecast->periods[0]->lines[0];
         self::assertSame(10000, $line->flow->amount->minor());
-        self::assertSame(Currency::EUR, $line->flow->amount->currency());
+        self::assertSame(Currency::of('EUR'), $line->flow->amount->currency());
         self::assertSame(245000, $line->amount->minor());
-        self::assertSame(Currency::CZK, $line->amount->currency());
+        self::assertSame(Currency::of('CZK'), $line->amount->currency());
     }
 
     public function testARateQuotedForMoreUnitsIsDividedAndAMissingRateIsListed(): void
@@ -385,7 +385,7 @@ final class ForecastsTest extends CashFlowTestCase
             }
         };
         $source = new FakeSource('test.broken', fails: true);
-        $foreign = new FakeSource('test.foreign', [$this->flow('inv-eur', '2026-11-20', '10.00', currency: Currency::EUR), $this->flow('inv-czk', '2026-11-21', '10.00')]);
+        $foreign = new FakeSource('test.foreign', [$this->flow('inv-eur', '2026-11-20', '10.00', currency: Currency::of('EUR')), $this->flow('inv-czk', '2026-11-21', '10.00')]);
 
         $forecast = $this->forecasts([$source, $foreign], [new FakeBalanceSource('test.bank', fails: true)], $rates, $logger)->of();
 
@@ -443,7 +443,7 @@ final class ForecastsTest extends CashFlowTestCase
                 throw new RateNotAvailable('No rate today.');
             }
         };
-        $source = new FakeSource('test.invoices', [$this->flow('last-day', '2026-11-30', '5.00'), $this->flow('after', '2026-12-01', '5.00', currency: Currency::EUR)]);
+        $source = new FakeSource('test.invoices', [$this->flow('last-day', '2026-11-30', '5.00'), $this->flow('after', '2026-12-01', '5.00', currency: Currency::of('EUR'))]);
 
         $forecast = $this->forecasts([$source], [], $rates)->of(months: 1);
 
@@ -675,8 +675,10 @@ final class ForecastsTest extends CashFlowTestCase
     /**
      * @param list<FlowFlag> $flags
      */
-    private function flow(string $id, string $on, string $amount, FlowCertainty $certainty = FlowCertainty::Document, FlowDirection $direction = FlowDirection::In, array $flags = [], Currency $currency = Currency::CZK): ExpectedFlow
+    private function flow(string $id, string $on, string $amount, FlowCertainty $certainty = FlowCertainty::Document, FlowDirection $direction = FlowDirection::In, array $flags = [], ?Currency $currency = null): ExpectedFlow
     {
+        $currency ??= Currency::of('CZK');
+
         return new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, '/api/v1/invoices/'.$id), $direction, Money::of($amount, $currency), new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, $certainty, 'Invoice '.$id, $flags);
     }
 

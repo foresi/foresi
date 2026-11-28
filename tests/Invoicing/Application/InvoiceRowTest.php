@@ -28,7 +28,7 @@ final class InvoiceRowTest extends TestCase
 
     public function testACreditNoteBelowWhatWasPaidLeavesSomethingToRefund(): void
     {
-        self::assertSame(-48400, $this->row(121000, Money::ofMinor(-48400, Currency::CZK))->remaining()->minor());
+        self::assertSame(-48400, $this->row(121000, Money::ofMinor(-48400, Currency::of('CZK')))->remaining()->minor());
     }
 
     private function row(int $paid, ?Money $corrections = null): InvoiceRow
@@ -40,11 +40,11 @@ final class InvoiceRowTest extends TestCase
             'Example Customer',
             new \DateTimeImmutable('2026-11-20'),
             new \DateTimeImmutable('2026-12-04'),
-            Money::ofMinor(121000, Currency::CZK),
+            Money::ofMinor(121000, Currency::of('CZK')),
             true,
             false,
             false,
-            Money::ofMinor($paid, Currency::CZK),
+            Money::ofMinor($paid, Currency::of('CZK')),
             PaymentState::PartlyPaid,
             corrections: $corrections,
         );

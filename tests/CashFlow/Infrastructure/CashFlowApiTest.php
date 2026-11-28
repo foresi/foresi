@@ -59,7 +59,7 @@ final class CashFlowApiTest extends ApiTestCase
         self::assertIsString($id);
         self::assertResponseHeaderSame('Location', '/api/v1/cash-flow/planned-items/'.$id);
         $created = $this->json()['data'];
-        self::assertSame(['amount_minor' => 1000000, 'currency' => 'CZK'], $this->at('data', 'amount'));
+        self::assertSame(['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'amount'));
         self::assertSame(['month', 1, 12, '2026-11-25'], [$this->at('data', 'repeat'), $this->at('data', 'every'), $this->at('data', 'ends_after'), $this->at('data', 'on')]);
 
         $this->get('/api/v1/cash-flow/planned-items/'.$id, secret: $this->writer);
@@ -97,7 +97,7 @@ final class CashFlowApiTest extends ApiTestCase
 
         $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'excluded', 'vat_rate' => '21'] + self::RENT);
         self::assertResponseStatusCodeSame(201);
-        self::assertSame(['excluded', '21', ['amount_minor' => 1000000, 'currency' => 'CZK'], ['amount_minor' => 210000, 'currency' => 'CZK'], false], [$this->at('data', 'vat_mode'), $this->at('data', 'vat_rate'), $this->at('data', 'net'), $this->at('data', 'vat'), $this->at('data', 'vat_missing')]);
+        self::assertSame(['excluded', '21', ['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2], ['amount_minor' => 210000, 'currency' => 'CZK', 'minor_units' => 2], false], [$this->at('data', 'vat_mode'), $this->at('data', 'vat_rate'), $this->at('data', 'net'), $this->at('data', 'vat'), $this->at('data', 'vat_missing')]);
         $id = $this->at('data', 'id');
         self::assertIsString($id);
 
@@ -145,7 +145,7 @@ final class CashFlowApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(201);
         self::assertSame(['2026-11-16', 5000000, self::IBAN], [$this->at('data', 'on'), $this->at('data', 'amount', 'amount_minor'), $this->at('data', 'bank_account', 'iban')]);
         $this->send('POST', '/api/v1/cash-flow/minimum-balance', ['amount' => '45000.00']);
-        self::assertSame(['firm_id' => $this->firmId, 'amount' => ['amount_minor' => 4500000, 'currency' => 'CZK']], $this->json()['data']);
+        self::assertSame(['firm_id' => $this->firmId, 'amount' => ['amount_minor' => 4500000, 'currency' => 'CZK', 'minor_units' => 2]], $this->json()['data']);
         $this->send('POST', '/api/v1/cash-flow/expected-dates', ['subject_type' => 'invoice', 'subject_id' => 'inv-1', 'expected_on' => '2026-12-15']);
         self::assertSame(['subject_type' => 'invoice', 'subject_id' => 'inv-1', 'expected_on' => '2026-12-15'], $this->json()['data']);
         $this->send('DELETE', '/api/v1/cash-flow/expected-dates/invoice/inv-1');
@@ -160,7 +160,7 @@ final class CashFlowApiTest extends ApiTestCase
         self::assertEquals([], $this->at('data', 'periods', 0, 'inflows', 'by_category'));
         $week = $this->at('data', 'periods', 1);
         self::assertIsArray($week);
-        self::assertSame(['total' => ['amount_minor' => 1000000, 'currency' => 'CZK'], 'by_category' => ['rent' => ['amount_minor' => 1000000, 'currency' => 'CZK']], 'by_certainty' => ['plan' => ['amount_minor' => 1000000, 'currency' => 'CZK']]], $week['outflows']);
+        self::assertSame(['total' => ['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2], 'by_category' => ['rent' => ['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2]], 'by_certainty' => ['plan' => ['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2]]], $week['outflows']);
         self::assertEquals([], $this->at('data', 'periods', 1, 'inflows', 'by_certainty'));
         self::assertSame(['document', 'schedule', 'deal', 'plan', 'estimate'], $this->at('data', 'certainty'));
         self::assertSame([
@@ -173,11 +173,11 @@ final class CashFlowApiTest extends ApiTestCase
             'flags' => [],
             'expected_on' => '2026-11-25',
             'counted_on' => '2026-11-25',
-            'amount' => ['amount_minor' => 1000000, 'currency' => 'CZK'],
-            'amount_czk' => ['amount_minor' => 1000000, 'currency' => 'CZK'],
+            'amount' => ['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2],
+            'amount_czk' => ['amount_minor' => 1000000, 'currency' => 'CZK', 'minor_units' => 2],
             'counterparty_id' => null,
         ], $this->at('data', 'periods', 1, 'items', 0));
-        self::assertSame(['2027-01-25', ['amount_minor' => 4500000, 'currency' => 'CZK'], '2026-11-25', false, [], []], [$this->at('data', 'lowest', 'on'), $this->at('data', 'minimum_balance'), $this->at('data', 'shortfall_on'), $this->at('data', 'incomplete'), $this->at('data', 'unavailable_sources'), $this->at('data', 'unavailable_rates')]);
+        self::assertSame(['2027-01-25', ['amount_minor' => 4500000, 'currency' => 'CZK', 'minor_units' => 2], '2026-11-25', false, [], []], [$this->at('data', 'lowest', 'on'), $this->at('data', 'minimum_balance'), $this->at('data', 'shortfall_on'), $this->at('data', 'incomplete'), $this->at('data', 'unavailable_sources'), $this->at('data', 'unavailable_rates')]);
 
         $call = $this->tool('foresi_cash_flow_forecast', ['months' => 3]);
         self::assertFalse($call['isError'] ?? false);

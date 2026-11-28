@@ -81,7 +81,7 @@ final class PairingFulfilmentTest extends CashFlowTestCase
         $rent = $this->planned(on: '2026-11-25', repeat: 'month');
         $this->pair($rent, '2026-11-25', 'auto');
         $container = self::getContainer();
-        $invoice = new ExpectedFlow('test.invoices', new FlowSubject('invoice', 'inv-1', '/api/v1/invoices/inv-1'), FlowDirection::In, Money::of('100.00', Currency::CZK), new \DateTimeImmutable('2026-11-18', new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, FlowCertainty::Document, 'Invoice inv-1', []);
+        $invoice = new ExpectedFlow('test.invoices', new FlowSubject('invoice', 'inv-1', '/api/v1/invoices/inv-1'), FlowDirection::In, Money::of('100.00', Currency::of('CZK')), new \DateTimeImmutable('2026-11-18', new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, FlowCertainty::Document, 'Invoice inv-1', []);
         $sources = [new FakeSource('test.invoices', [$invoice]), new PlannedItemFlows($container->get(CashFlowStore::class), $container->get(PlannedItemVatRule::class))];
         $today = $container->get(InstanceClock::class)->today();
         $flows = new ForecastFlows($container->get(CashFlowStore::class), new NullLogger(), $sources);

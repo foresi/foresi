@@ -202,6 +202,6 @@ final class VatSettlementTest extends TestCase
 
     private function czk(int $czk): Money
     {
-        return Money::ofMinor($czk * 100, Currency::CZK);
+        return Money::ofMinor($czk * 100, Currency::of('CZK'));
     }
 }

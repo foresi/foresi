@@ -222,7 +222,7 @@ final readonly class RecurringStage implements ImportStage
         }
         $code = $this->text($this->code($context, IdokladResource::Currencies, $template['CurrencyId'] ?? null)['Code'] ?? null);
         $values['currency'] = $code;
-        if (!$currency instanceof Currency || $code !== $currency->value) {
+        if (!$currency instanceof Currency || $code !== $currency->code()) {
             $refusals[] = self::FOREIGN_CURRENCY;
         }
 
@@ -259,7 +259,7 @@ final readonly class RecurringStage implements ImportStage
         // the VAT codes are not in the snapshot. The rules of templates check the rest, as for any template.
         $partnerVatId = trim($this->text($this->code($context, IdokladResource::Contacts, $customerId)['VatIdentificationNumber'] ?? null));
         $reverseCharge = null !== ($template['VatReverseChargeCodeId'] ?? null) || '' !== $partnerVatId;
-        $lines = $this->lines($template, $currency ?? Currency::CZK, VatRegime::of($firm->vatStatus()), $reverseCharge, $refusals, $notes, $names);
+        $lines = $this->lines($template, $currency ?? Currency::of('CZK'), VatRegime::of($firm->vatStatus()), $reverseCharge, $refusals, $notes, $names);
         $unknown = $this->unknownVariables([...$texts, ...$names]);
         if ([] !== $unknown) {
             $refusals[] = self::UNKNOWN_VARIABLE;

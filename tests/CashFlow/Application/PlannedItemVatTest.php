@@ -67,11 +67,11 @@ final class PlannedItemVatTest extends CashFlowTestCase
 
     public function testTheVatIsRoundedOnceToTheMinorUnit(): void
     {
-        self::assertSame([10_001, 8_890, 1_111], $this->money(PlannedItemVat::of(Money::ofMinor(10_001, Currency::CZK), PlannedVatMode::Included, '12.50')), '10,001 × 12.5 / 112.5 is 1,111.22, which rounds down.');
-        self::assertSame([10_006, 8_894, 1_112], $this->money(PlannedItemVat::of(Money::ofMinor(10_006, Currency::CZK), PlannedVatMode::Included, '12.50')), '1,111.78 rounds up.');
-        self::assertSame([10_013, 8_900, 1_113], $this->money(PlannedItemVat::of(Money::ofMinor(8_900, Currency::CZK), PlannedVatMode::Excluded, '12.50')), '8,900 × 12.5 % is 1,112.5, which rounds half up.');
-        self::assertSame([1_000_000, 1_000_000, 0], $this->money(PlannedItemVat::of(Money::ofMinor(1_000_000, Currency::CZK), PlannedVatMode::Excluded, '0.00')));
-        self::assertNull(PlannedItemVat::of(Money::ofMinor(1_000_000, Currency::CZK), PlannedVatMode::None, null));
+        self::assertSame([10_001, 8_890, 1_111], $this->money(PlannedItemVat::of(Money::ofMinor(10_001, Currency::of('CZK')), PlannedVatMode::Included, '12.50')), '10,001 × 12.5 / 112.5 is 1,111.22, which rounds down.');
+        self::assertSame([10_006, 8_894, 1_112], $this->money(PlannedItemVat::of(Money::ofMinor(10_006, Currency::of('CZK')), PlannedVatMode::Included, '12.50')), '1,111.78 rounds up.');
+        self::assertSame([10_013, 8_900, 1_113], $this->money(PlannedItemVat::of(Money::ofMinor(8_900, Currency::of('CZK')), PlannedVatMode::Excluded, '12.50')), '8,900 × 12.5 % is 1,112.5, which rounds half up.');
+        self::assertSame([1_000_000, 1_000_000, 0], $this->money(PlannedItemVat::of(Money::ofMinor(1_000_000, Currency::of('CZK')), PlannedVatMode::Excluded, '0.00')));
+        self::assertNull(PlannedItemVat::of(Money::ofMinor(1_000_000, Currency::of('CZK')), PlannedVatMode::None, null));
     }
 
     public function testAnOccurrenceBeforeThePayerDayHasNoVat(): void
@@ -131,8 +131,8 @@ final class PlannedItemVatTest extends CashFlowTestCase
         $this->payerFrom('2026-01-01');
         $this->writes()->create(new CreatePlannedItemInput('out', 'Office rent', 'rent', '10000.00', '2026-11-20', repeat: 'month', matchVariableSymbol: '2026', vatMode: 'excluded', vatRate: '21'));
         $bank = new FakeActualSource('test.bank', [
-            new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::Out, Money::of('10000.00', Currency::CZK), $this->day('2026-11-18'), variableSymbol: '2026'),
-            new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-2'), FlowDirection::Out, Money::of('12100.00', Currency::CZK), $this->day('2026-12-18'), variableSymbol: '2026'),
+            new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::Out, Money::of('10000.00', Currency::of('CZK')), $this->day('2026-11-18'), variableSymbol: '2026'),
+            new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-2'), FlowDirection::Out, Money::of('12100.00', Currency::of('CZK')), $this->day('2026-12-18'), variableSymbol: '2026'),
         ]);
 
         $flows = $this->flows('2027-01-31', [$bank]);

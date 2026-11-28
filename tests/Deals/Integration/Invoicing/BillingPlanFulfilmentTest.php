@@ -215,7 +215,7 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
             'textBefore' => '',
             'textAfter' => '',
             'language' => DocumentLanguage::Czech,
-            'lines' => [new LineInput($description, Quantity::fromString('1'), 'piece', Money::of('10000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+            'lines' => [new LineInput($description, Quantity::fromString('1'), 'piece', Money::of('10000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
         ]);
         $id = self::getContainer()->get(IssueInvoice::class)->issue($input)->id();
         $this->em->flush();
@@ -236,7 +236,7 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
             'textBefore' => '',
             'textAfter' => '',
             'language' => DocumentLanguage::Czech,
-            'lines' => [new LineInput($name, Quantity::fromString('1'), 'month', Money::of('14000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+            'lines' => [new LineInput($name, Quantity::fromString('1'), 'month', Money::of('14000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
             'recurrence' => new Recurrence(new \DateTimeImmutable($firstIssueOn), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null),
             'taxPoint' => TaxPointRule::IssueDate,
             'dueDays' => 14,

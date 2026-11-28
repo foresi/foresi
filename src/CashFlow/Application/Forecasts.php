@@ -304,7 +304,7 @@ final class Forecasts
      */
     private function sum(array $amounts): Money
     {
-        $sum = Money::ofMinor(0, Currency::CZK);
+        $sum = Money::ofMinor(0, Currency::of('CZK'));
         foreach ($amounts as $amount) {
             if ($amount instanceof Money) {
                 $sum = $sum->plus($amount);

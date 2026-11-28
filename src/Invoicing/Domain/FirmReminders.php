@@ -65,7 +65,7 @@ class FirmReminders implements Audited
     #[ORM\Column(name: 'remind_advances', type: 'boolean', options: ['default' => false])]
     private bool $remindAdvances = false;
 
-    #[ORM\Column(name: 'minimum_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(name: 'minimum_currency', type: 'currency', length: 3, nullable: true, options: ['fixed' => true])]
     private ?Currency $minimumCurrency = null;
 
     private function __construct()

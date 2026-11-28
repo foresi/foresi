@@ -18,7 +18,7 @@
 
 {% block title %}{{ 'bank.movement.pair.title'|trans({amount: amount}) }}{% endblock %}
 
-{% macro invoice(line, unit) %}
+{% macro invoice(line, unit, digits) %}
     <li class="grid grid-cols-[auto_minmax(0,1fr)_8.5rem] items-start gap-x-3 gap-y-1 py-2.5 max-sm:grid-cols-[auto_minmax(0,1fr)]" data-pair-invoice="{{ line.id }}" data-pair-sum-target="line" data-remaining="{{ line.remainingMinor }}">
         <input type="checkbox" name="invoices[]" value="{{ line.id }}" id="pair-invoice-{{ line.id }}"{% if line.checked %} checked{% endif %}
             class="mt-1 size-4 accent-green {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-pair-sum-target="check" data-action="change->pair-sum#ticked">
@@ -35,7 +35,7 @@
             <input type="text" name="amounts[{{ line.id }}]" id="pair-amount-{{ line.id }}" value="{{ line.value }}" inputmode="decimal" autocomplete="off"
                 {%- if line.error %} aria-invalid="true" aria-describedby="pair-amount-{{ line.id }}-error"{% endif %}
                 class="num h-control w-full rounded-control border bg-white px-2.5 text-right text-ink {{ line.error ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}"
-                data-pair-sum-target="amount" data-controller="number-input" data-number-input-decimals-value="2"
+                data-pair-sum-target="amount" data-controller="number-input" data-number-input-decimals-value="{{ digits }}"
                 data-action="input->number-input#typed blur->number-input#finished input->pair-sum#check keydown.enter->pair-sum#submit">
             {% if line.error %}<p id="pair-amount-{{ line.id }}-error" role="alert" class="m-0 text-caption font-medium text-badge-red-text">{{ line.error }}</p>{% endif %}
         </div>
@@ -47,6 +47,7 @@
         data-controller="pair-sum"
         data-pair-sum-total-value="{{ amountMinor }}"
         data-pair-sum-unit-value="{{ unit }}"
+        data-pair-sum-minor-units-value="{{ movement.amount.currency.minorUnits }}"
         {%- if limit is not null %} data-pair-sum-limit-value="{{ limit }}"{% endif %}
         {%- if checkFirst %} data-pair-sum-fill-value="false"{% endif %}>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) }}">
@@ -71,7 +72,7 @@
                 <p class="m-0 text-small text-muted">{{ 'bank.movement.pair.none_suggested'|trans }}</p>
             {% else %}
                 <ul class="m-0 list-none divide-y divide-divider p-0">
-                    {% for line in suggested %}{{ _self.invoice(line, unit) }}{% endfor %}
+                    {% for line in suggested %}{{ _self.invoice(line, unit, movement.amount.currency.minorUnits) }}{% endfor %}
                 </ul>
             {% endif %}
         </section>
@@ -86,7 +87,7 @@
                 <p class="m-0 text-small text-muted">{{ (searched ? 'bank.movement.pair.nothing_found' : 'bank.movement.pair.no_others')|trans }}</p>
             {% else %}
                 <ul class="m-0 list-none divide-y divide-divider p-0">
-                    {% for line in others %}{{ _self.invoice(line, unit) }}{% endfor %}
+                    {% for line in others %}{{ _self.invoice(line, unit, movement.amount.currency.minorUnits) }}{% endfor %}
                 </ul>
             {% endif %}
         </section>

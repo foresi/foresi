@@ -60,7 +60,7 @@ final class ReceivedDocumentPairablesTest extends CashFlowTestCase
 
         self::assertSame(FlowDirection::Out, $document->direction);
         self::assertSame(121_000, $document->amount->minor());
-        self::assertSame(Currency::CZK, $document->amount->currency());
+        self::assertSame(Currency::of('CZK'), $document->amount->currency());
         self::assertSame('2026-11-05', $document->on->format('Y-m-d'));
         self::assertSame($this->supplier->id(), $document->counterpartyId);
         self::assertSame('received_document', $document->subject->type);
@@ -252,7 +252,7 @@ final class ReceivedDocumentPairablesTest extends CashFlowTestCase
 
     private function record(string $issue, ?string $taxPoint, string $total, ReceivedDocumentKind $kind = ReceivedDocumentKind::TaxInvoice, ?string $original = null, string $number = 'INV-1', ?string $received = null): string
     {
-        $minor = Money::of($total, Currency::CZK)->minor();
+        $minor = Money::of($total, Currency::of('CZK'))->minor();
         $base = intdiv($minor * 100, 121);
         $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
             $kind,
@@ -264,11 +264,11 @@ final class ReceivedDocumentPairablesTest extends CashFlowTestCase
             null === $taxPoint ? null : new \DateTimeImmutable($taxPoint),
             null,
             new \DateTimeImmutable($received ?? $issue),
-            Currency::CZK,
-            Money::ofMinor($minor, Currency::CZK),
+            Currency::of('CZK'),
+            Money::ofMinor($minor, Currency::of('CZK')),
             null,
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::CZK), Money::ofMinor($minor - $base, Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::of('CZK')), Money::ofMinor($minor - $base, Currency::of('CZK')))],
             $original,
         ));
         $this->em->flush();

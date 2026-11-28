@@ -18,7 +18,7 @@ final class MoneyEmbeddableTest extends TestCase
 {
     public function testRoundTripsMoney(): void
     {
-        $money = Money::of('-1234.56', Currency::EUR);
+        $money = Money::of('-1234.56', Currency::of('EUR'));
 
         $restored = MoneyEmbeddable::fromMoney($money)->toMoney();
 

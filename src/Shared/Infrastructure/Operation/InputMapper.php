@@ -68,6 +68,10 @@ final class InputMapper
         if (null !== $longest && \is_string($value) && mb_strlen($value) > $longest) {
             throw new InvalidInput($field->wire, \sprintf('must be at most %d characters.', $longest));
         }
+        $pattern = $field->describe?->pattern;
+        if (null !== $pattern && \is_string($value) && 1 !== preg_match('/'.str_replace('/', '\\/', $pattern).'/u', $value)) {
+            throw new InvalidInput($field->wire, \sprintf('must match %s.', $pattern));
+        }
         $allowed = $field->describe?->enum;
         if (null !== $allowed) {
             foreach (\is_array($value) ? $value : [$value] as $item) {

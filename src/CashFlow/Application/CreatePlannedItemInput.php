@@ -40,7 +40,7 @@ final readonly class CreatePlannedItemInput
         public string $amount,
         #[Field('The day of a one-off item, or the first day of a recurring one, ISO 8601.', format: 'date')]
         public string $on,
-        #[Field('The currency of the amount, ISO 4217.', enum: PlannedItemRules::CURRENCIES)]
+        #[Field('The currency of the amount, an ISO 4217 code such as EUR (GET /api/v1/currencies lists them).', pattern: Field::CURRENCY)]
         public string $currency = 'CZK',
         #[Field('How it repeats; left out or null, it falls once.', enum: PlannedItemRules::UNITS)]
         public ?string $repeat = null,

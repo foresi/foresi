@@ -63,7 +63,7 @@ final class CustomerPickerController extends AbstractController
             'paymentMethod' => $option->defaults->paymentMethod->value,
             'language' => $option->defaults->language->value,
             'reverseCharge' => $option->defaults->reverseCharge,
-            'currency' => $option->defaults->currency->value,
+            'currency' => $option->defaults->currency->code(),
         ], $options)]);
     }
 

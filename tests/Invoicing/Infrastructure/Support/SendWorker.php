@@ -94,7 +94,7 @@ abstract class SendWorker extends KernelTestCase
         $sending = $container->get(SendInvoice::class);
         $day = new \DateTimeImmutable('2026-11-01');
         for ($i = 0; $i < $invoices; ++$i) {
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $invoice = $issue->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
             $ids['invoices'][] = $invoice->id();
             if ($queued) {

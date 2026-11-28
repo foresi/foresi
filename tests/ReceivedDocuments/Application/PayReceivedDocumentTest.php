@@ -40,14 +40,14 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     {
         $id = $this->recorded();
 
-        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('500.00', Currency::CZK), PaymentMethod::BankTransfer);
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('500.00', Currency::of('CZK')), PaymentMethod::BankTransfer);
         $paid = $this->balances()->of($id);
         self::assertSame(50_000, $paid->balance->paid->minor());
         self::assertSame(71_000, $paid->balance->remaining->minor());
         self::assertFalse($paid->balance->isPaid());
         self::assertSame([], $this->events('received-documents.received_document.paid'));
 
-        $last = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('710.00', Currency::CZK), PaymentMethod::Cash);
+        $last = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('710.00', Currency::of('CZK')), PaymentMethod::Cash);
         $paid = $this->balances()->of($id);
         self::assertTrue($paid->balance->isPaid());
         self::assertSame('2026-11-14', $paid->balance->lastPaidOn?->format('Y-m-d'));
@@ -61,10 +61,10 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testAPaymentIsNeverMoreThanWhatRemains(): void
     {
         $id = $this->recorded();
-        $this->assertRefused(ReceivedDocumentRefused::OVERPAID, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1210.01', Currency::CZK), PaymentMethod::BankTransfer));
-        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('0', Currency::CZK), PaymentMethod::BankTransfer));
-        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::EUR), PaymentMethod::BankTransfer));
-        $this->assertRefused(ReceivedDocumentRefused::BANK_MOVEMENT_INVALID, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::CZK), PaymentMethod::BankTransfer, 'nope'));
+        $this->assertRefused(ReceivedDocumentRefused::OVERPAID, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1210.01', Currency::of('CZK')), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('0', Currency::of('CZK')), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::of('EUR')), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::BANK_MOVEMENT_INVALID, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::of('CZK')), PaymentMethod::BankTransfer, 'nope'));
 
         $this->payments()->markPaid($id, PaymentMethod::Card);
         $this->assertRefused(ReceivedDocumentRefused::PAID, fn (): ReceivedDocumentPayment => $this->payments()->markPaid($id, PaymentMethod::Card));
@@ -74,7 +74,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testAPaymentRecordedByMistakeIsRemoved(): void
     {
         $id = $this->recorded();
-        $wrong = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1200.00', Currency::CZK), PaymentMethod::BankTransfer);
+        $wrong = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1200.00', Currency::of('CZK')), PaymentMethod::BankTransfer);
 
         $this->payments()->remove($id, $wrong->id());
 
@@ -88,7 +88,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testMarkAsPaidPaysWhatRemainsOnTheInstancesToday(): void
     {
         $id = $this->recorded();
-        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('210.00', Currency::CZK), PaymentMethod::BankTransfer);
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('210.00', Currency::of('CZK')), PaymentMethod::BankTransfer);
         // 23:30 UTC on 30 November is already 1 December in Prague.
         $this->clock->modify('2026-11-30 23:30:00');
 
@@ -116,7 +116,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
 
         $paid = $this->balances()->of($note);
         self::assertSame(12_100, $paid->balance->remaining->minor());
-        $this->payments()->pay($note, new \DateTimeImmutable('2026-11-20'), Money::of('121.00', Currency::CZK), PaymentMethod::BankTransfer);
+        $this->payments()->pay($note, new \DateTimeImmutable('2026-11-20'), Money::of('121.00', Currency::of('CZK')), PaymentMethod::BankTransfer);
         self::assertTrue($this->balances()->of($note)->balance->isPaid());
     }
 
@@ -231,8 +231,8 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testTheLatestPaymentDayIsTheLastPaid(): void
     {
         $id = $this->recorded();
-        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('100.00', Currency::CZK), PaymentMethod::Cash);
-        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('100.00', Currency::CZK), PaymentMethod::Cash);
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('100.00', Currency::of('CZK')), PaymentMethod::Cash);
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('100.00', Currency::of('CZK')), PaymentMethod::Cash);
 
         self::assertSame('2026-11-14', $this->balances()->of($id)->balance->lastPaidOn?->format('Y-m-d'));
         $item = $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 10)->items[0];

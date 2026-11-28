@@ -38,7 +38,7 @@ final readonly class ChangePlannedItemInput
         public string|Omitted $category = new Omitted(),
         #[Field('The amount of one occurrence, positive, a decimal number such as "1500.00".')]
         public string|Omitted $amount = new Omitted(),
-        #[Field('The currency of the amount, ISO 4217.', enum: PlannedItemRules::CURRENCIES)]
+        #[Field('The currency of the amount, an ISO 4217 code such as EUR (GET /api/v1/currencies lists them).', pattern: Field::CURRENCY)]
         public string|Omitted $currency = new Omitted(),
         #[Field('The day of a one-off item, or the first day of a recurring one, ISO 8601.', format: 'date')]
         public string|Omitted $on = new Omitted(),

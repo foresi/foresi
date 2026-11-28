@@ -98,7 +98,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
         $this->website = $this->projects->create('Website', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->homepage = $this->tasks->create($this->website->id(), 'Design the homepage');
         $this->contact = $this->tasks->create($this->website->id(), 'Build the contact page');
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::of('CZK')));
     }
 
     public function testTheTimeOfARowRemovedIsFreeAndTheRestStaysOnItsLine(): void

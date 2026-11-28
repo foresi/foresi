@@ -135,13 +135,13 @@ final class PurchasingGuardsTest extends PurchasingTestCase
     {
         $id = $this->recording()->record($this->draft(), $this->input())->document->id();
 
-        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->editing()->edit($id, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::USD, base: 10_000)));
-        self::assertSame(Currency::CZK, $this->document($id)->currency());
+        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->editing()->edit($id, $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::of('USD'), base: 10_000)));
+        self::assertSame(Currency::of('CZK'), $this->document($id)->currency());
     }
 
     public function testADocumentCreatedAtOnceTakesNoRateItCannotGet(): void
     {
-        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->recording()->create($this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::USD, base: 10_000)));
+        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->recording()->create($this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::of('USD'), base: 10_000)));
     }
 
     public function testAnOriginalThatDoesNotExistIsRefusedWhenEditing(): void

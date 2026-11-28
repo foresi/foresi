@@ -82,7 +82,7 @@ final readonly class Allocation
             $built[] = new AllocationShare(
                 Recipient::fromString($share['recipient']),
                 $percent,
-                null === $minor ? null : Money::ofMinor($minor, Currency::CZK),
+                null === $minor ? null : Money::ofMinor($minor, Currency::of('CZK')),
                 true === ($share['rest'] ?? false),
             );
         }
@@ -130,7 +130,7 @@ final readonly class Allocation
                 ++$rests;
                 continue;
             }
-            if (null === $share->amountCzk || Currency::CZK !== $share->amountCzk->currency() || $share->amountCzk->minor() <= 0) {
+            if (null === $share->amountCzk || Currency::of('CZK') !== $share->amountCzk->currency() || $share->amountCzk->minor() <= 0) {
                 throw $this->needsARest();
             }
             ++$fixed;

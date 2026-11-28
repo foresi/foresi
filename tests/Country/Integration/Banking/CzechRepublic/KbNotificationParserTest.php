@@ -83,13 +83,13 @@ final class KbNotificationParserTest extends TestCase
 
         self::assertCount(1, $movements);
         self::assertSame(1234560, $movements[0]->amount->minor());
-        self::assertSame(Currency::CZK, $movements[0]->amount->currency());
+        self::assertSame(Currency::of('CZK'), $movements[0]->amount->currency());
     }
 
     public function testEuroWithDotThousandsAndAnIbanCounterAccount(): void
     {
         $this->assertMovements([$this->expected([
-            'amount' => [125000, Currency::EUR],
+            'amount' => [125000, Currency::of('EUR')],
             'counterAccount' => 'AT611904300234573201',
             'counterIban' => 'AT611904300234573201',
             'constantSymbol' => null,
@@ -121,7 +121,7 @@ final class KbNotificationParserTest extends TestCase
 
     public function testEnglishLabelsAloneAreEnough(): void
     {
-        $this->assertMovements([$this->expected(['amount' => [9990, Currency::CZK]])], $this->parse($this->mail('english-only.eml')));
+        $this->assertMovements([$this->expected(['amount' => [9990, Currency::of('CZK')]])], $this->parse($this->mail('english-only.eml')));
     }
 
     public function testCzechLabelsAloneAreEnough(): void
@@ -147,7 +147,7 @@ final class KbNotificationParserTest extends TestCase
         $this->assertMovements([
             $this->expected(),
             $this->expected([
-                'amount' => [240000, Currency::CZK],
+                'amount' => [240000, Currency::of('CZK')],
                 'counterAccount' => '9876543210/2010',
                 'counterIban' => 'CZ2620100000009876543210',
                 'counterName' => 'Second Example Ltd',
@@ -251,15 +251,15 @@ final class KbNotificationParserTest extends TestCase
      */
     public static function amounts(): iterable
     {
-        yield 'whole' => ['150 CZK', 15000, Currency::CZK];
-        yield 'one decimal' => ['150,5 CZK', 15050, Currency::CZK];
-        yield 'space thousands' => ['1 234 567,89 CZK', 123456789, Currency::CZK];
-        yield 'nbsp thousands' => ["1\u{A0}234,00 CZK", 123400, Currency::CZK];
-        yield 'narrow nbsp thousands' => ["1\u{202F}234,00 CZK", 123400, Currency::CZK];
-        yield 'dot thousands' => ['1.234.567,00 CZK', 123456700, Currency::CZK];
-        yield 'no space before the currency' => ['150,00CZK', 15000, Currency::CZK];
-        yield 'a cent' => ['0,01 USD', 1, Currency::USD];
-        yield 'crowns written Kč' => ['150,00 Kč', 15000, Currency::CZK];
+        yield 'whole' => ['150 CZK', 15000, Currency::of('CZK')];
+        yield 'one decimal' => ['150,5 CZK', 15050, Currency::of('CZK')];
+        yield 'space thousands' => ['1 234 567,89 CZK', 123456789, Currency::of('CZK')];
+        yield 'nbsp thousands' => ["1\u{A0}234,00 CZK", 123400, Currency::of('CZK')];
+        yield 'narrow nbsp thousands' => ["1\u{202F}234,00 CZK", 123400, Currency::of('CZK')];
+        yield 'dot thousands' => ['1.234.567,00 CZK', 123456700, Currency::of('CZK')];
+        yield 'no space before the currency' => ['150,00CZK', 15000, Currency::of('CZK')];
+        yield 'a cent' => ['0,01 USD', 1, Currency::of('USD')];
+        yield 'crowns written Kč' => ['150,00 Kč', 15000, Currency::of('CZK')];
     }
 
     #[DataProvider('badAmounts')]
@@ -275,7 +275,7 @@ final class KbNotificationParserTest extends TestCase
      */
     public static function badAmounts(): iterable
     {
-        yield 'a currency not supported' => ['150,00 GBP'];
+        yield 'a currency not supported' => ['150,00 XYZ'];
         yield 'no currency' => ['150,00'];
         yield 'a decimal dot' => ['150.00 CZK'];
         yield 'a dot that is no thousands separator' => ['1.50 CZK'];
@@ -358,12 +358,12 @@ final class KbNotificationParserTest extends TestCase
      */
     public static function englishAmounts(): iterable
     {
-        yield 'thousands' => ['48 176,00 Kč', '48,176.00 CZK', 4817600, Currency::CZK];
-        yield 'millions' => ['1 234 567,89 Kč', '1,234,567.89 CZK', 123456789, Currency::CZK];
-        yield 'whole' => ['150 Kč', '150 CZK', 15000, Currency::CZK];
-        yield 'one decimal' => ['150,5 Kč', '150.5 CZK', 15050, Currency::CZK];
-        yield 'no grouping' => ['1234,00 Kč', '1234.00 CZK', 123400, Currency::CZK];
-        yield 'euro' => ['1 250,00 EUR', '1,250.00 EUR', 125000, Currency::EUR];
+        yield 'thousands' => ['48 176,00 Kč', '48,176.00 CZK', 4817600, Currency::of('CZK')];
+        yield 'millions' => ['1 234 567,89 Kč', '1,234,567.89 CZK', 123456789, Currency::of('CZK')];
+        yield 'whole' => ['150 Kč', '150 CZK', 15000, Currency::of('CZK')];
+        yield 'one decimal' => ['150,5 Kč', '150.5 CZK', 15050, Currency::of('CZK')];
+        yield 'no grouping' => ['1234,00 Kč', '1234.00 CZK', 123400, Currency::of('CZK')];
+        yield 'euro' => ['1 250,00 EUR', '1,250.00 EUR', 125000, Currency::of('EUR')];
     }
 
     #[DataProvider('badEnglishAmounts')]
@@ -622,7 +622,7 @@ final class KbNotificationParserTest extends TestCase
     private function kbPlusExpected(): array
     {
         return $this->expected([
-            'amount' => [4817600, Currency::CZK],
+            'amount' => [4817600, Currency::of('CZK')],
             'counterName' => null,
             'bookedOn' => '2026-11-20',
             'constantSymbol' => '308',
@@ -647,7 +647,7 @@ final class KbNotificationParserTest extends TestCase
     {
         return array_merge([
             'direction' => MovementDirection::Incoming,
-            'amount' => [15000, Currency::CZK],
+            'amount' => [15000, Currency::of('CZK')],
             'ownAccount' => self::OWN_IBAN,
             'counterAccount' => self::COUNTER,
             'counterIban' => self::COUNTER_IBAN,

@@ -45,7 +45,7 @@ final class DealValues
             if (BillingKind::TimeBased === $line->billingKind()) {
                 $hours = $line->quantity();
                 $amount = null === $hours ? null : Money::ofMinor(self::rounded(BigRational::of($price->minor())->multipliedBy($hours)), $price->currency());
-                $hourly[$price->currency()->value][] = new HourlyValue($line->name(), $price, $hours, $amount);
+                $hourly[$price->currency()->code()][] = new HourlyValue($line->name(), $price, $hours, $amount);
 
                 continue;
             }
@@ -91,7 +91,7 @@ final class DealValues
      */
     private static function added(array $totals, Money $amount): array
     {
-        $code = $amount->currency()->value;
+        $code = $amount->currency()->code();
         $totals[$code] = isset($totals[$code]) ? $totals[$code]->plus($amount) : $amount;
 
         return $totals;

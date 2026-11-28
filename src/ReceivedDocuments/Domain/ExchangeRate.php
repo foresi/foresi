@@ -69,10 +69,10 @@ final readonly class ExchangeRate
      */
     public function toCzk(Money $amount): Money
     {
-        if (Currency::CZK === $amount->currency()) {
+        if (Currency::of('CZK') === $amount->currency()) {
             return $amount;
         }
 
-        return Money::ofMinor($amount->multipliedBy($this->value)->minor(), Currency::CZK);
+        return Money::ofMinor($amount->multipliedBy($this->value)->minor(), Currency::of('CZK'));
     }
 }

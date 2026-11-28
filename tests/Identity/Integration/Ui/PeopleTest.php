@@ -365,7 +365,7 @@ final class PeopleTest extends WebTestCase
         self::assertSame('900.00', $crawler->filter('#rate')->attr('value'));
         self::assertSame('USD', $crawler->filter('#rate-currency option[selected]')->attr('value'));
         $rate = $this->em->find(Membership::class, $membership)?->hourlyRate();
-        self::assertSame([90000, 'USD'], [$rate?->minor(), $rate?->currency()->value]);
+        self::assertSame([90000, 'USD'], [$rate?->minor(), $rate?->currency()->code()]);
 
         // The people screen shows no rate, not even to the owner, and a member never reaches the form.
         $this->client->request('GET', '/settings/people');

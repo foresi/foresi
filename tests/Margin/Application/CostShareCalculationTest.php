@@ -239,7 +239,7 @@ final class CostShareCalculationTest extends KernelTestCase
 
     private function line(string $key, int $minor): CostLine
     {
-        return new CostLine($key, 'Hosting', Money::ofMinor($minor, Currency::CZK));
+        return new CostLine($key, 'Hosting', Money::ofMinor($minor, Currency::of('CZK')));
     }
 
     private function mapLine(string $key, Allocation $allocation): void

@@ -182,7 +182,7 @@ final class RecurringNoticesTest extends WebTestCase
             '',
             '',
             DocumentLanguage::Czech,
-            [new LineInput('Hosting', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+            [new LineInput('Hosting', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
             new Recurrence(new \DateTimeImmutable($firstIssueOn), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null),
             TaxPointRule::IssueDate,
             14,

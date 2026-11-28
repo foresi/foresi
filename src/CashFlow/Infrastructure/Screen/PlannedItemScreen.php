@@ -256,7 +256,7 @@ final readonly class PlannedItemScreen
             'name' => $item->name(),
             'category' => $item->category()->value,
             'amount' => $this->field($item->amount(), $locale),
-            'currency' => $item->amount()->currency()->value,
+            'currency' => $item->amount()->currency()->code(),
             'on' => $item->firstOn()->format('Y-m-d'),
             'repeat' => $recurrence?->unit()->value ?? '',
             'every' => (string) ($recurrence?->every() ?? 1),
@@ -302,7 +302,7 @@ final readonly class PlannedItemScreen
 
         return [
             'categories' => $categories,
-            'currencies' => array_combine(PlannedItemRules::CURRENCIES, PlannedItemRules::CURRENCIES),
+            'currencies' => \Foresi\Shared\Domain\Currencies::choices(),
             'repeats' => $repeats,
             'ends' => $ends,
             'vatModes' => $vatModes,

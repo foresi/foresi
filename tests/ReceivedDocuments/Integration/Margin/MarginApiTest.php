@@ -50,7 +50,7 @@ final class MarginApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         self::assertSame($id, $this->at('data', 'document_id'));
         self::assertSame('rate:21', $this->at('data', 'lines', 0, 'key'));
-        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK'], $this->at('data', 'lines', 0, 'base_czk'));
+        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'lines', 0, 'base_czk'));
         self::assertSame('percent', $this->at('data', 'lines', 0, 'allocation', 'kind'));
         self::assertSame(['Example Customer a.s.', '33.33'], [$this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'recipient_name'), $this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'percent')]);
         self::assertSame([[$this->customerId, 'Example Customer a.s.', 33_330, 'line'], ['own', null, 66_670, 'line']], $this->shares());

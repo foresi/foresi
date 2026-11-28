@@ -236,7 +236,7 @@ final class PlannedItemControllerTest extends WebTestCase
         $item = $this->item();
         self::assertSame(['excluded', '12.5'], [$item->vatMode()->value, $item->vatRate()]);
         $sheet = $this->client->request('GET', '/cash-flow/planned-costs/'.$item->id());
-        self::assertMatchesRegularExpression('/VAT 10,000\.00\s+Kč \+ 12\.5 % VAT 1,250\.00\s+Kč on top/u', $sheet->filter('dl')->text());
+        self::assertMatchesRegularExpression('/VAT 10,000\.00\s+CZK \+ 12\.5 % VAT 1,250\.00\s+CZK on top/u', $sheet->filter('dl')->text());
         $list = $this->client->request('GET', '/cash-flow/planned-costs');
         self::assertStringNotContainsString('VAT not stated', $list->filter('[data-planned-items] tbody tr')->text());
 
@@ -267,7 +267,7 @@ final class PlannedItemControllerTest extends WebTestCase
         $item = $this->item();
         self::assertSame([PlannedVatMode::ReverseCharge, '21'], [$item->vatMode(), $item->vatRate()]);
         $sheet = $this->client->request('GET', '/cash-flow/planned-costs/'.$item->id());
-        self::assertMatchesRegularExpression('/1,000\.00\s+Kč, 21 % VAT 210\.00\s+Kč self-assessed/u', $sheet->filter('dl')->text());
+        self::assertMatchesRegularExpression('/1,000\.00\s+CZK, 21 % VAT 210\.00\s+CZK self-assessed/u', $sheet->filter('dl')->text());
         $list = $this->client->request('GET', '/cash-flow/planned-costs');
         self::assertStringNotContainsString('VAT not stated', $list->filter('[data-planned-items] tbody tr')->text());
     }

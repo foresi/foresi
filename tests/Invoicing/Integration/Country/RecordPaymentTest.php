@@ -247,7 +247,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             new AllocationRequest($invoice->id(), $this->czk('1000.00'), $this->czk('0.50')),
             new AllocationRequest($other->id(), $this->czk('209.50')),
         ])));
-        $this->assertRefused(PaymentRefused::CURRENCY_MISMATCH, fn (): Payment => $this->record->record($this->request('1209.50', [new AllocationRequest($invoice->id(), $this->czk('1209.50'), Money::of('0.50', Currency::EUR))])));
+        $this->assertRefused(PaymentRefused::CURRENCY_MISMATCH, fn (): Payment => $this->record->record($this->request('1209.50', [new AllocationRequest($invoice->id(), $this->czk('1209.50'), Money::of('0.50', Currency::of('EUR')))])));
         $this->assertNothingStored();
 
         // 99 minor units is the most a difference may be.
@@ -330,14 +330,14 @@ final class RecordPaymentTest extends InvoiceTestCase
 
         $this->assertRefused(PaymentRefused::CURRENCY_MISMATCH, fn (): Payment => $this->record->record(new PaymentRequest(
             new \DateTimeImmutable('2026-11-20'),
-            Money::of('100.00', Currency::EUR),
+            Money::of('100.00', Currency::of('EUR')),
             PaymentMethod::BankTransfer,
             PaymentSource::Manual,
             null,
             '',
-            [new AllocationRequest($invoice->id(), Money::of('100.00', Currency::EUR))],
+            [new AllocationRequest($invoice->id(), Money::of('100.00', Currency::of('EUR')))],
         )));
-        $this->assertRefused(PaymentRefused::CURRENCY_MISMATCH, fn (): Payment => $this->record->record($this->request('100.00', [new AllocationRequest($invoice->id(), Money::of('100.00', Currency::EUR))])));
+        $this->assertRefused(PaymentRefused::CURRENCY_MISMATCH, fn (): Payment => $this->record->record($this->request('100.00', [new AllocationRequest($invoice->id(), Money::of('100.00', Currency::of('EUR')))])));
         $this->assertNothingStored();
     }
 
@@ -596,7 +596,7 @@ final class RecordPaymentTest extends InvoiceTestCase
 
     private function czk(string $amount): Money
     {
-        return Money::of($amount, Currency::CZK);
+        return Money::of($amount, Currency::of('CZK'));
     }
 
     private function statusOf(Invoice $invoice): InvoiceStatus

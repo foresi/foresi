@@ -200,7 +200,7 @@ final class CzechSoleTraderTest extends TestCase
 
     public function testSicknessCountsEachMonthItIsOnAtLeastTheMinimumBase(): void
     {
-        $profile = new ProfileView([...$this->mainAllYear(2026)->statuses, new StatusPeriod('s', StatusKind::SicknessInsurance, 'on', new \DateTimeImmutable('2026-10-01'), Money::ofMinor(500_000, Currency::CZK))], [], []);
+        $profile = new ProfileView([...$this->mainAllYear(2026)->statuses, new StatusPeriod('s', StatusKind::SicknessInsurance, 'on', new \DateTimeImmutable('2026-10-01'), Money::ofMinor(500_000, Currency::of('CZK')))], [], []);
 
         $result = $this->compute(2026, $profile, 100_000, 0, [ExpenseMethod::Actual]);
 
@@ -250,7 +250,7 @@ final class CzechSoleTraderTest extends TestCase
 
     public function testTheWarningsAreListedOnceEach(): void
     {
-        $inputs = new YearInputsView(2026, deductions: [\Foresi\TaxesAndContributions\Contract\DeductionType::UnionFees->value => Money::ofMinor(100_000, Currency::CZK)]);
+        $inputs = new YearInputsView(2026, deductions: [\Foresi\TaxesAndContributions\Contract\DeductionType::UnionFees->value => Money::ofMinor(100_000, Currency::of('CZK'))]);
         $profile = new ProfileView([
             new StatusPeriod('main', StatusKind::Activity, 'main', new \DateTimeImmutable('2026-01-01')),
             new StatusPeriod('none', StatusKind::FlatRateBand, 'none', new \DateTimeImmutable('2026-01-01')),
@@ -357,7 +357,7 @@ final class CzechSoleTraderTest extends TestCase
      */
     private function amounts(int $year, int $income, int $costs, array $unverified = []): AmountsView
     {
-        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::CZK);
+        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::of('CZK'));
         $totals = static fn (int $czk): AmountTotals => new AmountTotals($money($czk), $money($czk), $money(0), $money($czk));
 
         return new AmountsView(

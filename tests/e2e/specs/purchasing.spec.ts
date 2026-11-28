@@ -97,7 +97,7 @@ test.describe('received documents', () => {
 
     await choose(page, 'kind', 'Zahraniční faktura');
     await choose(page, 'treatment', 'Služba ze třetí země');
-    await choose(page, 'currency', 'USD');
+    await choose(page, 'currency', 'USD – US Dollar');
     await pickSupplier(page, 'Example Cloud Inc.');
     await page.locator('#supplierNumber').fill('INV-2026-1042');
     await page.locator('#issueDate').fill('2026-10-14');

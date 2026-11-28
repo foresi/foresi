@@ -100,7 +100,7 @@ abstract class ReminderWorker extends KernelTestCase
             $invoices = [];
             $day = new \DateTimeImmutable('2026-11-01');
             for ($i = 0; $i < self::INVOICES; ++$i) {
-                $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+                $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
                 $invoice = $issue->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2027-01-10'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
                 $invoices[] = $delivered->mark($invoice->id())->id();
             }

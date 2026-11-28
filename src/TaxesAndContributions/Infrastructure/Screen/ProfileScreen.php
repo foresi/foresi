@@ -10,6 +10,7 @@ namespace Foresi\TaxesAndContributions\Infrastructure\Screen;
 
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Application\View\ProfileStatusLists;
 use Foresi\TaxesAndContributions\Contract\Authority;
@@ -406,9 +407,8 @@ final readonly class ProfileScreen
         if (!$amount instanceof Money) {
             return '';
         }
-        $symbol = new \NumberFormatter($this->locale(), \NumberFormatter::DECIMAL)->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
 
-        return \sprintf('%d%s%02d', intdiv($amount->minor(), 100), $symbol, $amount->minor() % 100);
+        return MoneyFormat::field($amount, $this->locale());
     }
 
     private function locale(): string

@@ -20,12 +20,12 @@ final class CzechSettlementLimitTest extends TestCase
 {
     public function testACzechFirmWritesOffUpTo99HalerInCrowns(): void
     {
-        self::assertSame(99, $this->czech()->settlementLimit(Currency::CZK));
+        self::assertSame(99, $this->czech()->settlementLimit(Currency::of('CZK')));
     }
 
     public function testAnotherCurrencyHasNoSuchCustom(): void
     {
-        self::assertNull($this->czech()->settlementLimit(Currency::EUR));
+        self::assertNull($this->czech()->settlementLimit(Currency::of('EUR')));
     }
 
     private function czech(): CzechInvoicing

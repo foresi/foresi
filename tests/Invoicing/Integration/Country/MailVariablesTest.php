@@ -117,7 +117,7 @@ final class MailVariablesTest extends InvoiceTestCase
     {
         $document = $this->document($this->issue->issue($this->input())->id());
 
-        $values = $this->variables->valuesForReminder($document, 'Sender Example', 2, Money::of('800.50', Currency::CZK), new \DateTimeImmutable('2026-11-29'));
+        $values = $this->variables->valuesForReminder($document, 'Sender Example', 2, Money::of('800.50', Currency::of('CZK')), new \DateTimeImmutable('2026-11-29'));
 
         self::assertSame('14', $values['days_overdue'], 'due 15 November, reminded on the 29th');
         self::assertSame('2', $values['reminder_step']);
@@ -129,7 +129,7 @@ final class MailVariablesTest extends InvoiceTestCase
     public function testNoDaysAreOverdueOnTheDueDateOrBefore(): void
     {
         $document = $this->document($this->issue->issue($this->input())->id());
-        $due = Money::of('800.50', Currency::CZK);
+        $due = Money::of('800.50', Currency::of('CZK'));
 
         self::assertSame('0', $this->variables->valuesForReminder($document, 'Sender Example', 1, $due, new \DateTimeImmutable('2026-11-15'))['days_overdue'], 'on the due date');
         self::assertSame('0', $this->variables->valuesForReminder($document, 'Sender Example', 1, $due, new \DateTimeImmutable('2026-11-14'))['days_overdue'], 'the day before');

@@ -80,7 +80,7 @@ final readonly class MovementInput
             $this->accountId,
             $this->direction->value,
             $this->amount->minor(),
-            $this->amount->currency()->value,
+            $this->amount->currency()->code(),
             $this->bookedOn->format('Y-m-d'),
             $this->counterAccount,
             $this->counterIban,

@@ -113,18 +113,18 @@ final class TaxesControllerTest extends WebTestCase
         self::assertSame('A share of the profit, at least the minimum base of each month taking part, at most the maximum base; times 29.2 %, rounded up.', str_replace("\u{a0}", ' ', $this->text($step, '[data-taxes-step-rule]')));
         self::assertStringStartsWith('https://', (string) $step->filter('a[data-taxes-step-source]')->attr('href'));
         self::assertSame('_blank', $step->filter('a[data-taxes-step-source]')->attr('target'));
-        self::assertSame("55,051\u{a0}Kč", $this->text($step, '[data-taxes-step-result]'));
+        self::assertSame("55,051\u{a0}CZK", $this->text($step, '[data-taxes-step-result]'));
         $input = $this->text($step, '[data-taxes-step-input]');
         self::assertStringContainsString('Months of main activity 11', $input);
-        self::assertStringContainsString("Minimum base 188,529\u{a0}Kč", $input);
+        self::assertStringContainsString("Minimum base 188,529\u{a0}CZK", $input);
         self::assertStringContainsString("Rate 29.2\u{a0}%", $input);
 
         // The income tax opens the steps it is made of; the take-home the whole calculation.
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/lump_60/income_tax', server: [$this->dialogHeader() => DialogRequest::SHEET]);
         self::assertSame(['tax_base', 'income_tax', 'credits', 'child_benefit'], $crawler->filter('[data-taxes-step]')->each(static fn (Crawler $item): string => (string) $item->attr('data-taxes-step')));
-        self::assertSame("15\u{a0}% of the base up to 1,762,812\u{a0}Kč, 23\u{a0}% of the part above; rounded up.", $this->text($crawler, '[data-taxes-step="income_tax"] [data-taxes-step-rule]'));
+        self::assertSame("15\u{a0}% of the base up to 1,762,812\u{a0}CZK, 23\u{a0}% of the part above; rounded up.", $this->text($crawler, '[data-taxes-step="income_tax"] [data-taxes-step-rule]'));
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/lump_60/profit', server: [$this->dialogHeader() => DialogRequest::SHEET]);
-        self::assertStringContainsString("Income less 60\u{a0}% of it as the lump sum, at most 1,200,000\u{a0}Kč", $this->text($crawler, '[data-taxes-step-rule]'));
+        self::assertStringContainsString("Income less 60\u{a0}% of it as the lump sum, at most 1,200,000\u{a0}CZK", $this->text($crawler, '[data-taxes-step-rule]'));
         self::assertStringContainsString('Expense method Lump sum 60%', $this->text($crawler, '[data-taxes-step-input]'));
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/all', server: [$this->dialogHeader() => DialogRequest::SHEET]);
         self::assertCount(8, $crawler->filter('[data-taxes-step]'), 'An ordinary year has no flat-rate step.');
@@ -149,7 +149,7 @@ final class TaxesControllerTest extends WebTestCase
         self::assertSame(['income', 'costs', 'social', 'health', 'sickness', 'income_tax', 'flat_rate', 'child_bonus', 'levies', 'take_home'], $crawler->filter('[data-taxes-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-taxes-row')));
         $row = $crawler->filter('[data-taxes-row="flat_rate"]');
         self::assertStringContainsString('Flat-rate tax', $row->text());
-        self::assertStringContainsString("184,195\u{a0}Kč", $row->text(), 'Eleven months of 16,745.');
+        self::assertStringContainsString("184,195\u{a0}CZK", $row->text(), 'Eleven months of 16,745.');
         self::assertSame('/taxes-and-contributions/steps/2026/actual/flat_rate', $row->filter('td a')->attr('href'));
         self::assertStringContainsString('Flat-rate tax – advance 12/2026', $crawler->filter('[data-taxes-payment="flat_rate.advance.2026-12"]')->text());
         self::assertCount(0, $crawler->filter('[data-taxes-credits]'), 'No credit applies.');
@@ -159,7 +159,7 @@ final class TaxesControllerTest extends WebTestCase
         $step = $crawler->filter('[data-taxes-step="flat_rate"]');
         self::assertStringContainsString('replaces social, health and income tax', $this->text($step, '[data-taxes-step-rule]'));
         self::assertStringContainsString('Months in band 2 11', $this->text($step, '[data-taxes-step-input]'));
-        self::assertSame("184,195\u{a0}Kč", $this->text($step, '[data-taxes-step-result]'));
+        self::assertSame("184,195\u{a0}CZK", $this->text($step, '[data-taxes-step-result]'));
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/social', server: [$this->dialogHeader() => DialogRequest::SHEET]);
         self::assertStringContainsString('Every active month is in the flat-rate tax', $this->text($crawler, '[data-taxes-step-rule]'));
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/all', server: [$this->dialogHeader() => DialogRequest::SHEET]);
@@ -174,17 +174,17 @@ final class TaxesControllerTest extends WebTestCase
         $writes->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
         $writes->setYear(new SetYearInputsInput('2026', ['actual'], 'actual'));
         $writes->setYear(new SetYearInputsInput('2027', ['lump_60'], 'lump_60'));
-        $open = new OpenAmount('invoicing.payments', new Subject('invoice', 'open', null), AmountKind::Income, Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(0, Currency::CZK));
+        $open = new OpenAmount('invoicing.payments', new Subject('invoice', 'open', null), AmountKind::Income, Money::ofMinor(50_000_00, Currency::of('CZK')), Money::ofMinor(50_000_00, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')));
         self::getContainer()->set(IssuedPaymentAmounts::class, new DatedAmountSource('invoicing.payments', [], ['2026-12-31' => [$open]]));
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions');
         self::assertResponseIsSuccessful();
         $alert = $this->text($crawler, '[data-taxes-switch]');
         self::assertStringContainsString('The expense method changes from Actual costs to Lump sum 60%, so 2026 gets an additional return', $alert);
-        self::assertStringContainsString("its tax base changes by 50,000\u{a0}Kč, the receivables of 50,000\u{a0}Kč open on", $alert);
-        self::assertStringContainsString("Its tax of 7,500\u{a0}Kč is due by", $alert);
+        self::assertStringContainsString("its tax base changes by 50,000\u{a0}CZK, the receivables of 50,000\u{a0}CZK open on", $alert);
+        self::assertStringContainsString("Its tax of 7,500\u{a0}CZK is due by", $alert);
         self::assertStringNotContainsString('tax base is adjusted with an additional return', $this->text($crawler, '[data-taxes-warnings]'), 'Said once, with the amount.');
-        self::assertStringContainsString("Income tax – method change, additional return 2027 7,500\u{a0}Kč", $this->text($crawler, '[data-taxes-payment="income_tax.switch_adjustment.2027"]'));
+        self::assertStringContainsString("Income tax – method change, additional return 2027 7,500\u{a0}CZK", $this->text($crawler, '[data-taxes-payment="income_tax.switch_adjustment.2027"]'));
         self::assertStringContainsString("the adjustment of last year's base for the change of the expense method", $this->text($crawler, '[data-taxes-unverified]'));
         self::assertNotContains('switch_adjustment', $crawler->filter('[data-taxes-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-taxes-row')), 'Never a row of the totals.');
 

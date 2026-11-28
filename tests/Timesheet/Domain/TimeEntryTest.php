@@ -142,7 +142,7 @@ final class TimeEntryTest extends TestCase
         self::assertSame(['09:30', $userId], [$timer->deletedAt()?->format('H:i'), $timer->deletedBy()]);
         foreach ([
             static fn () => $timer->change(null, $now, 15, null, null, '', true),
-            static fn () => $timer->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::CZK), 30),
+            static fn () => $timer->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::of('CZK')), 30),
         ] as $refused) {
             try {
                 $refused();
@@ -153,7 +153,7 @@ final class TimeEntryTest extends TestCase
         $timer->restore();
         self::assertSame([false, null, null], [$timer->isDeleted(), $timer->deletedAt(), $timer->deletedBy()]);
 
-        $timer->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::CZK), 30);
+        $timer->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::of('CZK')), 30);
         $this->expectException(\DomainException::class);
         $timer->trash($userId, $now);
     }

@@ -20,8 +20,9 @@ use Foresi\Shared\Domain\Currency;
  */
 final class FirmAccounts
 {
-    public static function add(EntityManagerInterface $em, string $iban, Currency $currency = Currency::CZK): FirmBankAccount
+    public static function add(EntityManagerInterface $em, string $iban, ?Currency $currency = null): FirmBankAccount
     {
+        $currency ??= Currency::of('CZK');
         $existing = self::all($em);
         $account = FirmBankAccount::open(Iban::fromString($iban), $currency, '', \count($existing));
         if ([] === $existing) {

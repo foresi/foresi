@@ -195,8 +195,8 @@ final class InvoiceSendTest extends TestCase
         $invoice->method('number')->willReturn('20260001');
         $invoice->method('issuer')->willReturn(new DocumentParty('Example Firm s.r.o.', '12345695', null, $address, '', null, '', '', null, null));
         $invoice->method('customer')->willReturn(new DocumentParty('Example Customer a.s.', '87654320', null, $address, '', 'billing@example.com', '', '', null, null));
-        $invoice->method('payable')->willReturn(Money::ofMinor(121000, Currency::CZK));
-        $invoice->method('currency')->willReturn(Currency::CZK);
+        $invoice->method('payable')->willReturn(Money::ofMinor(121000, Currency::of('CZK')));
+        $invoice->method('currency')->willReturn(Currency::of('CZK'));
         $invoice->method('dueDate')->willReturn(new \DateTimeImmutable('2026-11-15'));
         $invoice->method('paymentMethod')->willReturn(PaymentMethod::BankTransfer);
         $invoice->method('bankAccount')->willReturn(null);

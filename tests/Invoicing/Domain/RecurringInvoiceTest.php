@@ -297,7 +297,7 @@ final class RecurringInvoiceTest extends TestCase
     private function template(string $name = '', string $description = 'Hosting', int $dueDays = 14, RecurrenceUnit $unit = RecurrenceUnit::Month, ?string $importedFrom = null): RecurringInvoice
     {
         return new RecurringInvoice(
-            Currency::CZK,
+            Currency::of('CZK'),
             $this->content($name, $description, $dueDays, $unit),
             null,
             new \DateTimeImmutable('2026-11-02 11:00:00'),

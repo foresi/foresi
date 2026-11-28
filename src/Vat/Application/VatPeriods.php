@@ -428,23 +428,23 @@ final readonly class VatPeriods
     {
         $output = $schedule->output;
         $currency = $output->currency();
-        if (Currency::CZK === $currency) {
+        if (Currency::of('CZK') === $currency) {
             return new ScheduleAmount($schedule, $output);
         }
-        if (!\array_key_exists($currency->value, $rates)) {
+        if (!\array_key_exists($currency->code(), $rates)) {
             try {
-                $rates[$currency->value] = $this->exchangeRates->rateOn($currency->value, $today);
+                $rates[$currency->code()] = $this->exchangeRates->rateOn($currency->code(), $today);
             } catch (RateNotAvailable $failure) {
-                $this->logger->warning('No rate of {currency} for the VAT of the schedules.', ['currency' => $currency->value, 'exception' => $failure]);
-                $rates[$currency->value] = null;
+                $this->logger->warning('No rate of {currency} for the VAT of the schedules.', ['currency' => $currency->code(), 'exception' => $failure]);
+                $rates[$currency->code()] = null;
             }
         }
-        $rate = $rates[$currency->value];
+        $rate = $rates[$currency->code()];
         if (!$rate instanceof ExchangeRate) {
-            return new ScheduleAmount($schedule, Money::ofMinor(0, Currency::CZK), true, true);
+            return new ScheduleAmount($schedule, Money::ofMinor(0, Currency::of('CZK')), true, true);
         }
 
-        return new ScheduleAmount($schedule, Money::ofMinor($output->minor(), Currency::CZK)->multipliedBy($rate->rate)->dividedBy((string) $rate->amount), true);
+        return new ScheduleAmount($schedule, Money::ofMinor($output->minor(), Currency::of('CZK'))->multipliedBy($rate->rate)->dividedBy((string) $rate->amount), true);
     }
 
     /**

@@ -32,7 +32,7 @@ final class PaymentListTest extends PaymentReadTestCase
 
         self::assertSame($payment->id(), $row->id);
         self::assertSame('2026-11-12', $row->receivedOn->format('Y-m-d'));
-        self::assertTrue(Money::of('1000', Currency::CZK)->equals($row->amount));
+        self::assertTrue(Money::of('1000', Currency::of('CZK'))->equals($row->amount));
         self::assertSame(PaymentDirection::Incoming, $row->direction);
         self::assertSame(PaymentMethod::Card, $row->method);
         self::assertSame(PaymentSource::BankMovement, $row->source);

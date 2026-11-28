@@ -29,7 +29,7 @@ final class MappingFormTest extends TestCase
     public function testAStoredMappingFillsTheRowsInTheLocaleOfThePerson(): void
     {
         $mapping = new MappingView('fixed', [
-            new TermView(self::CLIENT, 'Example Customer a.s.', null, Money::ofMinor(123_456, Currency::CZK), false),
+            new TermView(self::CLIENT, 'Example Customer a.s.', null, Money::ofMinor(123_456, Currency::of('CZK')), false),
             new TermView('own', null, null, null, true),
         ]);
 

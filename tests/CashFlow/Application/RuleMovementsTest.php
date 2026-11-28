@@ -132,7 +132,7 @@ final class RuleMovementsTest extends TestCase
 
     private function czk(int $units): Money
     {
-        return Money::ofMinor($units * 100, Currency::CZK);
+        return Money::ofMinor($units * 100, Currency::of('CZK'));
     }
 
     private function day(string $day): \DateTimeImmutable

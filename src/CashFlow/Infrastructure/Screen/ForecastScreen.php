@@ -30,6 +30,7 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Ui\Format\MoneyText;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -837,8 +838,9 @@ final readonly class ForecastScreen
     private function units(Money $money): int
     {
         $minor = $money->minor();
+        $factor = MoneyFormat::factor($money->currency());
 
-        return intdiv(abs($minor) + 50, 100) * ($minor < 0 ? -1 : 1);
+        return intdiv(abs($minor) + intdiv($factor, 2), $factor) * ($minor < 0 ? -1 : 1);
     }
 
     /**

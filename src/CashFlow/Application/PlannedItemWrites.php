@@ -64,7 +64,7 @@ final readonly class PlannedItemWrites implements PlannedItemCounterparties
             $firmId = $this->access->firm()->id();
             $item = new PlannedItem($direction, $terms, $this->clock->now());
             $this->store->add($item);
-            $this->events->record(new PlannedItemCreated($item->id(), $firmId, $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
+            $this->events->record(new PlannedItemCreated($item->id(), $firmId, $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->code(), $item->isRecurring()));
             // The documents of the counterparty recorded before the item may belong to it.
             if ($item->isRecurring()) {
                 $this->reconsiderDocuments([$item->counterparty()?->id()]);
@@ -99,7 +99,7 @@ final readonly class PlannedItemWrites implements PlannedItemCounterparties
                 $this->given($input->name, $item->name()),
                 $this->given($input->category, $item->category()->value),
                 $this->given($input->amount, self::decimal($item->amount())),
-                $this->given($input->currency, $item->amount()->currency()->value),
+                $this->given($input->currency, $item->amount()->currency()->code()),
                 $this->given($input->on, $item->firstOn()->format('Y-m-d')),
                 $repeat,
                 $this->given($input->every, $was?->every() ?? 1),
@@ -116,7 +116,7 @@ final readonly class PlannedItemWrites implements PlannedItemCounterparties
             ), $zone);
             PlannedItemRules::checkVatDirection($terms, $item->direction());
             $item->change($terms);
-            $this->events->record(new PlannedItemChanged($item->id(), $this->access->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isIncluded()));
+            $this->events->record(new PlannedItemChanged($item->id(), $this->access->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->code(), $item->isIncluded()));
             if ($before !== $this->terms($item, $zone)) {
                 $this->reconsiderDocuments([$counterpartyBefore, $item->counterparty()?->id()]);
             }
@@ -216,7 +216,7 @@ final readonly class PlannedItemWrites implements PlannedItemCounterparties
         return [
             'counterparty' => $item->counterparty()?->id(),
             'direction' => $item->direction()->value,
-            'amount' => $item->amount()->minor().$item->amount()->currency()->value,
+            'amount' => $item->amount()->minor().$item->amount()->currency()->code(),
             'vat' => [$item->vatMode()->value, $item->vatRate()],
             'tolerance' => $item->matchRule()->toleranceMinor(),
             'on' => $item->firstOn()->format('Y-m-d'),

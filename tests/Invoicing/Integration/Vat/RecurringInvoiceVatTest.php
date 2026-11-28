@@ -153,7 +153,7 @@ final class RecurringInvoiceVatTest extends RecurringTestCase
      */
     private function days(array $vat): array
     {
-        return array_map(static fn (ScheduledVat $one): array => [$one->taxPointOn->format('Y-m-d'), $one->output->minor(), $one->output->currency()->value], $vat);
+        return array_map(static fn (ScheduledVat $one): array => [$one->taxPointOn->format('Y-m-d'), $one->output->minor(), $one->output->currency()->code()], $vat);
     }
 
     /**

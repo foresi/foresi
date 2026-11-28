@@ -94,20 +94,20 @@ final class RateResolverTest extends TestCase
     public function testALinkedDealLineRateComesFirst(): void
     {
         $party = new Party(PartyKind::Person, 'Example Client', null, null, '');
-        $this->clientDefaults[$party->id()] = $this->defaults(Money::of('1100', Currency::CZK));
+        $this->clientDefaults[$party->id()] = $this->defaults(Money::of('1100', Currency::of('CZK')));
         $project = new Project('DUD', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
-        $this->rate($project, Money::of('1000', Currency::CZK));
+        $this->rate($project, Money::of('1000', Currency::of('CZK')));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
-        $membership->changeHourlyRate(Money::of('900', Currency::CZK));
+        $membership->changeHourlyRate(Money::of('900', Currency::of('CZK')));
         $asked = new \ArrayObject();
         $none = $this->source(null, $asked);
-        $line = $this->source(Money::of('1200', Currency::CZK), $asked);
-        $never = $this->source(Money::of('1', Currency::CZK), $asked);
+        $line = $this->source(Money::of('1200', Currency::of('CZK')), $asked);
+        $never = $this->source(Money::of('1', Currency::of('CZK')), $asked);
 
         $resolved = $this->resolver($project, $membership, [$none, $line, $never])->resolve($project->id(), $membership->id());
 
         self::assertNotNull($resolved);
-        self::assertTrue(Money::of('1200', Currency::CZK)->equals($resolved->rate));
+        self::assertTrue(Money::of('1200', Currency::of('CZK'))->equals($resolved->rate));
         self::assertSame(RateSource::DealLine, $resolved->source);
         self::assertCount(2, $asked, 'the sources are asked in turn until one has a rate');
     }
@@ -115,14 +115,14 @@ final class RateResolverTest extends TestCase
     public function testWithoutASourceTheOrderIsUnchanged(): void
     {
         $project = new Project('DUD', null, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
-        $this->rate($project, Money::of('1000', Currency::CZK));
+        $this->rate($project, Money::of('1000', Currency::of('CZK')));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
         $asked = new \ArrayObject();
 
         $resolved = $this->resolver($project, $membership, [$this->source(null, $asked)])->resolve($project->id(), $membership->id());
 
         self::assertNotNull($resolved);
-        self::assertTrue(Money::of('1000', Currency::CZK)->equals($resolved->rate));
+        self::assertTrue(Money::of('1000', Currency::of('CZK'))->equals($resolved->rate));
         self::assertSame(RateSource::Project, $resolved->source);
     }
 
@@ -196,7 +196,7 @@ final class RateResolverTest extends TestCase
 
     private function defaults(?Money $rate): InvoicingDefaults
     {
-        return new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, $rate);
+        return new InvoicingDefaults(14, Currency::of('CZK'), DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, $rate);
     }
 
     private function money(?string $text): ?Money

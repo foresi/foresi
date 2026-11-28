@@ -303,7 +303,7 @@ final readonly class DocumentsStage implements ImportStage
         }
         $currency = $this->code($context, IdokladResource::Currencies, $payload['CurrencyId'] ?? null);
         $home = $country->homeCurrency();
-        if ($home->value !== $currency) {
+        if ($home->code() !== $currency) {
             $values['currency'] = $currency;
             $reasons[] = self::CURRENCY_NOT_HOME;
 
@@ -719,7 +719,7 @@ final readonly class DocumentsStage implements ImportStage
      */
     private function minor(mixed $amount): int
     {
-        return Money::of($this->decimal($amount, 4), Currency::CZK)->minor();
+        return Money::of($this->decimal($amount, 4), Currency::of('CZK'))->minor();
     }
 
     /**

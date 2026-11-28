@@ -34,7 +34,7 @@ final class ProductsContractTest extends CatalogTestCase
         $snapshot = $this->products()->get($retainer->id());
 
         self::assertEquals(new ProductSnapshot($retainer->id(), 'Marketing retainer', 'month', $snapshot->unitPrice, BillingKind::Recurring, RecurrenceUnit::Month, 1, 12, false), $snapshot);
-        self::assertSame([2500000, 'EUR'], [$snapshot->unitPrice?->minor(), $snapshot->unitPrice?->currency()->value]);
+        self::assertSame([2500000, 'EUR'], [$snapshot->unitPrice?->minor(), $snapshot->unitPrice?->currency()->code()]);
 
         $audit = $this->product(unitPrice: null);
         $this->writes()->archive(new ArchiveProductInput($audit->id()));

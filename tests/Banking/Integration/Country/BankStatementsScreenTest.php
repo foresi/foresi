@@ -97,10 +97,10 @@ final class BankStatementsScreenTest extends BankScreenTestCase
     {
         $this->scoped(function () use ($number, $month, $opening, $closing, $entries, $source): void {
             $from = new \DateTimeImmutable($month.'-01');
-            $czk = static fn (string $amount): Money => Money::of($amount, Currency::CZK);
+            $czk = static fn (string $amount): Money => Money::of($amount, Currency::of('CZK'));
             self::getContainer()->get(StatementIntake::class)->submit(new BankStatement(
                 self::IBAN,
-                Currency::CZK,
+                Currency::of('CZK'),
                 array_map(static fn (string $amount): ParsedMovement => new ParsedMovement(MovementDirection::Incoming, $czk($amount), self::IBAN, null, null, null, $from, null, null, null, null, null), $entries),
                 null,
                 null === $number ? null : StatementSequence::withinYear($number, 2026),

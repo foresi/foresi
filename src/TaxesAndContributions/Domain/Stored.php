@@ -54,7 +54,7 @@ final class Stored
     {
         $value = $data[$key] ?? null;
 
-        return \is_int($value) ? Money::ofMinor($value, Currency::CZK) : null;
+        return \is_int($value) ? Money::ofMinor($value, Currency::of('CZK')) : null;
     }
 
     /**

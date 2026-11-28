@@ -187,7 +187,7 @@ final class CorrectionDocumentTest extends InvoiceTestCase
     public function testANonPayerCorrectsWithoutVat(): void
     {
         $this->reconfigureFirm(VatStatus::NotRegistered, null);
-        $plain = fn (string $price, string $quantity = '1'): LineInput => new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'));
+        $plain = fn (string $price, string $quantity = '1'): LineInput => new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'));
         $original = $this->issue->issue($this->input([$plain('1000.00')], ['seriesId' => $this->series->id()]));
 
         $credit = $this->issue->issue($this->correction($original, [$plain('250.00', '-1')]));
@@ -408,7 +408,7 @@ final class CorrectionDocumentTest extends InvoiceTestCase
 
     private function credit(string $price, VatRateKind $kind = VatRateKind::Base): LineInput
     {
-        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, $kind, null, Percent::fromString('0'));
+        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, $kind, null, Percent::fromString('0'));
     }
 
     /**

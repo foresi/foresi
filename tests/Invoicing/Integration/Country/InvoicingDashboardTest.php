@@ -83,21 +83,21 @@ final class InvoicingDashboardTest extends WebTestCase
         self::assertCount(0, $crawler->filter('main [data-dashboard-invoicing] [data-filter-sheet-form] select[name="firm"]'));
         self::assertCount(0, $crawler->filter('main .empty-state, main [data-empty-state]'));
         self::assertSame([
-            ['Invoiced – November 2026', '1,210.00 Kč', 'Base 1,000.00 Kč', '/invoices?month=2026-11'],
-            ['Invoiced – October 2026', '2,420.00 Kč', 'Base 2,000.00 Kč', '/invoices?month=2026-10'],
-            ['Unpaid', '3,630.00 Kč', '2 documents', '/invoices?tab=unpaid'],
-            ['Overdue', '1,210.00 Kč', '1 document', '/invoices?tab=overdue'],
+            ['Invoiced – November 2026', '1,210.00 CZK', 'Base 1,000.00 CZK', '/invoices?month=2026-11'],
+            ['Invoiced – October 2026', '2,420.00 CZK', 'Base 2,000.00 CZK', '/invoices?month=2026-10'],
+            ['Unpaid', '3,630.00 CZK', '2 documents', '/invoices?tab=unpaid'],
+            ['Overdue', '1,210.00 CZK', '1 document', '/invoices?tab=overdue'],
         ], $this->kpis($crawler));
         self::assertSame([
-            ['Output VAT – November 2026', '210.00 Kč', '/invoices?month=2026-11'],
-            ['Output VAT – October 2026', '420.00 Kč', '/invoices?month=2026-10'],
-            ['Overdue up to 30 days', '1,210.00 Kč', '/invoices?tab=overdue'],
-            ['Overdue 31–60 days', '0.00 Kč', '/invoices?tab=overdue'],
-            ['Overdue over 60 days', '0.00 Kč', '/invoices?tab=overdue'],
+            ['Output VAT – November 2026', '210.00 CZK', '/invoices?month=2026-11'],
+            ['Output VAT – October 2026', '420.00 CZK', '/invoices?month=2026-10'],
+            ['Overdue up to 30 days', '1,210.00 CZK', '/invoices?tab=overdue'],
+            ['Overdue 31–60 days', '0.00 CZK', '/invoices?tab=overdue'],
+            ['Overdue over 60 days', '0.00 CZK', '/invoices?tab=overdue'],
         ], $crawler->filter('main [data-dashboard-invoicing] dl > div')->each(fn (Crawler $fact): array => [$fact->filter('dt')->text(), $this->plain($fact->filter('dd')->text()), (string) $fact->filter('dd a')->attr('href')]));
         $debtor = $crawler->filter('[data-dashboard-debtors] li');
         self::assertCount(1, $debtor);
-        self::assertSame('Example Customer a.s. 2 documents 3,630.00 Kč', $this->plain($debtor->text()));
+        self::assertSame('Example Customer a.s. 2 documents 3,630.00 CZK', $this->plain($debtor->text()));
         self::assertSame('/invoices?tab=unpaid&q=Example%20Customer%20a.s.', $debtor->filter('a')->attr('href'));
         $pending = $crawler->filter('[data-dashboard-pending] [role="status"]');
         self::assertCount(1, $pending);
@@ -149,7 +149,7 @@ final class InvoicingDashboardTest extends WebTestCase
 
     private function issue(string $date, string $due, string $price): Invoice
     {
-        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return $this->scoped(fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(
             $this->series->id(),

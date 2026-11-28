@@ -32,7 +32,7 @@ class ReleasedTime
     #[ORM\Column(name: 'rate_minor', type: 'bigint')]
     private int $rateMinor;
 
-    #[ORM\Column(name: 'rate_currency', type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(name: 'rate_currency', type: 'currency', length: 3, options: ['fixed' => true])]
     private Currency $rateCurrency;
 
     public function __construct(

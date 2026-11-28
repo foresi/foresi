@@ -111,7 +111,7 @@ final readonly class IssueInvoice
                     $series->id(),
                     $firm->id(),
                     $party->id(),
-                    $invoice->currency()->value,
+                    $invoice->currency()->code(),
                     EventFacts::amount($invoice->gross()),
                     EventFacts::day($invoice->issueDate()),
                     EventFacts::day($invoice->dueDate()),

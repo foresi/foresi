@@ -479,7 +479,7 @@ final class RecurringFormController extends AbstractController
             'payer' => $context->isPayer(),
             'issuerCountry' => $firm->address()->countryCode,
             'issuerName' => $firm->name(),
-            'currency' => $context->currency->value,
+            'currency' => $context->currency->code(),
             'vatOptions' => $this->options->vat($context, $today),
             'priceTypes' => $this->options->priceTypes(),
             'supplyCodes' => $this->options->supplyCodes($context, $today),

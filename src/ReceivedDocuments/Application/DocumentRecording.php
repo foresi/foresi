@@ -67,7 +67,7 @@ final readonly class DocumentRecording
                 $document->kind()->value,
                 $supplier->id(),
                 EventAmount::of($total),
-                $total->currency()->value,
+                $total->currency()->code(),
                 $document->dueDate()?->format('Y-m-d'),
             ));
         } else {

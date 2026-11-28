@@ -146,7 +146,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
             $shop = new Project('Shop', $customer, WorkflowTemplate::Simple, $owner->user()->id(), $now);
             $this->em->persist($website);
             $rate = new ProjectTimeSetting($website);
-            $rate->changeHourlyRate(Money::of('1000', Currency::CZK));
+            $rate->changeHourlyRate(Money::of('1000', Currency::of('CZK')));
             $this->em->persist($rate);
             $this->em->persist($shop);
             $open = new ProjectStatus($website, 'Open', \Foresi\Work\Domain\StatusType::Open, 0);

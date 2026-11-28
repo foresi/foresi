@@ -24,7 +24,7 @@ final readonly class PublishedRates
     /**
      * @param array<string, Quote> $quotes by currency code
      * @param string|null          $base   the currency the quotes are priced in, such as "CZK" or "EUR";
-     *                                     leaving it out is deprecated since module API 1.1, removed in 3.0, use "CZK" instead
+     *                                     leaving it out is deprecated since module API 1.1, removed in 4.0, use "CZK" instead
      */
     public function __construct(
         public \DateTimeImmutable $publishedOn,

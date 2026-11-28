@@ -10,6 +10,7 @@ namespace Foresi\ReceivedDocuments\Infrastructure\Form;
 
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\Translation\LocaleSwitcher;
 
@@ -20,8 +21,6 @@ use Symfony\Component\Translation\LocaleSwitcher;
  */
 final readonly class PurchasingText
 {
-    private const string AMOUNT = '/^-?\d{1,13}(?:\.\d{1,2})?$/D';
-
     public function __construct(private LocaleSwitcher $locales)
     {
     }
@@ -31,11 +30,7 @@ final readonly class PurchasingText
      */
     public function amount(Money $money): string
     {
-        $minor = abs($money->minor());
-        $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
-        $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
-
-        return \sprintf("%s%s%s%02d\u{a0}%s", $money->isNegative() ? '-' : '', $whole, $this->separator(), $minor % 100, Currency::CZK === $money->currency() ? 'Kč' : $money->currency()->value);
+        return \sprintf("%s\u{a0}%s", MoneyFormat::grouped($money, $this->locales->getLocale()), Currency::of('CZK') === $money->currency() ? 'Kč' : $money->currency()->code());
     }
 
     /**
@@ -47,7 +42,7 @@ final readonly class PurchasingText
             return '';
         }
 
-        return \sprintf('%s%d%s%02d', $money->isNegative() ? '-' : '', intdiv(abs($money->minor()), 100), $this->separator(), abs($money->minor()) % 100);
+        return MoneyFormat::field($money, $this->locales->getLocale());
     }
 
     /**
@@ -70,7 +65,7 @@ final readonly class PurchasingText
         }
         $decimal = TypedNumber::decimal($typed, $this->locales->getLocale());
 
-        return 1 === preg_match(self::AMOUNT, $decimal) ? Money::of($decimal, $currency) : false;
+        return 1 === preg_match($this->amountPattern($currency), $decimal) ? Money::of($decimal, $currency) : false;
     }
 
     /**
@@ -79,6 +74,13 @@ final readonly class PurchasingText
     public function typedDecimal(string $typed): string
     {
         return TypedNumber::decimal(trim($typed), $this->locales->getLocale());
+    }
+
+    private function amountPattern(Currency $currency): string
+    {
+        $digits = $currency->minorUnits();
+
+        return 0 === $digits ? '/^-?\d{1,13}$/D' : \sprintf('/^-?\d{1,13}(?:\.\d{1,%d})?$/D', $digits);
     }
 
     private function separator(): string

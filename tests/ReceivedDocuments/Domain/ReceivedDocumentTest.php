@@ -74,9 +74,9 @@ final class ReceivedDocumentTest extends TestCase
         $document = $this->recorded($this->content(
             kind: ReceivedDocumentKind::ForeignInvoice,
             treatment: PurchaseTaxTreatment::NonEuService,
-            currency: Currency::USD,
+            currency: Currency::of('USD'),
             total: 2_000,
-            lines: [new VatRecapLine(VatRate::of('21'), Money::ofMinor(2_000, Currency::USD), Money::ofMinor(0, Currency::USD))],
+            lines: [new VatRecapLine(VatRate::of('21'), Money::ofMinor(2_000, Currency::of('USD')), Money::ofMinor(0, Currency::of('USD')))],
             rate: ExchangeRate::of('23.456'),
         ));
 
@@ -131,9 +131,9 @@ final class ReceivedDocumentTest extends TestCase
         yield 'a credit note without its original' => [static fn (self $test): ReceivedDocumentContent => $test->content(kind: ReceivedDocumentKind::CreditNote), ReceivedDocumentRefused::ORIGINAL_MISSING];
         yield 'a foreign currency without a rate' => [static fn (self $test): ReceivedDocumentContent => $test->content(
             treatment: PurchaseTaxTreatment::EuService,
-            currency: Currency::EUR,
+            currency: Currency::of('EUR'),
             total: 10_000,
-            lines: [new VatRecapLine(VatRate::of('21'), Money::ofMinor(10_000, Currency::EUR), Money::ofMinor(0, Currency::EUR))],
+            lines: [new VatRecapLine(VatRate::of('21'), Money::ofMinor(10_000, Currency::of('EUR')), Money::ofMinor(0, Currency::of('EUR')))],
         ), ReceivedDocumentRefused::EXCHANGE_RATE_MISSING];
     }
 
@@ -161,7 +161,7 @@ final class ReceivedDocumentTest extends TestCase
         yield 'an original on an invoice' => [static fn (self $test): ReceivedDocumentContent => $test->content(original: Id::generate()), ReceivedDocumentRefused::ORIGINAL_NOT_CREDIT_NOTE];
         yield 'an original that is no id' => [static fn (self $test): ReceivedDocumentContent => $test->content(kind: ReceivedDocumentKind::CreditNote, original: 'nope'), ReceivedDocumentRefused::ORIGINAL_INVALID];
         yield 'VAT on an advance request' => [static fn (self $test): ReceivedDocumentContent => $test->content(kind: ReceivedDocumentKind::AdvanceRequest), ReceivedDocumentRefused::TREATMENT_FOR_KIND];
-        yield 'a total in another currency' => [static fn (self $test): ReceivedDocumentContent => $test->content(currency: Currency::EUR, lines: [], rate: ExchangeRate::of('25'), totalCurrency: Currency::CZK), ReceivedDocumentRefused::CURRENCY_MISMATCH];
+        yield 'a total in another currency' => [static fn (self $test): ReceivedDocumentContent => $test->content(currency: Currency::of('EUR'), lines: [], rate: ExchangeRate::of('25'), totalCurrency: Currency::of('CZK')), ReceivedDocumentRefused::CURRENCY_MISMATCH];
         yield 'a variable symbol with letters' => [static fn (self $test): ReceivedDocumentContent => $test->content(variableSymbol: 'INV-1'), ReceivedDocumentRefused::VARIABLE_SYMBOL];
         yield 'a long supplier number' => [static fn (self $test): ReceivedDocumentContent => $test->content(supplierNumber: str_repeat('1', ReceivedDocument::MAX_SUPPLIER_NUMBER_LENGTH + 1)), ReceivedDocumentRefused::SUPPLIER_NUMBER_TOO_LONG];
     }
@@ -246,7 +246,7 @@ final class ReceivedDocumentTest extends TestCase
 
     public function testADomesticReverseChargeMayCarryTheCodeOfItsSupply(): void
     {
-        $lines = [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(0, Currency::CZK))];
+        $lines = [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::of('CZK')), Money::ofMinor(0, Currency::of('CZK')))];
         $document = $this->recorded($this->content(treatment: PurchaseTaxTreatment::DomesticReverseCharge, total: 100_000, lines: $lines, supplyCode: ' 4 '));
 
         self::assertSame('4', $document->supplyCode());
@@ -363,8 +363,8 @@ final class ReceivedDocumentTest extends TestCase
     public function testADocumentWithoutLinesHasOneImplicitLinePerRate(): void
     {
         $document = $this->recorded($this->content(total: 177_000, lines: [
-            new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(21_000, Currency::CZK)),
-            new VatRecapLine(VatRate::of('12'), Money::ofMinor(50_000, Currency::CZK), Money::ofMinor(6_000, Currency::CZK)),
+            new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::of('CZK')), Money::ofMinor(21_000, Currency::of('CZK'))),
+            new VatRecapLine(VatRate::of('12'), Money::ofMinor(50_000, Currency::of('CZK')), Money::ofMinor(6_000, Currency::of('CZK'))),
         ]));
 
         self::assertSame([], $document->lines());
@@ -376,7 +376,7 @@ final class ReceivedDocumentTest extends TestCase
 
     public function testADocumentWithoutARecapHasOneImplicitLineOfItsTotal(): void
     {
-        $document = $this->recorded($this->content(kind: ReceivedDocumentKind::Other, treatment: PurchaseTaxTreatment::NotVatDocument, currency: Currency::EUR, total: 4_000, lines: [], rate: ExchangeRate::of('25.1')));
+        $document = $this->recorded($this->content(kind: ReceivedDocumentKind::Other, treatment: PurchaseTaxTreatment::NotVatDocument, currency: Currency::of('EUR'), total: 4_000, lines: [], rate: ExchangeRate::of('25.1')));
 
         self::assertSame([['rate:0', 'other', 4_000, 100_400, '0', true]], $this->views($document->effectiveLines()));
     }
@@ -400,11 +400,11 @@ final class ReceivedDocumentTest extends TestCase
 
     public function testCzkBasesOfLinesAddUpToTheRecapCzkBase(): void
     {
-        $usd = static fn (int $minor): Money => Money::ofMinor($minor, Currency::USD);
+        $usd = static fn (int $minor): Money => Money::ofMinor($minor, Currency::of('USD'));
         $document = $this->recorded($this->content(
             kind: ReceivedDocumentKind::ForeignInvoice,
             treatment: PurchaseTaxTreatment::NonEuService,
-            currency: Currency::USD,
+            currency: Currency::of('USD'),
             total: 3_200,
             lines: [new VatRecapLine(VatRate::of('21'), $usd(3_200), $usd(0))],
             rate: ExchangeRate::of('23.457'),
@@ -420,7 +420,7 @@ final class ReceivedDocumentTest extends TestCase
     public function testChangingTheRecapWithStaleLinesIsRefused(): void
     {
         $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
-        $other = [new VatRecapLine(VatRate::of('21'), Money::ofMinor(200_000, Currency::CZK), Money::ofMinor(42_000, Currency::CZK))];
+        $other = [new VatRecapLine(VatRate::of('21'), Money::ofMinor(200_000, Currency::of('CZK')), Money::ofMinor(42_000, Currency::of('CZK')))];
         $version = $document->version();
 
         $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn () => $document->record($this->content(total: 242_000, lines: $other), null, new \DateTimeImmutable(self::AT)));
@@ -572,8 +572,8 @@ final class ReceivedDocumentTest extends TestCase
         $document = $this->recorded($this->content(
             total: 116_500,
             lines: [
-                new VatRecapLine(VatRate::of('21'), Money::ofMinor(50_000, Currency::CZK), Money::ofMinor(10_500, Currency::CZK)),
-                new VatRecapLine(VatRate::of('12'), Money::ofMinor(50_000, Currency::CZK), Money::ofMinor(6_000, Currency::CZK)),
+                new VatRecapLine(VatRate::of('21'), Money::ofMinor(50_000, Currency::of('CZK')), Money::ofMinor(10_500, Currency::of('CZK'))),
+                new VatRecapLine(VatRate::of('12'), Money::ofMinor(50_000, Currency::of('CZK')), Money::ofMinor(6_000, Currency::of('CZK'))),
             ],
             documentLines: [$this->line('Hosting', 50_000, '21'), $this->line('Domain', 50_000, '12')],
         ));
@@ -618,7 +618,7 @@ final class ReceivedDocumentTest extends TestCase
 
     private function line(string $text, int $base, string $rate = '21', ?string $id = null): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), $rate, $id);
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::of('CZK')), $rate, $id);
     }
 
     /**
@@ -632,7 +632,7 @@ final class ReceivedDocumentTest extends TestCase
         ?\DateTimeImmutable $issue = new \DateTimeImmutable('2026-10-28'),
         ?\DateTimeImmutable $taxPoint = new \DateTimeImmutable('2026-10-28'),
         ?\DateTimeImmutable $received = new \DateTimeImmutable('2026-11-02'),
-        Currency $currency = Currency::CZK,
+        ?Currency $currency = null,
         ?int $total = 121_000,
         ?array $lines = null,
         ?ExchangeRate $rate = null,
@@ -643,6 +643,7 @@ final class ReceivedDocumentTest extends TestCase
         ?string $supplyCode = null,
         ?array $documentLines = null,
     ): ReceivedDocumentContent {
+        $currency ??= Currency::of('CZK');
         $party = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), null, '');
 
         return new ReceivedDocumentContent(
@@ -660,7 +661,7 @@ final class ReceivedDocumentTest extends TestCase
             null === $total ? null : Money::ofMinor($total, $totalCurrency ?? $currency),
             $rate,
             null,
-            $lines ?? [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(21_000, Currency::CZK))],
+            $lines ?? [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::of('CZK')), Money::ofMinor(21_000, Currency::of('CZK')))],
             $original,
             $supplyCode,
             $documentLines,

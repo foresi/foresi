@@ -71,7 +71,7 @@ final class TimeInvoicingTest extends WorkTestCase
         $this->em->flush();
 
         $this->website = $this->projects->create('Website', $this->customer->id(), WorkflowTemplate::Simple);
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::of('CZK')));
     }
 
     public function testOnlyAnOwnerGetsAnyOfIt(): void

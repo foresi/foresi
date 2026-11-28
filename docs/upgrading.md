@@ -123,6 +123,19 @@ A pull request whose Release notes have `### Upgrading` adds its section here,
 at the top of its minor version, with the same text (see
 [CONTRIBUTING](../CONTRIBUTING.md#releases)).
 
+### 0.13
+
+#### [0.13.0](https://github.com/foresi/foresi/releases/tag/v0.13.0): any ISO 4217 currency (#373)
+
+- No migration: amounts and their currency codes are stored as before.
+- REST API and MCP: every money object gains `minor_units`; read it instead of assuming two decimals. A currency input takes any current ISO 4217 code and refuses an unknown one with `400 invalid_parameter`; a decimal amount has at most the currency's minor units. `GET /api/v1/currencies` and the MCP tool `foresi_list_currencies` list the codes. Reconnect MCP clients so they reload their tool lists.
+- A module written for module API 2.x must move to 3.0 (see `docs/modules.md`):
+  - `Currency::CZK` → `Currency::of('CZK')`
+  - `->value` → `->code()`
+  - `cases()` → `Currencies::current()`
+  - `enumType` → `type: 'currency'`
+  - no `match` arms on the cases and no `instanceof \BackedEnum` checks of a currency.
+
 ### 0.12
 
 #### [0.12.0](https://github.com/foresi/foresi/releases/tag/v0.12.0): modules get the names they keep; contacts, timesheet and banking stand on their own, and the core runs without ui (#366)

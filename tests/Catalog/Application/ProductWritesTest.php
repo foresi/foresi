@@ -28,7 +28,7 @@ final class ProductWritesTest extends CatalogTestCase
 
         $renamed = $this->writes()->update(new UpdateProductInput($retainer->id(), name: 'Support retainer'));
 
-        self::assertSame(['Support retainer', 150005, 'EUR', 2, 12], [$renamed->name(), $renamed->unitPrice()?->minor(), $renamed->unitPrice()?->currency()->value, $renamed->interval(), $renamed->cycles()]);
+        self::assertSame(['Support retainer', 150005, 'EUR', 2, 12], [$renamed->name(), $renamed->unitPrice()?->minor(), $renamed->unitPrice()?->currency()->code(), $renamed->interval(), $renamed->cycles()]);
     }
 
     public function testMakingAProductTimeBasedClearsItsPeriodAndNeedsTheHour(): void

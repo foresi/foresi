@@ -108,7 +108,7 @@ class ReceivedDocument implements Audited
     #[ORM\Column(name: 'received_date', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $receivedDate;
 
-    #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
     private Currency $currency;
 
     // What the document asks to be paid, in its currency.
@@ -443,12 +443,12 @@ class ReceivedDocument implements Audited
 
     public function baseCzk(): ?Money
     {
-        return null === $this->baseCzkMinor ? null : Money::ofMinor($this->baseCzkMinor, Currency::CZK);
+        return null === $this->baseCzkMinor ? null : Money::ofMinor($this->baseCzkMinor, Currency::of('CZK'));
     }
 
     public function vatCzk(): ?Money
     {
-        return null === $this->vatCzkMinor ? null : Money::ofMinor($this->vatCzkMinor, Currency::CZK);
+        return null === $this->vatCzkMinor ? null : Money::ofMinor($this->vatCzkMinor, Currency::of('CZK'));
     }
 
     public function exchangeRate(): ?ExchangeRate
@@ -596,7 +596,7 @@ class ReceivedDocument implements Audited
         $this->currency = $content->currency;
         $this->totalMinor = $content->total?->minor();
         $this->exchangeRate = $rate?->toString();
-        $this->exchangeRateDate = Currency::CZK === $content->currency ? null : $this->keepDay($this->exchangeRateDate ?? null, $content->exchangeRateDate);
+        $this->exchangeRateDate = Currency::of('CZK') === $content->currency ? null : $this->keepDay($this->exchangeRateDate ?? null, $content->exchangeRateDate);
         $this->vatRecap = $recap->toArray();
         $this->baseMinor = $recap->base()->minor();
         $this->vatMinor = $recap->vat()->minor();
@@ -613,7 +613,7 @@ class ReceivedDocument implements Audited
 
     private function rateOf(ReceivedDocumentContent $content): ?ExchangeRate
     {
-        return Currency::CZK === $content->currency ? ExchangeRate::one() : $content->exchangeRate;
+        return Currency::of('CZK') === $content->currency ? ExchangeRate::one() : $content->exchangeRate;
     }
 
     /**
@@ -714,7 +714,7 @@ class ReceivedDocument implements Audited
         if ('' !== $symbol && 1 !== preg_match(self::VARIABLE_SYMBOL, $symbol)) {
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VARIABLE_SYMBOL);
         }
-        if (Currency::CZK === $content->currency && $content->exchangeRate instanceof ExchangeRate && !$content->exchangeRate->isOne()) {
+        if (Currency::of('CZK') === $content->currency && $content->exchangeRate instanceof ExchangeRate && !$content->exchangeRate->isOne()) {
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::CZK_RATE_NOT_ONE);
         }
         if ($content->total instanceof Money && $content->total->currency() !== $content->currency) {
@@ -756,7 +756,7 @@ class ReceivedDocument implements Audited
             !$content->total instanceof Money => ReceivedDocumentRefused::TOTAL_MISSING,
             $content->kind->needsVatRecap() && [] === $content->vatRecap => ReceivedDocumentRefused::VAT_RECAP_MISSING,
             ReceivedDocumentKind::CreditNote === $content->kind && null === $content->originalDocumentId => ReceivedDocumentRefused::ORIGINAL_MISSING,
-            Currency::CZK !== $content->currency && !$content->exchangeRate instanceof ExchangeRate => ReceivedDocumentRefused::EXCHANGE_RATE_MISSING,
+            Currency::of('CZK') !== $content->currency && !$content->exchangeRate instanceof ExchangeRate => ReceivedDocumentRefused::EXCHANGE_RATE_MISSING,
             default => null,
         };
         if (null !== $missing) {

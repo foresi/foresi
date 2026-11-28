@@ -34,7 +34,7 @@ final readonly class CzechInvoicing implements InvoicingCountry
 
     public function homeCurrency(): Currency
     {
-        return Currency::CZK;
+        return Currency::of('CZK');
     }
 
     /**
@@ -51,7 +51,7 @@ final readonly class CzechInvoicing implements InvoicingCountry
      */
     public function settlementLimit(Currency $currency): ?int
     {
-        return Currency::CZK === $currency ? 99 : null;
+        return Currency::of('CZK') === $currency ? 99 : null;
     }
 
     public function timezone(): \DateTimeZone

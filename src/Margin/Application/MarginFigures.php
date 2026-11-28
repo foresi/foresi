@@ -29,7 +29,7 @@ final readonly class MarginFigures
 
     public static function none(): self
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
 
         return new self($zero, $zero);
     }

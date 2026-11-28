@@ -152,7 +152,7 @@ final readonly class ReadingScreen
             return null;
         }
         $value = $read->get($field)?->value;
-        $currency = Currency::tryFrom(\is_string($currency = $read->get(ReadField::Currency)?->value) ? $currency : '') ?? Currency::CZK;
+        $currency = Currency::tryFrom(\is_string($currency = $read->get(ReadField::Currency)?->value) ? $currency : '') ?? Currency::of('CZK');
         $date = fn (\DateTimeImmutable $day): string => $day->format($this->translator->trans('format.date'));
 
         return match ($field) {

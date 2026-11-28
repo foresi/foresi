@@ -43,7 +43,7 @@ final class ApiLinesTest extends TestCase
     #[DataProvider('amounts')]
     public function testAnAmountIsADecimalOfThePlacesOfItsCurrency(int $minor, string $decimal): void
     {
-        self::assertSame($decimal, ApiLines::decimal(Money::ofMinor($minor, Currency::CZK)));
+        self::assertSame($decimal, ApiLines::decimal(Money::ofMinor($minor, Currency::of('CZK'))));
     }
 
     /**
@@ -62,27 +62,27 @@ final class ApiLinesTest extends TestCase
     #[DataProvider('vats')]
     public function testEveryVatIsReadAndAnsweredUnderOneName(string $vat, TaxTreatment $treatment, ?VatRateKind $rateKind): void
     {
-        $lines = ApiLines::read([['text' => 'Hosting', 'unit_price' => '1000.00', 'vat' => $vat]], Currency::CZK, VatRegime::Payer, false);
+        $lines = ApiLines::read([['text' => 'Hosting', 'unit_price' => '1000.00', 'vat' => $vat]], Currency::of('CZK'), VatRegime::Payer, false);
 
         self::assertCount(1, $lines);
         self::assertSame([$treatment, $rateKind], [$lines[0]->treatment, $lines[0]->rateKind]);
 
-        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, $treatment, $rateKind, null, Percent::fromString('0'));
+        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, $treatment, $rateKind, null, Percent::fromString('0'));
         self::assertSame($vat, $fields['vat']);
     }
 
     public function testAStandardLineWithoutARateIsAnsweredAsTheBaseRate(): void
     {
-        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
+        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
 
         self::assertSame('base', $fields['vat']);
     }
 
     public function testTheIdsOfALineAreIgnoredAndNeverSetFromInput(): void
     {
-        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
+        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
 
-        $lines = ApiLines::read([['id' => '0197a1de-0000-7000-8000-000000000001', 'source_line_id' => '0197a1de-0000-7000-8000-000000000002'] + $fields], Currency::CZK, VatRegime::Payer, false);
+        $lines = ApiLines::read([['id' => '0197a1de-0000-7000-8000-000000000001', 'source_line_id' => '0197a1de-0000-7000-8000-000000000002'] + $fields], Currency::of('CZK'), VatRegime::Payer, false);
 
         self::assertCount(1, $lines);
         self::assertSame('Hosting', $lines[0]->text);

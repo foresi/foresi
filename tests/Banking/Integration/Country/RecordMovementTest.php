@@ -98,7 +98,7 @@ final class RecordMovementTest extends InvoiceBankingTestCase
     public function testAnOwnTransferIsNeverPaired(): void
     {
         $this->issue->issue($this->input());
-        FirmAccounts::add($this->em, self::OTHER_OWN_IBAN, Currency::EUR);
+        FirmAccounts::add($this->em, self::OTHER_OWN_IBAN, Currency::of('EUR'));
         $this->em->flush();
 
         $movement = $this->recordMovement->record($this->incoming('1210.00', counterIban: 'de89 3704 0044 0532 0130 00'), self::verified());
@@ -158,7 +158,7 @@ final class RecordMovementTest extends InvoiceBankingTestCase
             self::assertSame(BankAccountRefusal::CurrencyLocked, $refused->reason);
         }
         $this->em->clear();
-        self::assertSame(Currency::CZK, self::getContainer()->get(FirmBankAccounts::class)->get($this->account->id())->currency());
+        self::assertSame(Currency::of('CZK'), self::getContainer()->get(FirmBankAccounts::class)->get($this->account->id())->currency());
     }
 
     public function testAMovementInAnotherCurrencyThanItsAccountStaysUnmatchedAndLocksNothing(): void
@@ -168,7 +168,7 @@ final class RecordMovementTest extends InvoiceBankingTestCase
         $this->em->getConnection()->update('invoice', ['currency' => 'EUR'], ['id' => $invoice->id()]);
         $usage = self::getContainer()->get(BankAccountUsage::class);
 
-        $movement = $this->recordMovement->record($this->incoming('1210.00', currency: Currency::EUR), self::verified());
+        $movement = $this->recordMovement->record($this->incoming('1210.00', currency: Currency::of('EUR')), self::verified());
 
         self::assertSame([MovementState::Unmatched, UnmatchedReason::AccountCurrency], [$movement->state(), $movement->unmatchedReason()]);
         self::assertNull($this->pairing->auto($movement->id()), 'never paired by itself');

@@ -145,14 +145,14 @@ final class TimeTrashTest extends WorkTestCase
     public function testInvoicedTimeNeverGoesToTheTrashAndTrashedTimeIsNeverInvoiced(): void
     {
         $billed = $this->time->log($this->project->id(), null, new \DateTimeImmutable('2026-11-09'), 30);
-        $billed->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::CZK), 30);
+        $billed->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::of('CZK')), 30);
         $this->em->flush();
         $this->assertRefused('time_invoiced', fn (): TimeEntry => $this->time->delete($billed->id()));
 
         $trashed = $this->time->log($this->project->id(), null, new \DateTimeImmutable('2026-11-09'), 30);
         $this->time->delete($trashed->id());
         $this->expectException(\DomainException::class);
-        $trashed->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::CZK), 30);
+        $trashed->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::of('CZK')), 30);
     }
 
     public function testTimeInTheTrashForMoreThan30DaysIsGoneForGoodByTheDailyJob(): void

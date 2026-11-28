@@ -41,13 +41,13 @@ final class BalanceWritesTest extends CashFlowTestCase
         $stored = $this->em->getRepository(Checkpoint::class)->findAll();
         self::assertCount(1, $stored);
         self::assertSame(-30000, $stored[0]->amount()->minor());
-        self::assertSame(Currency::CZK, $stored[0]->amount()->currency());
+        self::assertSame(Currency::of('CZK'), $stored[0]->amount()->currency());
         self::assertSame('2026-11-16', $stored[0]->on()->format('Y-m-d'));
         self::assertSame('2026-11-17T11:00:00+00:00', $stored[0]->recordedAt()->format(\DATE_ATOM));
         self::assertSame($this->account->id(), $stored[0]->account()->id());
 
         $euro = $this->euroAccount();
-        self::assertSame(Currency::EUR, $this->writer()->checkpoint(new RecordCheckpointInput($euro->id(), '2026-11-17', '10.00'))->amount()->currency());
+        self::assertSame(Currency::of('EUR'), $this->writer()->checkpoint(new RecordCheckpointInput($euro->id(), '2026-11-17', '10.00'))->amount()->currency());
         self::assertSame(-30000, self::getContainer()->get(CashFlowStore::class)->latestCheckpoint($this->account, new \DateTimeImmutable('2026-11-17'))?->amount()->minor());
         self::assertNull(self::getContainer()->get(CashFlowStore::class)->latestCheckpoint($this->account, new \DateTimeImmutable('2026-11-15')));
     }

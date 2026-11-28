@@ -29,6 +29,7 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\View\QuickPins;
@@ -318,7 +319,7 @@ final class CashFlowController extends AbstractController
     {
         $options = [];
         foreach ($accounts as $account) {
-            $options[$account->id()] = $this->screen->accountName($account).' ('.$account->currency()->value.')';
+            $options[$account->id()] = $this->screen->accountName($account).' ('.$account->currency()->code().')';
         }
 
         return $this->render('@CashFlow/balance.html.twig', [
@@ -367,9 +368,7 @@ final class CashFlowController extends AbstractController
      */
     private function plain(Money $money, string $locale): string
     {
-        $symbol = new \NumberFormatter($locale, \NumberFormatter::DECIMAL)->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
-
-        return \sprintf('%s%d%s%02d', $money->isNegative() ? '-' : '', intdiv(abs($money->minor()), 100), $symbol, abs($money->minor()) % 100);
+        return MoneyFormat::field($money, $locale);
     }
 
     private function checkToken(Request $request, string $id): void

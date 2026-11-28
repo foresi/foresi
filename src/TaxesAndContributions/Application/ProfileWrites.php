@@ -355,7 +355,7 @@ final readonly class ProfileWrites
             throw TaxesRefused::invalid('amount_invalid', $field, 'An amount is a decimal number in CZK, not negative, with at most two decimals, such as "12500.00".');
         }
 
-        return Money::of($value, Currency::CZK);
+        return Money::of($value, Currency::of('CZK'));
     }
 
     /**

@@ -88,7 +88,7 @@ final class FakeListedDocuments implements ListedDocuments
      */
     public function __construct(private readonly array $ids)
     {
-        $this->rates = [new InvoiceSumLine(TaxTreatment::Standard, Percent::fromString('21'), Money::ofMinor(100, Currency::CZK), Money::ofMinor(21, Currency::CZK), Money::ofMinor(121, Currency::CZK))];
+        $this->rates = [new InvoiceSumLine(TaxTreatment::Standard, Percent::fromString('21'), Money::ofMinor(100, Currency::of('CZK')), Money::ofMinor(21, Currency::of('CZK')), Money::ofMinor(121, Currency::of('CZK')))];
     }
 
     public function listedIds(InvoiceFilter $filter): array
@@ -108,7 +108,7 @@ final class FakeListedDocuments implements ListedDocuments
     public function listedDocuments(array $ids): array
     {
         $this->batches[] = $ids;
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $day = new \DateTimeImmutable('2026-10-05');
 
         return array_map(static fn (string $id): ListedDocument => new ListedDocument(
@@ -116,7 +116,7 @@ final class FakeListedDocuments implements ListedDocuments
             null,
             null,
             $day,
-            Currency::CZK,
+            Currency::of('CZK'),
             '1',
             $zero,
             $zero,

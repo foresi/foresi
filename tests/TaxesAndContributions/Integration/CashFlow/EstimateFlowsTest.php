@@ -381,6 +381,6 @@ final class EstimateFlowsTest extends TaxesTestCase
 
     private function czk(int $czk): Money
     {
-        return Money::ofMinor($czk * 100, Currency::CZK);
+        return Money::ofMinor($czk * 100, Currency::of('CZK'));
     }
 }

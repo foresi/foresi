@@ -110,7 +110,7 @@ trait IssuesInvoices
             'textBefore' => 'Before',
             'textAfter' => 'After',
             'language' => DocumentLanguage::Czech,
-            'lines' => [new LineInput('Work', Quantity::fromString('2'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+            'lines' => [new LineInput('Work', Quantity::fromString('2'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
         ], $overrides));
         $invoice = self::getContainer()->get(IssueInvoice::class)->issue($input);
         $this->em()->flush();
@@ -133,10 +133,10 @@ trait IssuesInvoices
     ): Payment {
         $em = $this->em();
         $total = $amount ?? (string) array_sum(array_map(intval(...), $parts));
-        $payment = new Payment(new \DateTimeImmutable($on), Money::of($total, Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
+        $payment = new Payment(new \DateTimeImmutable($on), Money::of($total, Currency::of('CZK')), PaymentMethod::BankTransfer, PaymentSource::Manual, null, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
         $em->persist($payment);
         foreach ($parts as $invoiceId => $part) {
-            $em->persist(new PaymentAllocation($payment, $em->getReference(Invoice::class, $invoiceId) ?? throw new \LogicException('No invoice.'), Money::of($part, Currency::CZK)));
+            $em->persist(new PaymentAllocation($payment, $em->getReference(Invoice::class, $invoiceId) ?? throw new \LogicException('No invoice.'), Money::of($part, Currency::of('CZK'))));
         }
         if ($cancelled) {
             $payment->cancel(new \DateTimeImmutable('2026-11-11 08:00:00'), $this->user->id());

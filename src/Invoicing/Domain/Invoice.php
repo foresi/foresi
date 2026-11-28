@@ -237,7 +237,7 @@ class Invoice implements Audited
         private readonly VatRegime $vatRegime,
         #[ORM\Column(type: 'string', length: 16, enumType: TotalRounding::class)]
         private readonly TotalRounding $rounding,
-        #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+        #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
         private readonly Currency $currency,
         #[ORM\Embedded(class: DocumentParty::class, columnPrefix: 'issuer_')]
         private readonly DocumentParty $issuer,

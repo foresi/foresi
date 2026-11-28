@@ -47,6 +47,6 @@ final class BankFeedTest extends TestCase
 
     private function account(): FirmBankAccount
     {
-        return FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
+        return FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::of('CZK'), '', 0);
     }
 }

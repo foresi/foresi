@@ -60,7 +60,7 @@ final class IsdocFixtures
 
     private static function document(int $netMinor, int $vatMinor, bool $creditNote = false, ?DocumentParty $supplier = null): IssuedDocument
     {
-        $money = static fn (int $minor): Money => Money::ofMinor($minor, Currency::CZK);
+        $money = static fn (int $minor): Money => Money::ofMinor($minor, Currency::of('CZK'));
         $gross = $netMinor + $vatMinor;
         $line = self::line($money($netMinor), $money($vatMinor), $money($gross));
         $original = $creditNote ? new CorrectedDocument('019a0000-0000-7000-8000-000000000009', DocumentKind::Invoice, '20260001', new \DateTimeImmutable('2026-10-01')) : null;
@@ -71,7 +71,7 @@ final class IsdocFixtures
             $creditNote ? '20260002' : '20260001',
             VatRegime::Payer,
             TotalRounding::None,
-            Currency::CZK,
+            Currency::of('CZK'),
             '1',
             self::party('Example Customer a.s.', '87654321', 'CZ87654321'),
             $supplier ?? self::party('Cloud Host s.r.o.', '12345678', 'CZ12345678'),

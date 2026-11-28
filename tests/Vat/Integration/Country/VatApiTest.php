@@ -61,25 +61,25 @@ final class VatApiTest extends ApiTestCase
             'end' => '2026-11-30',
             'due_on' => '2026-12-28',
             'refund_expected_on' => '2027-01-27',
-            'output' => ['amount_minor' => 0, 'currency' => 'CZK'],
-            'input' => ['amount_minor' => 0, 'currency' => 'CZK'],
-            'result' => ['amount_minor' => 0, 'currency' => 'CZK'],
+            'output' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2],
+            'input' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2],
+            'result' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2],
             'return_amount' => null,
-            'expected' => ['amount_minor' => 0, 'currency' => 'CZK'],
+            'expected' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2],
             'state' => 'estimated',
             'paid' => null,
             'difference' => null,
             'payments' => [],
             'settled_mark' => null,
             'breakdown' => [
-                'documents' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK'], 'input' => ['amount_minor' => 0, 'currency' => 'CZK']],
-                'schedules' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK'], 'input' => ['amount_minor' => 0, 'currency' => 'CZK']],
-                'plans' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK'], 'input' => ['amount_minor' => 0, 'currency' => 'CZK']],
+                'documents' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'input' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2]],
+                'schedules' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'input' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2]],
+                'plans' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'input' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2]],
             ],
             'steps' => [
-                ['name' => 'output', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK'], 'rule' => 'output VAT of the documents, the schedules and the plans in the period', 'sources' => []],
-                ['name' => 'input', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK'], 'rule' => 'deductible input VAT of the documents and the plans in the period', 'sources' => []],
-                ['name' => 'result', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK'], 'rule' => 'output VAT minus deductible input VAT', 'sources' => ['output', 'input']],
+                ['name' => 'output', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'rule' => 'output VAT of the documents, the schedules and the plans in the period', 'sources' => []],
+                ['name' => 'input', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'rule' => 'deductible input VAT of the documents and the plans in the period', 'sources' => []],
+                ['name' => 'result', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], 'rule' => 'output VAT minus deductible input VAT', 'sources' => ['output', 'input']],
             ],
             'warnings' => [],
             'missing_czk' => [],
@@ -163,7 +163,7 @@ final class VatApiTest extends ApiTestCase
 
         $this->send('PUT', '/api/v1/vat/periods/2026-11/return-amount', ['amount' => '1890.00'], $this->writer);
         self::assertResponseIsSuccessful();
-        self::assertSame([['amount_minor' => 189_000, 'currency' => 'CZK'], 'return_entered'], [$this->at('data', 'period', 'return_amount'), $this->at('data', 'period', 'state')]);
+        self::assertSame([['amount_minor' => 189_000, 'currency' => 'CZK', 'minor_units' => 2], 'return_entered'], [$this->at('data', 'period', 'return_amount'), $this->at('data', 'period', 'state')]);
         $this->send('PUT', '/api/v1/vat/periods/2026-11/return-amount', ['amount' => 'a lot'], $this->writer);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'amount', 'reason' => 'amount_invalid']);
 

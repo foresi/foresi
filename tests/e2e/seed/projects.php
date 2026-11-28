@@ -158,7 +158,7 @@ $agencySeries = new Series(Series::STANDARD, SeriesFormat::fromString(Series::ST
 $agencySeries->markDefault();
 $entityManager->persist($agencySeries);
 $entityManager->flush();
-$projectTimeSettings->setHourlyRate($website->id(), Money::of('1200.00', Currency::CZK));
+$projectTimeSettings->setHourlyRate($website->id(), Money::of('1200.00', Currency::of('CZK')));
 $lastMonth = $today->modify('first day of last month');
 $manageTime->log($website->id(), $domain->id(), $lastMonth->modify('+1 day'), 90, note: 'DNS records and the certificate');
 $manageTime->log($website->id(), null, $lastMonth->modify('+2 days'), 30, note: 'Kick-off call with the client');

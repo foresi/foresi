@@ -10,6 +10,7 @@ namespace Foresi\Ui\Format;
 
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Symfony\Component\Translation\LocaleSwitcher;
 
 /**
@@ -23,19 +24,19 @@ final readonly class MoneyText
     }
 
     /**
-     * On screen: "1 210,50 Kč", "1 210,50 EUR".
+     * On screen: "1 210,50 Kč" in Czech, "1,210.50 CZK" in English, with as many decimals as the currency has.
      */
     public function shown(Money $money): string
     {
-        return \sprintf("%s\u{a0}%s", $this->grouped($money), $this->unit($money->currency()));
+        return MoneyFormat::shown($money, $this->locales->getLocale());
     }
 
     /**
-     * What follows an amount on screen: "Kč" for crowns, the code for the rest.
+     * What follows an amount on screen: the symbol ICU gives in the user's language, "Kč" for crowns in Czech.
      */
     public function unit(Currency $currency): string
     {
-        return Currency::CZK === $currency ? 'Kč' : $currency->value;
+        return MoneyFormat::unit($currency, $this->locales->getLocale());
     }
 
     /**
@@ -43,9 +44,6 @@ final readonly class MoneyText
      */
     public function grouped(Money $money): string
     {
-        $minor = abs($money->minor());
-        $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
-
-        return \sprintf('%s%s%s%02d', $money->isNegative() ? '-' : '', $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64), $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100);
+        return MoneyFormat::grouped($money, $this->locales->getLocale());
     }
 }

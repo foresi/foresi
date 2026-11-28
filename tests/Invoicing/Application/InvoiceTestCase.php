@@ -176,7 +176,7 @@ abstract class InvoiceTestCase extends KernelTestCase
         ?string $supplyCode = null,
         string $text = 'Work',
     ): LineInput {
-        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), $type, $treatment, $kind, $supplyCode, Percent::fromString('0'));
+        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), $type, $treatment, $kind, $supplyCode, Percent::fromString('0'));
     }
 
     /**
@@ -186,7 +186,7 @@ abstract class InvoiceTestCase extends KernelTestCase
     protected function correctionOf(Invoice $original, string $difference): Invoice
     {
         $negative = str_starts_with($difference, '-');
-        $line = new LineInput('Work', Quantity::fromString($negative ? '-1' : '1'), 'h', Money::of(ltrim($difference, '-'), Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString($negative ? '-1' : '1'), 'h', Money::of(ltrim($difference, '-'), Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return $this->issue->issue($this->input([$line], [
             'seriesId' => null,

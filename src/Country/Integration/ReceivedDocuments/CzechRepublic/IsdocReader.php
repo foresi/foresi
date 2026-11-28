@@ -233,8 +233,8 @@ final readonly class IsdocReader implements DocumentReader
             $this->value(ReadField::TaxPointDate, $this->date($xpath, '/i:Invoice/i:TaxPointDate')),
             $this->value(ReadField::DueDate, $this->date($xpath, $details.'/i:PaymentDueDate')),
             $this->value(ReadField::Currency, null !== $currency && 1 === preg_match('/^[A-Z]{3}$/D', $currency) ? $currency : null),
-            $this->value(ReadField::Total, null === $total ? null : ReadFormat::minor($total)),
-            $this->value(ReadField::VatRecap, $this->recap($xpath, $suffix)),
+            $this->value(ReadField::Total, null === $total ? null : ReadFormat::minor($total, ReadFormat::minorUnits($currency))),
+            $this->value(ReadField::VatRecap, $this->recap($xpath, $suffix, ReadFormat::minorUnits($currency))),
         ];
         $reading = new Reading(array_filter($values));
 
@@ -247,7 +247,7 @@ final readonly class IsdocReader implements DocumentReader
      *
      * @return list<array{rate: string, baseMinor: int, vatMinor: int}>|null
      */
-    private function recap(\DOMXPath $xpath, string $suffix): ?array
+    private function recap(\DOMXPath $xpath, string $suffix, int $minorUnits): ?array
     {
         $rows = [];
         $nodes = $xpath->query('/i:Invoice/i:TaxTotal/i:TaxSubTotal');
@@ -259,8 +259,8 @@ final readonly class IsdocReader implements DocumentReader
             $base = $this->text($xpath, 'i:TaxableAmount'.$suffix, $subtotal);
             $vat = $this->text($xpath, 'i:TaxAmount'.$suffix, $subtotal);
             $rate = null === $rate ? null : ReadFormat::rate($rate);
-            $base = null === $base ? null : ReadFormat::minor($base);
-            $vat = null === $vat ? null : ReadFormat::minor($vat);
+            $base = null === $base ? null : ReadFormat::minor($base, $minorUnits);
+            $vat = null === $vat ? null : ReadFormat::minor($vat, $minorUnits);
             if (in_array(null, [$rate, $base, $vat], true)) {
                 return null;
             }

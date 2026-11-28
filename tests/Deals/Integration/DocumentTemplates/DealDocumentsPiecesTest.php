@@ -120,7 +120,7 @@ final class DealDocumentsPiecesTest extends SalesTestCase
 
         $values = self::getContainer()->get(DealVariables::class)->values([new RecordLink('deal', $deal->id())]);
 
-        self::assertSame([['currency' => 'CZK', 'amount' => "2,001.00\u{a0}Kč"]], $values['one_off_totals'] ?? null);
+        self::assertSame([['currency' => 'CZK', 'amount' => "2,001.00\u{a0}CZK"]], $values['one_off_totals'] ?? null);
         self::assertSame([], $values['monthly_totals'] ?? null);
     }
 

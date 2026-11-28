@@ -9,7 +9,7 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
-        "foresi/module-api": "^2.0",
+        "foresi/module-api": "^3.0",
         "foresi/received-documents": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",

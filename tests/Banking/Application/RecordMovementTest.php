@@ -60,7 +60,7 @@ final class RecordMovementTest extends BankingTestCase
 
     public function testMovementInputComesFromAParsedMovementCut(): void
     {
-        $parsed = new ParsedMovement(MovementDirection::Incoming, Money::of('10.00', Currency::CZK), self::IBAN, '123/0800', null, str_repeat('N', 300), new \DateTimeImmutable('2026-11-20'), '1', null, null, str_repeat('m', 600), null);
+        $parsed = new ParsedMovement(MovementDirection::Incoming, Money::of('10.00', Currency::of('CZK')), self::IBAN, '123/0800', null, str_repeat('N', 300), new \DateTimeImmutable('2026-11-20'), '1', null, null, str_repeat('m', 600), null);
 
         $input = MovementInput::of($parsed, $this->account->id(), null);
 

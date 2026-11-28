@@ -46,7 +46,7 @@ final readonly class UpdateProductInput
         public string|Omitted $unit = new Omitted(),
         #[Field('The price of one unit without VAT, a decimal number; null for no price, which a time_based product refuses (its price is the hourly rate).')]
         public string|Omitted|null $unitPrice = new Omitted(),
-        #[Field('The currency of the price, ISO 4217.', enum: ProductRules::CURRENCIES)]
+        #[Field('The currency of the price, an ISO 4217 code such as EUR (GET /api/v1/currencies lists them).', pattern: Field::CURRENCY)]
         public string|Omitted $currency = new Omitted(),
         #[Field('The unit of the period of a recurring product; null for a one_off or time_based product.', enum: ProductRules::UNITS)]
         public string|Omitted|null $recurrenceUnit = new Omitted(),

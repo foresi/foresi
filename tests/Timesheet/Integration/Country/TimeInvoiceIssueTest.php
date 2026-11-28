@@ -97,7 +97,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
         $this->website = $this->projects->create('Website', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->homepage = $this->tasks->create($this->website->id(), 'Design the homepage');
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::of('CZK')));
     }
 
     public function testIssuingBillsTheTimeOfEachLineKeptAndLeavesTheTimeOfARemovedLine(): void
@@ -112,8 +112,8 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         // The line of the project itself is removed; the other's text, price and quantity are typed over.
         $kept = $draft->lines[1];
         $lines = [
-            new LineInput('Other work', Quantity::fromString('1'), 'h', Money::of('100', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
-            new LineInput('Homepage design', Quantity::fromString('2'), 'hod', Money::of('900', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $kept->source),
+            new LineInput('Other work', Quantity::fromString('1'), 'h', Money::of('100', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+            new LineInput('Homepage design', Quantity::fromString('2'), 'hod', Money::of('900', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $kept->source),
         ];
         $invoice = $this->issue->issue($this->input($draft, $lines));
 
@@ -122,7 +122,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
             $billed = $this->entry($entry);
             self::assertSame($invoice->id(), $billed->invoiceId());
             self::assertSame($row->id(), $billed->invoiceLineId());
-            self::assertTrue(Money::of('1000', Currency::CZK)->equals($billed->invoicedRate() ?? Money::ofMinor(0, Currency::EUR)), 'the rate it was chosen at, not the price typed');
+            self::assertTrue(Money::of('1000', Currency::of('CZK'))->equals($billed->invoicedRate() ?? Money::ofMinor(0, Currency::of('EUR'))), 'the rate it was chosen at, not the price typed');
         }
         self::assertSame([50, 20], [$this->entry($design)->minutes(), $this->entry($more)->minutes()], 'the time worked stays');
         self::assertSame([60, 30], [$this->entry($design)->invoicedMinutes(), $this->entry($more)->invoicedMinutes()], 'the time billed is rounded');
@@ -145,7 +145,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
     {
         $design = $this->logged($this->homepage, 50, '2026-10-05');
         $draft = $this->chosen(TimeRounding::None);
-        $row = static fn (string $text): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of('1000', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $draft->lines[0]->source);
+        $row = static fn (string $text): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of('1000', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $draft->lines[0]->source);
 
         $invoice = $this->issue->issue($this->input($draft, [$row('First'), $row('Copy')]));
 
@@ -216,13 +216,13 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         self::assertSame('rate_missing', $refusal());
         self::assertNull($this->invoicing->candidates($this->scope())[0]->rate);
 
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('40', Currency::EUR));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('40', Currency::of('EUR')));
         self::assertSame('firm_currency', $refusal());
 
-        $this->owner->changeHourlyRate(Money::of('1000', Currency::CZK));
+        $this->owner->changeHourlyRate(Money::of('1000', Currency::of('CZK')));
         self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), null);
         $other = $this->projects->create('Shop', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
-        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($other->id(), Money::of('40', Currency::EUR));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($other->id(), Money::of('40', Currency::of('EUR')));
         $this->time->log($other->id(), null, new \DateTimeImmutable('2026-10-08'), 30, billable: true);
         $mixed = new TimeScope($this->customer->id(), [$this->website->id(), $other->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
         try {

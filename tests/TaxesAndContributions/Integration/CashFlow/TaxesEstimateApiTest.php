@@ -63,17 +63,17 @@ final class TaxesEstimateApiTest extends ApiTestCase
         // The year end apart from to date: the planned income as stated, the insurance advance left out, every month counted.
         self::assertNull($this->at('data', 'year_end_reason'));
         self::assertSame('cz.sole_trader', $this->at('data', 'year_end', 'regime'));
-        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK'], $this->at('data', 'to_date', 'methods', 0, 'totals', 'income'));
-        self::assertSame(['amount_minor' => 1_000_000, 'currency' => 'CZK'], $this->at('data', 'year_end', 'methods', 0, 'totals', 'income'));
-        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK'], $this->at('data', 'year_end', 'methods', 0, 'totals', 'costs'));
+        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'to_date', 'methods', 0, 'totals', 'income'));
+        self::assertSame(['amount_minor' => 1_000_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'year_end', 'methods', 0, 'totals', 'income'));
+        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'year_end', 'methods', 0, 'totals', 'costs'));
         self::assertCount(12, (array) $this->at('data', 'year_end', 'months'));
         // A token with the taxes scopes alone may not read the invoices and received documents themselves.
         self::assertSame(['2026-11-20', '2026-12-31', ['forecast.plan_no_vat_split'], false, []], [$this->at('data', 'forecast', 'from'), $this->at('data', 'forecast', 'to'), $this->at('data', 'forecast', 'flags'), $this->at('data', 'forecast', 'incomplete'), $this->at('data', 'forecast', 'unavailable_sources')]);
         self::assertContains('invoicing.invoices', (array) $this->at('data', 'forecast', 'restricted_sources'));
-        self::assertSame(['amount_minor' => 1_000_000, 'currency' => 'CZK'], $this->at('data', 'forecast', 'totals', 'income', 'counted'));
+        self::assertSame(['amount_minor' => 1_000_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'forecast', 'totals', 'income', 'counted'));
         self::assertSame(['document', 'schedule', 'plan'], array_keys((array) $this->at('data', 'forecast_by_certainty')));
-        self::assertSame(['amount_minor' => 1_000_000, 'currency' => 'CZK'], $this->at('data', 'forecast_by_certainty', 'plan', 'income', 'gross'));
-        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK'], $this->at('data', 'forecast_by_certainty', 'document', 'income', 'counted'));
+        self::assertSame(['amount_minor' => 1_000_000, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'forecast_by_certainty', 'plan', 'income', 'gross'));
+        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'forecast_by_certainty', 'document', 'income', 'counted'));
         self::assertSame(['actual', 'lump_60'], [$this->at('data', 'accruals', 0, 'method'), $this->at('data', 'accruals', 1, 'method')]);
         self::assertSame('2026-01', $this->at('data', 'accruals', 0, 'months', 0, 'month'));
         self::assertSame(['profit', 'minimum', 'levies'], array_slice(array_keys((array) $this->at('data', 'accruals', 0, 'months', 11)), 1));
@@ -82,7 +82,7 @@ final class TaxesEstimateApiTest extends ApiTestCase
             self::assertSame($key, $this->at('data', 'to_date', 'methods', 0, 'steps', $index, 'key'));
         }
         // No income yet, main activity assumed January to November: eleven months of the 35 % minimum.
-        self::assertSame(['amount_minor' => 17_139 * 11 * 100, 'currency' => 'CZK'], $this->at('data', 'to_date', 'methods', 0, 'totals', 'social_base'));
+        self::assertSame(['amount_minor' => 17_139 * 11 * 100, 'currency' => 'CZK', 'minor_units' => 2], $this->at('data', 'to_date', 'methods', 0, 'totals', 'social_base'));
         $estimate = $this->json()['data'];
 
         $this->get('/api/v1/taxes-and-contributions/estimate', secret: $this->owner);

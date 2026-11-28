@@ -93,7 +93,7 @@ final class CalculationTest extends TestCase
      */
     private function calculation(YearInputsView $inputs, array $months = []): Calculation
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $totals = new AmountTotals($zero, $zero, $zero, $zero);
         $amounts = new AmountsView(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-12-31'), [], [AmountKind::Income->value => $totals, AmountKind::Cost->value => $totals], [], [], [], [], [], []);
         $end = new \DateTimeImmutable('2026-12-31');

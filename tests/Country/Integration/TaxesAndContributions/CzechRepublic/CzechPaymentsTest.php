@@ -422,7 +422,7 @@ final class CzechPaymentsTest extends TestCase
 
     private function czk(int $czk): Money
     {
-        return Money::ofMinor($czk * 100, Currency::CZK);
+        return Money::ofMinor($czk * 100, Currency::of('CZK'));
     }
 
     private function payment(RegimeResult $result, string $key): DuePayment

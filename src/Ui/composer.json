@@ -9,7 +9,7 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
-        "foresi/module-api": "^2.0",
+        "foresi/module-api": "^3.0",
         "foresi/shared": "self.version",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/event-dispatcher": "^7.4",

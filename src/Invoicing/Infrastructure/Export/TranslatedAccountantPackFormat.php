@@ -16,6 +16,7 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\IssuedDocument;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
@@ -58,7 +59,7 @@ final readonly class TranslatedAccountantPackFormat implements AccountantPackFor
             $document->issueDate->format('Y-m-d'),
             $this->slug($document->customer->name),
             $this->amount($document->payable),
-            $this->translator->trans('invoice.export.currency', ['code' => $document->currency->value], null, $locale),
+            $this->translator->trans('invoice.export.currency', ['code' => $document->currency->code()], null, $locale),
             $symbol,
         );
     }
@@ -80,7 +81,7 @@ final readonly class TranslatedAccountantPackFormat implements AccountantPackFor
             }
 
             $writer->addNewSheetAndMakeItCurrent()->setName($this->trans('invoice.export.sheet.recap', $locale));
-            $writer->addRow($this->texts(array_map(fn (string $column): string => $this->translator->trans('invoice.export.recap.'.$column, ['currency' => $home->value], null, $locale), ['treatment', 'rate', 'base', 'vat', 'total'])));
+            $writer->addRow($this->texts(array_map(fn (string $column): string => $this->translator->trans('invoice.export.recap.'.$column, ['currency' => $home->code()], null, $locale), ['treatment', 'rate', 'base', 'vat', 'total'])));
             foreach ($recap as $line) {
                 $writer->addRow(new Row([
                     $this->text($this->trans('invoice.vat.'.$line->treatment->value, $locale)),
@@ -100,16 +101,14 @@ final readonly class TranslatedAccountantPackFormat implements AccountantPackFor
      */
     private function amount(Money $money): string
     {
-        $minor = $money->minor();
-        $sign = $minor < 0 ? '-' : '';
-        $minor = abs($minor);
+        $factor = MoneyFormat::factor($money->currency());
 
-        return 0 === $minor % 100 ? $sign.intdiv($minor, 100) : \sprintf('%s%d.%02d', $sign, intdiv($minor, 100), $minor % 100);
+        return 0 === $money->minor() % $factor ? (string) intdiv($money->minor(), $factor) : MoneyFormat::decimal($money);
     }
 
     private function number(Money $money): float
     {
-        return $money->minor() / 100;
+        return (float) MoneyFormat::decimal($money);
     }
 
     private function documentRow(AccountantDocument $listed, string $locale): Row
@@ -125,7 +124,7 @@ final readonly class TranslatedAccountantPackFormat implements AccountantPackFor
             $this->text($document->issueDate->format('Y-m-d')),
             $this->text($document->taxPointDate?->format('Y-m-d') ?? ''),
             $this->text($document->dueDate->format('Y-m-d')),
-            $this->text($document->currency->value),
+            $this->text($document->currency->code()),
             new NumericCell((float) $document->exchangeRate),
             new NumericCell($this->number($document->net)),
             new NumericCell($this->number($document->vat)),

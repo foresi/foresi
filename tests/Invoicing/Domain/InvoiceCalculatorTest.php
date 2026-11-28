@@ -82,7 +82,7 @@ final class InvoiceCalculatorTest extends TestCase
     public function testALineWithoutARateHasNoVatAndAGrossPriceReadsAsNet(): void
     {
         $amounts = $this->calculator()->line(new LineValues(
-            Money::of('121.00', Currency::CZK),
+            Money::of('121.00', Currency::of('CZK')),
             Quantity::fromString('1'),
             PriceType::WithVat,
             TaxTreatment::Standard,
@@ -204,7 +204,7 @@ final class InvoiceCalculatorTest extends TestCase
     public function testReverseChargeCarriesNoRateAndNoVat(): void
     {
         $totals = $this->totals([new LineValues(
-            Money::of('1000.00', Currency::CZK),
+            Money::of('1000.00', Currency::of('CZK')),
             Quantity::fromString('1'),
             PriceType::WithoutVat,
             TaxTreatment::ReverseCharge,
@@ -225,8 +225,8 @@ final class InvoiceCalculatorTest extends TestCase
     {
         $totals = $this->totals([
             $this->line('100.00', '1', 'without', '21'),
-            new LineValues(Money::of('300.00', Currency::CZK), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::ReverseCharge, null, Percent::fromString('0')),
-            new LineValues(Money::of('50.00', Currency::CZK), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Exempt, null, Percent::fromString('0')),
+            new LineValues(Money::of('300.00', Currency::of('CZK')), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::ReverseCharge, null, Percent::fromString('0')),
+            new LineValues(Money::of('50.00', Currency::of('CZK')), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Exempt, null, Percent::fromString('0')),
         ]);
 
         self::assertSame(
@@ -269,12 +269,12 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testForeignCurrencyIsNotRounded(): void
     {
-        $line = new LineValues(Money::of('100833.00', Currency::EUR), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Standard, Percent::fromString('21'), Percent::fromString('0'));
+        $line = new LineValues(Money::of('100833.00', Currency::of('EUR')), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Standard, Percent::fromString('21'), Percent::fromString('0'));
 
         $totals = $this->totals([$line]);
 
         self::assertTrue($totals->rounding->isZero());
-        self::assertSame(Currency::EUR, $totals->rounding->currency());
+        self::assertSame(Currency::of('EUR'), $totals->rounding->currency());
         self::assertSame($totals->gross->minor(), $totals->payable->minor());
         self::assertSame($this->minor('122007.93'), $totals->payable->minor());
     }
@@ -286,7 +286,7 @@ final class InvoiceCalculatorTest extends TestCase
         self::assertSame([], $totals->summaries);
         foreach ([$totals->net, $totals->vat, $totals->gross, $totals->rounding, $totals->payable] as $amount) {
             self::assertTrue($amount->isZero());
-            self::assertSame(Currency::CZK, $amount->currency());
+            self::assertSame(Currency::of('CZK'), $amount->currency());
         }
     }
 
@@ -296,7 +296,7 @@ final class InvoiceCalculatorTest extends TestCase
 
         $this->totals([
             $this->line('1.00', '1', 'without', '21'),
-            new LineValues(Money::of('1.00', Currency::EUR), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Standard, Percent::fromString('21'), Percent::fromString('0')),
+            new LineValues(Money::of('1.00', Currency::of('EUR')), Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Standard, Percent::fromString('21'), Percent::fromString('0')),
         ]);
     }
 
@@ -310,7 +310,7 @@ final class InvoiceCalculatorTest extends TestCase
      */
     private function totals(array $lines, VatRegime $regime = VatRegime::Payer, TotalRounding $rounding = TotalRounding::WholeUnit): DocumentTotals
     {
-        return $this->calculator()->totals($lines, $regime, $rounding, Currency::CZK, true);
+        return $this->calculator()->totals($lines, $regime, $rounding, Currency::of('CZK'), true);
     }
 
     private function line(string $price, string $quantity, string $type, string $rate, string $discount = '0'): LineValues
@@ -321,7 +321,7 @@ final class InvoiceCalculatorTest extends TestCase
     private static function lineOf(string $price, string $type, string $rate, string $quantity = '1', string $discount = '0'): LineValues
     {
         return new LineValues(
-            Money::of($price, Currency::CZK),
+            Money::of($price, Currency::of('CZK')),
             Quantity::fromString($quantity),
             match ($type) {
                 'with' => PriceType::WithVat,
@@ -336,12 +336,12 @@ final class InvoiceCalculatorTest extends TestCase
 
     private function minor(string $decimal): int
     {
-        return Money::of($decimal, Currency::CZK)->minor();
+        return Money::of($decimal, Currency::of('CZK'))->minor();
     }
 
     public function testSummariesFollowThePrintOrderAndTheHigherRateFirst(): void
     {
-        $line = static fn (TaxTreatment $treatment, ?string $rate): LineValues => new LineValues(Money::of('100', Currency::CZK), Quantity::fromString('1'), PriceType::WithoutVat, $treatment, null === $rate ? null : Percent::fromString($rate), Percent::fromString('0'));
+        $line = static fn (TaxTreatment $treatment, ?string $rate): LineValues => new LineValues(Money::of('100', Currency::of('CZK')), Quantity::fromString('1'), PriceType::WithoutVat, $treatment, null === $rate ? null : Percent::fromString($rate), Percent::fromString('0'));
 
         $totals = new InvoiceCalculator()->totals([
             $line(TaxTreatment::NotApplicable, null),
@@ -349,7 +349,7 @@ final class InvoiceCalculatorTest extends TestCase
             $line(TaxTreatment::ReverseCharge, null),
             $line(TaxTreatment::Standard, '12'),
             $line(TaxTreatment::Standard, '21'),
-        ], VatRegime::Payer, TotalRounding::None, Currency::CZK, true);
+        ], VatRegime::Payer, TotalRounding::None, Currency::of('CZK'), true);
 
         self::assertSame(
             [['standard', '21.00'], ['standard', '12.00'], ['reverse_charge', null], ['exempt', null], ['not_applicable', null]],
@@ -359,7 +359,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testTheSmallestAndNegativeQuantitiesAreExact(): void
     {
-        $line = static fn (string $quantity): LineValues => new LineValues(Money::of('1000000', Currency::CZK), Quantity::fromString($quantity), PriceType::BaseOnly, TaxTreatment::Exempt, null, Percent::fromString('0'));
+        $line = static fn (string $quantity): LineValues => new LineValues(Money::of('1000000', Currency::of('CZK')), Quantity::fromString($quantity), PriceType::BaseOnly, TaxTreatment::Exempt, null, Percent::fromString('0'));
         $calculator = new InvoiceCalculator();
 
         self::assertSame(10000, $calculator->line($line('0.0001'))->net->minor());

@@ -15,6 +15,7 @@ use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\InvoicingDefaults;
 use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Contract\PaymentMethod;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Currency;
 
 /**
@@ -40,7 +41,7 @@ final readonly class ContactDefaultsImport implements ContactImportColumns
     {
         return [
             new ContactImportColumn('due_days', 'import.field.party.due_days', 'integer', ['splatnost', 'due days']),
-            new ContactImportColumn('currency', 'import.field.party.currency', 'choice', ['mena', 'currency'], array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
+            new ContactImportColumn('currency', 'import.field.party.currency', 'choice', ['mena', 'currency'], Currencies::currentCodes()),
             new ContactImportColumn('payment_method', 'import.field.party.payment_method', 'choice', ['zpusob platby', 'forma uhrady', 'payment method'], array_map(static fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases())),
         ];
     }
@@ -86,7 +87,7 @@ final readonly class ContactDefaultsImport implements ContactImportColumns
         // The names an undo has always read, when the defaults were columns of the party.
         return [
             'dueDays' => $defaults->dueDays,
-            'currency' => $defaults->currency->value,
+            'currency' => $defaults->currency->code(),
             'language' => $defaults->language->value,
             'paymentMethod' => $defaults->paymentMethod->value,
             'reverseCharge' => $defaults->reverseCharge,
@@ -116,7 +117,7 @@ final readonly class ContactDefaultsImport implements ContactImportColumns
 
         return [
             'due_days' => (string) $defaults->dueDays,
-            'currency' => $defaults->currency->value,
+            'currency' => $defaults->currency->code(),
             'payment_method' => $defaults->paymentMethod->value,
         ];
     }

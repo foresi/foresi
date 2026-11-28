@@ -43,7 +43,7 @@ final readonly class ModulesCheckCommand
 
     public function __invoke(
         SymfonyStyle $io,
-        #[Option(description: 'The module API version to check against, such as 2.0; the one this Foresi provides when left out')]
+        #[Option(description: 'The module API version to check against, such as 4.0; the one this Foresi provides when left out')]
         string $api = ModuleApi::VERSION,
     ): int {
         $graph = $this->modules->graph();

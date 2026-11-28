@@ -93,7 +93,7 @@ final class ForecastAmountsTest extends AdvanceTestCase
         }
         $writes->create(new CreatePlannedItemInput('in', 'Consulting not invoiced yet', 'revenue', '1000.00', '2026-12-15'));
         $writes->create(new CreatePlannedItemInput('out', 'Office rent', 'rent', '300.00', '2026-12-01'));
-        $own = new FakeSource(ForecastAmounts::OWN_SOURCE, [new ExpectedFlow(ForecastAmounts::OWN_SOURCE, new FlowSubject('tax_estimate', '2026'), FlowDirection::Out, Money::ofMinor(500_500, Currency::CZK), new \DateTimeImmutable('2026-12-31'), FlowCategory::Other, FlowCertainty::Plan, 'Social advance')]);
+        $own = new FakeSource(ForecastAmounts::OWN_SOURCE, [new ExpectedFlow(ForecastAmounts::OWN_SOURCE, new FlowSubject('tax_estimate', '2026'), FlowDirection::Out, Money::ofMinor(500_500, Currency::of('CZK')), new \DateTimeImmutable('2026-12-31'), FlowCategory::Other, FlowCertainty::Plan, 'Social advance')]);
 
         $estimate = $this->estimates([$own, self::getContainer()->get(PlannedItemFlows::class)])->of(2026);
 

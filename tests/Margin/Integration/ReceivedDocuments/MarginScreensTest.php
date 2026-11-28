@@ -231,7 +231,7 @@ final class MarginScreensTest extends WebTestCase
     public function testAForeignDocumentWithoutARateShowsTheKnownGapNote(): void
     {
         $this->start(Role::Owner);
-        $id = $this->record(Currency::EUR);
+        $id = $this->record(Currency::of('EUR'));
         $connection = $this->browser->em()->getConnection();
         $recap = json_decode(\is_string($stored = $connection->fetchOne('SELECT vat_recap FROM received_document WHERE id = ?', [$id])) ? $stored : '[]', true, flags: \JSON_THROW_ON_ERROR);
         $recap = array_map(static fn (mixed $row): array => ['base_czk' => null] + (array) $row, (array) $recap);
@@ -293,11 +293,12 @@ final class MarginScreensTest extends WebTestCase
     /**
      * A recorded document of two lines, 700 and 300 CZK without VAT.
      */
-    private function record(Currency $currency = Currency::CZK): string
+    private function record(?Currency $currency = null): string
     {
+        $currency ??= Currency::of('CZK');
         $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
-            Currency::CZK === $currency ? ReceivedDocumentKind::TaxInvoice : ReceivedDocumentKind::ForeignInvoice,
-            Currency::CZK === $currency ? PurchaseTaxTreatment::Domestic : PurchaseTaxTreatment::EuService,
+            Currency::of('CZK') === $currency ? ReceivedDocumentKind::TaxInvoice : ReceivedDocumentKind::ForeignInvoice,
+            Currency::of('CZK') === $currency ? PurchaseTaxTreatment::Domestic : PurchaseTaxTreatment::EuService,
             $this->supplier->id(),
             'INV-1',
             '2026123',
@@ -306,10 +307,10 @@ final class MarginScreensTest extends WebTestCase
             null,
             new \DateTimeImmutable('2026-11-18'),
             $currency,
-            Money::of(Currency::CZK === $currency ? '1210.00' : '1000.00', $currency),
-            Currency::CZK === $currency ? null : ExchangeRate::of('25'),
+            Money::of(Currency::of('CZK') === $currency ? '1210.00' : '1000.00', $currency),
+            Currency::of('CZK') === $currency ? null : ExchangeRate::of('25'),
             null,
-            [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', $currency), Money::of(Currency::CZK === $currency ? '210.00' : '0.00', $currency))],
+            [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', $currency), Money::of(Currency::of('CZK') === $currency ? '210.00' : '0.00', $currency))],
             lines: [
                 new ReceivedDocumentLineInput('Hosting', Money::of('700.00', $currency), '21'),
                 new ReceivedDocumentLineInput('Domain', Money::of('300.00', $currency), '21'),

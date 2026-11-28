@@ -29,7 +29,7 @@ final class PairingFixtures
         return new PlannedItem(FlowDirection::Out, new PlannedItemTerms(
             $name,
             FlowCategory::Rent,
-            Money::of('100.00', Currency::CZK),
+            Money::of('100.00', Currency::of('CZK')),
             new \DateTimeImmutable('2026-11-20'),
             null,
             null,

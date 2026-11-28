@@ -45,7 +45,7 @@ final class AcceptReadValuesTest extends PurchasingTestCase
         self::assertSame($before->version() + 1, $document->version());
         self::assertSame('2026-10-28', $document->issueDate()?->format('Y-m-d'));
         self::assertSame(ReceivedDocumentKind::TaxInvoice, $document->kind());
-        self::assertSame(Currency::CZK, $document->currency());
+        self::assertSame(Currency::of('CZK'), $document->currency());
         self::assertSame(121_000, $document->total()?->minor());
         self::assertSame($this->supplier->id(), $document->supplierParty()?->id(), 'A supplier the reading does not name stays.');
     }
@@ -74,7 +74,7 @@ final class AcceptReadValuesTest extends PurchasingTestCase
         self::assertSame('2026-10-01', $document->issueDate()?->format('Y-m-d'));
         self::assertSame('2026-10-02', $document->taxPointDate()?->format('Y-m-d'));
         self::assertSame('2026-10-30', $document->dueDate()?->format('Y-m-d'));
-        self::assertSame(Currency::EUR, $document->currency());
+        self::assertSame(Currency::of('EUR'), $document->currency());
         self::assertSame(-12_100, $document->total()?->minor());
         self::assertSame(-10_000, $document->base()->minor());
         self::assertNull($document->exchangeRate(), 'The rate of another currency does not carry over.');
@@ -82,7 +82,7 @@ final class AcceptReadValuesTest extends PurchasingTestCase
 
     public function testTheValuesNotChosenStayAsTheDraftHasThem(): void
     {
-        $id = $this->typedDraft(currency: Currency::EUR, rate: ExchangeRate::of('25'));
+        $id = $this->typedDraft(currency: Currency::of('EUR'), rate: ExchangeRate::of('25'));
         $this->readingOf($id, [
             new ReadValue(ReadField::IssueDate, '2026-10-01', 'isdoc'),
             new ReadValue(ReadField::Total, 99_900, 'isdoc'),
@@ -163,10 +163,11 @@ final class AcceptReadValuesTest extends PurchasingTestCase
     /**
      * An uploaded draft a person filled in.
      */
-    private function typedDraft(?string $supplier = 'supplier', Currency $currency = Currency::CZK, ?ExchangeRate $rate = null): string
+    private function typedDraft(?string $supplier = 'supplier', ?Currency $currency = null, ?ExchangeRate $rate = null): string
     {
+        $currency ??= Currency::of('CZK');
         $id = $this->draft();
-        $kind = Currency::CZK === $currency ? ReceivedDocumentKind::TaxInvoice : ReceivedDocumentKind::SimplifiedReceipt;
+        $kind = Currency::of('CZK') === $currency ? ReceivedDocumentKind::TaxInvoice : ReceivedDocumentKind::SimplifiedReceipt;
         $this->editing()->edit($id, $this->input(kind: $kind, supplierId: $supplier, currency: $currency, rate: $rate));
 
         return $id;

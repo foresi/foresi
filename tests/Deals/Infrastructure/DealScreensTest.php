@@ -281,9 +281,9 @@ final class DealScreensTest extends WebTestCase
         $footer = $crawler->filter('[data-deal-lines] tfoot tr');
         self::assertCount(2, $footer);
         self::assertStringContainsString('Total one-off', $footer->eq(0)->text());
-        self::assertStringContainsString("50.00\u{a0}EUR", $footer->eq(0)->text());
+        self::assertStringContainsString("50.00\u{a0}€", $footer->eq(0)->text());
         self::assertStringContainsString('Total monthly', $footer->eq(1)->text());
-        self::assertStringContainsString("3,000.00\u{a0}Kč", $footer->eq(1)->text());
+        self::assertStringContainsString("3,000.00\u{a0}CZK", $footer->eq(1)->text());
 
         // The second line moves up.
         $up = $crawler->filter('[data-deal-lines] form')->reduce(static fn (Crawler $form): bool => 1 === $form->filter('input[name="direction"][value="up"]')->count())->first()->form();
@@ -335,12 +335,12 @@ final class DealScreensTest extends WebTestCase
         $this->client->request('GET', '/deals/'.$deal->id());
         self::assertSelectorTextContains('[data-deal-lines] table', 'Hourly');
         self::assertSelectorTextContains('[data-deal-lines] table', 'Not estimated');
-        self::assertSelectorTextContains('[data-deal-lines] table', "1,200.00\u{a0}Kč / h");
+        self::assertSelectorTextContains('[data-deal-lines] table', "1,200.00\u{a0}CZK / h");
         // The footer says the rate alone, under a row of its own.
         $footer = $this->client->getCrawler()->filter('[data-deal-lines] tfoot tr');
         self::assertCount(1, $footer);
         self::assertStringContainsString('Hourly', $footer->text());
-        self::assertStringContainsString("1,200.00\u{a0}Kč / h", $footer->text());
+        self::assertStringContainsString("1,200.00\u{a0}CZK / h", $footer->text());
         self::assertStringNotContainsString('≈', $footer->text());
         $this->client->request('GET', '/deals/'.$deal->id().'/lines/'.$line->id().'/edit');
         self::assertSame('', $this->client->getCrawler()->filter('#quantity')->attr('value'));
@@ -365,10 +365,10 @@ final class DealScreensTest extends WebTestCase
         $crawler = $this->client->request('GET', '/deals/'.$deal->id());
         $footer = $crawler->filter('[data-deal-lines] tfoot tr');
         self::assertCount(2, $footer);
-        self::assertStringContainsString("20,000.00\u{a0}Kč", $footer->eq(0)->text());
+        self::assertStringContainsString("20,000.00\u{a0}CZK", $footer->eq(0)->text());
         self::assertStringNotContainsString('48,000', $footer->eq(0)->text());
         self::assertStringContainsString('Hourly', $footer->eq(1)->text());
-        self::assertStringContainsString("1,200.00\u{a0}Kč / h (≈ 40 h = 48,000.00\u{a0}Kč)", $footer->eq(1)->text());
+        self::assertStringContainsString("1,200.00\u{a0}CZK / h (≈ 40 h = 48,000.00\u{a0}CZK)", $footer->eq(1)->text());
 
         // The list says the monthly value and marks the hourly part.
         $crawler = $this->client->request('GET', '/deals');

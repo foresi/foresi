@@ -44,7 +44,7 @@ final readonly class CreateProductInput
         public string $unit = '',
         #[Field('The price of one unit without VAT, a decimal number such as "1500.00"; left out or null when the price is agreed each time; required for a time_based product, where it is the hourly rate.')]
         public ?string $unitPrice = null,
-        #[Field('The currency of the price, ISO 4217.', enum: ProductRules::CURRENCIES)]
+        #[Field('The currency of the price, an ISO 4217 code such as EUR (GET /api/v1/currencies lists them).', pattern: Field::CURRENCY)]
         public string $currency = 'CZK',
         #[Field('A recurring product is billed every interval of this unit; null for a one_off or time_based product.', enum: ProductRules::UNITS)]
         public ?string $recurrenceUnit = null,

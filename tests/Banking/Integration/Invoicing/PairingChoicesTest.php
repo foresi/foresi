@@ -102,7 +102,7 @@ final class PairingChoicesTest extends InvoiceBankingTestCase
 
     public function testASymbolInvoiceInAnotherCurrencyIsNotSuggested(): void
     {
-        $this->bySymbol = [new Candidate('E', '2026-E', new \DateTimeImmutable('2026-11-15'), Money::of('1210.00', Currency::EUR), 'Other Buyer s.r.o.', new \DateTimeImmutable('2026-11-01'))];
+        $this->bySymbol = [new Candidate('E', '2026-E', new \DateTimeImmutable('2026-11-15'), Money::of('1210.00', Currency::of('EUR')), 'Other Buyer s.r.o.', new \DateTimeImmutable('2026-11-01'))];
 
         self::assertSame([], $this->choices($this->movement('1210.00'))->suggested);
     }
@@ -219,7 +219,7 @@ final class PairingChoicesTest extends InvoiceBankingTestCase
     public function testAnOutgoingMovementIsOfferedTheRefundsInItsCurrencyAsTheSearchFindsThem(): void
     {
         $this->refunds = [
-            new Candidate('E', '2026-E', new \DateTimeImmutable('2026-11-15'), Money::of('100.00', Currency::EUR), 'Other Buyer s.r.o.', new \DateTimeImmutable('2026-11-01')),
+            new Candidate('E', '2026-E', new \DateTimeImmutable('2026-11-15'), Money::of('100.00', Currency::of('EUR')), 'Other Buyer s.r.o.', new \DateTimeImmutable('2026-11-01')),
             $this->candidate('R1', '100.00'),
             $this->candidate('R2', '200.00', 'Žluťoučký kůň s.r.o.'),
             $this->candidate('R3', '300.00', 'ŽLUTÝ PES a.s.'),

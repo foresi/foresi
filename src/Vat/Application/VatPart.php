@@ -23,7 +23,7 @@ final readonly class VatPart
 
     public static function zero(): self
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
 
         return new self($zero, $zero);
     }

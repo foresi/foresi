@@ -72,7 +72,7 @@ class StatusPeriod implements Audited
 
     public function base(): ?Money
     {
-        return null === $this->baseMinor ? null : Money::ofMinor($this->baseMinor, Currency::CZK);
+        return null === $this->baseMinor ? null : Money::ofMinor($this->baseMinor, Currency::of('CZK'));
     }
 
     public function view(): StatusPeriodView

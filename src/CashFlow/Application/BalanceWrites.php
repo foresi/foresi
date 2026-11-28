@@ -105,7 +105,7 @@ final readonly class BalanceWrites
     public function minimum(SetMinimumBalanceInput $input): ?MinimumBalance
     {
         $this->access->denyUnlessStaff();
-        $amount = null === $input->amount ? null : PlannedItemRules::money($input->amount, Currency::CZK, 'amount');
+        $amount = null === $input->amount ? null : PlannedItemRules::money($input->amount, Currency::of('CZK'), 'amount');
 
         return $this->transaction->run(function () use ($amount): ?MinimumBalance {
             $minimum = $this->store->minimumBalance();

@@ -106,7 +106,7 @@ final class Czk
 
     public static function money(int $minor): Money
     {
-        return Money::ofMinor($minor, Currency::CZK);
+        return Money::ofMinor($minor, Currency::of('CZK'));
     }
 
     /**

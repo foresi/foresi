@@ -74,7 +74,7 @@ class CostShare
 
     public function amount(): Money
     {
-        return Money::ofMinor($this->amountCzkMinor, Currency::CZK);
+        return Money::ofMinor($this->amountCzkMinor, Currency::of('CZK'));
     }
 
     public function source(): CostShareSource

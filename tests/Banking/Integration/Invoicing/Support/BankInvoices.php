@@ -37,8 +37,10 @@ trait BankInvoices
     /**
      * An invoice, price without VAT; 1 000.00 is 1 210.00 to pay.
      */
-    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?Series $series = null, Currency $currency = Currency::CZK, ?Party $customer = null, string $iban = self::IBAN): Invoice
+    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?Series $series = null, ?Currency $currency = null, ?Party $customer = null, string $iban = self::IBAN): Invoice
     {
+        $currency ??= Currency::of('CZK');
+
         return $this->scoped(function () use ($price, $vs, $due, $series, $currency, $customer, $iban): Invoice {
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, $currency), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 

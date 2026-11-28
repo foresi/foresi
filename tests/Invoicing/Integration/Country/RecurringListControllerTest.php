@@ -112,7 +112,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertStringContainsString('2026-12-01', $rows[0]);
         self::assertStringContainsString('Monthly · no end', $rows[0]);
         self::assertStringContainsString('Send', $rows[0]);
-        self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $rows[0]);
+        self::assertStringContainsString($this->nbsp('1,210.00 CZK'), $rows[0]);
         self::assertStringContainsString('Yearly', $rows[1]);
         self::assertStringContainsString('Every 12 months', $rows[2]);
         self::assertStringContainsString('Every 12 months · 3 more', $rows[2]);
@@ -292,7 +292,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertStringContainsString('Monthly · no end', $text);
         self::assertStringContainsString('2026-12-01', $text, 'the next issue');
         self::assertStringContainsString('Hosting 12/2026', $text);
-        self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $crawler->filter('[data-recurring-totals]')->text(), 'the total the next invoice comes to');
+        self::assertStringContainsString($this->nbsp('1,210.00 CZK'), $crawler->filter('[data-recurring-totals]')->text(), 'the total the next invoice comes to');
         self::assertCount(1, $crawler->filter('[data-recurring-lines] tbody tr'));
         $edit = $crawler->filter('a[data-recurring-edit]');
         self::assertSame('/invoices/recurring/'.$template->id().'/edit', $edit->attr('href'));
@@ -808,7 +808,7 @@ final class RecurringListControllerTest extends WebTestCase
 
     private function input(?Series $series, Party $customer, Recurrence $recurrence, string $description, RecurringDelivery $delivery, string $name = ''): RecurringInput
     {
-        $line = new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return new RecurringInput($series?->id(), $customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, $delivery, $name);
     }

@@ -18,24 +18,24 @@ final class FirmRemindersTest extends TestCase
 {
     public function testAMinimumAppliesOnlyInItsOwnCurrency(): void
     {
-        $reminders = $this->reminders(Money::of('500.00', Currency::CZK));
+        $reminders = $this->reminders(Money::of('500.00', Currency::of('CZK')));
 
-        self::assertFalse($reminders->isWorthReminding(Money::of('499.99', Currency::CZK)));
-        self::assertTrue($reminders->isWorthReminding(Money::of('500.00', Currency::CZK)));
+        self::assertFalse($reminders->isWorthReminding(Money::of('499.99', Currency::of('CZK'))));
+        self::assertTrue($reminders->isWorthReminding(Money::of('500.00', Currency::of('CZK'))));
         // 10 EUR is below 500 in number, but another currency is never compared with the minimum.
-        self::assertTrue($reminders->isWorthReminding(Money::of('10.00', Currency::EUR)));
-        self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::EUR)));
-        self::assertFalse($reminders->isWorthReminding(Money::ofMinor(0, Currency::EUR)), 'Nothing owed in any currency is not reminded.');
-        self::assertFalse($reminders->isWorthReminding(Money::of('-5.00', Currency::EUR)));
+        self::assertTrue($reminders->isWorthReminding(Money::of('10.00', Currency::of('EUR'))));
+        self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::of('EUR'))));
+        self::assertFalse($reminders->isWorthReminding(Money::ofMinor(0, Currency::of('EUR'))), 'Nothing owed in any currency is not reminded.');
+        self::assertFalse($reminders->isWorthReminding(Money::of('-5.00', Currency::of('EUR'))));
     }
 
     public function testWithoutAMinimumAnyOpenAmountIsWorthIt(): void
     {
         $reminders = $this->reminders(null);
 
-        self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::CZK)));
-        self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::EUR)));
-        self::assertFalse($reminders->isWorthReminding(Money::ofMinor(0, Currency::CZK)));
+        self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::of('CZK'))));
+        self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::of('EUR'))));
+        self::assertFalse($reminders->isWorthReminding(Money::ofMinor(0, Currency::of('CZK'))));
     }
 
     public function testTheDelaysRunFromOneTo365Days(): void
@@ -70,7 +70,7 @@ final class FirmRemindersTest extends TestCase
     {
         $this->expectException(\DomainException::class);
 
-        $this->reminders(Money::ofMinor(0, Currency::CZK));
+        $this->reminders(Money::ofMinor(0, Currency::of('CZK')));
     }
 
     private function reminders(?Money $minimum): FirmReminders

@@ -39,7 +39,7 @@ class Membership implements Audited
     #[ORM\Column(name: 'hourly_rate_minor', type: 'bigint', nullable: true)]
     private ?int $hourlyRateMinor = null;
 
-    #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    #[ORM\Column(name: 'hourly_rate_currency', type: 'currency', length: 3, nullable: true, options: ['fixed' => true])]
     private ?Currency $hourlyRateCurrency = null;
 
     public function __construct(

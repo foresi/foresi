@@ -121,7 +121,7 @@ final readonly class TimeInvoicing
         if ([] === $times) {
             throw new TimeInvoicingRefused('nothing');
         }
-        if (\count(array_unique(array_map(static fn (BillableTime $time): string => $time->rate->currency()->value, $times))) > 1) {
+        if (\count(array_unique(array_map(static fn (BillableTime $time): string => $time->rate->currency()->code(), $times))) > 1) {
             throw new TimeInvoicingRefused('currencies');
         }
         if ($times[0]->rate->currency() !== $this->currencyOf()) {

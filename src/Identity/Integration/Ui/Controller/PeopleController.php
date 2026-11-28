@@ -32,6 +32,7 @@ use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Application\View\ListTables;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Domain\Currencies;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
@@ -180,7 +181,7 @@ final class PeopleController extends AbstractController
         $values = [
             'role' => $membership->role()->value,
             'rate' => TypedAmount::field($rate, $request->getLocale()),
-            'rateCurrency' => ($rate?->currency() ?? Currency::CZK)->value,
+            'rateCurrency' => ($rate?->currency() ?? Currency::of('CZK'))->code(),
         ];
         $picksContact = $this->contactPicker instanceof PersonContactPicker;
         if ($picksContact) {
@@ -226,7 +227,7 @@ final class PeopleController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'roles' => array_combine(array_map(static fn (Role $role): string => $role->value, Role::cases()), array_map(fn (Role $role): string => $this->translator->trans('role.'.$role->value), Role::cases())),
-            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
+            'currencies' => Currencies::choices(),
             'action' => $this->generateUrl('app_people_edit', ['id' => $id]),
             'contactSearch' => $this->contactPicker?->searchUrl(),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));

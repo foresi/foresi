@@ -165,7 +165,7 @@ final class PairingWritesTest extends CashFlowTestCase
 
     private function document(string $id, ?string $counterpartyId, string $on = '2026-05-18'): PairableDocument
     {
-        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $counterpartyId, FlowDirection::Out, Money::of('32.00', Currency::USD), new \DateTimeImmutable($on)));
+        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $counterpartyId, FlowDirection::Out, Money::of('32.00', Currency::of('USD')), new \DateTimeImmutable($on)));
     }
 
     private function store(): CashFlowStore

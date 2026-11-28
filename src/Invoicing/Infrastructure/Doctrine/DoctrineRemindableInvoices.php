@@ -89,7 +89,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         $minimum = $settings->minimum();
         if ($minimum instanceof Money) {
             $sql .= self::MINIMUM;
-            $parameters += ['minimumCurrency' => $minimum->currency()->value, 'minimum' => $minimum->minor()];
+            $parameters += ['minimumCurrency' => $minimum->currency()->code(), 'minimum' => $minimum->minor()];
         }
         if (null !== $afterId) {
             $sql .= ' '.self::AFTER;

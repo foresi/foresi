@@ -55,7 +55,7 @@ class DealLine implements Audited
     #[ORM\Column(name: 'unit_price_minor', type: 'bigint', nullable: true)]
     private ?int $unitPriceMinor;
 
-    #[ORM\Column(name: 'currency', type: 'string', length: 3, nullable: true, enumType: Currency::class)]
+    #[ORM\Column(name: 'currency', type: 'currency', length: 3, nullable: true)]
     private ?Currency $currency;
 
     #[ORM\Column(name: 'billing_kind', type: 'string', length: 16, enumType: BillingKind::class)]

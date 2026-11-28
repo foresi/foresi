@@ -169,7 +169,7 @@ class InvoiceSend implements Audited, AuditRooted
         private readonly string $customerName,
         #[ORM\Column(name: 'amount_minor', type: 'bigint')]
         private readonly int $amountMinor,
-        #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+        #[ORM\Column(type: 'currency', length: 3, options: ['fixed' => true])]
         private readonly Currency $currency,
         #[ORM\Column(name: 'due_date', type: 'date_immutable')]
         private readonly \DateTimeImmutable $dueDate,

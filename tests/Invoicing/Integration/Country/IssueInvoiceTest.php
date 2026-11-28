@@ -64,7 +64,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
         self::assertSame(VatRegime::Payer, $invoice->vatRegime());
         self::assertSame(TotalRounding::WholeUnit, $invoice->rounding());
         self::assertSame('1', $invoice->exchangeRate());
-        self::assertSame(Currency::CZK, $invoice->currency());
+        self::assertSame(Currency::of('CZK'), $invoice->currency());
         self::assertSame('Example Customer a.s.', $invoice->customer()->name);
         self::assertSame('CZ87654320', $invoice->customer()->vatId);
         self::assertSame('87654320', $invoice->customer()->registrationNumber);
@@ -263,7 +263,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testALineOutsideTheFontIsRefusedOnItsCell(): void
     {
-        $line = new LineInput('Práce 😀', Quantity::fromString('1'), 'مرة', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Práce 😀', Quantity::fromString('1'), 'مرة', Money::of('100.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         $fields = array_map(static fn (array $problem): string => $problem[0], $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input([$this->line(), $line]))));
 
@@ -434,7 +434,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testTheCurrencyIsTheHomeCurrency(): void
     {
-        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('10', Currency::EUR), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('10', Currency::of('EUR')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         $this->assertRefusedFor('invoice.problem.currency_not_home', fn (): Invoice => $this->issue->issue($this->input([$line])));
     }
@@ -831,16 +831,16 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testLimitsOfTheDocumentFieldsAreInclusive(): void
     {
-        $line = new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 32), Money::of('10', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $line = new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 32), Money::of('10', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $invoice = $this->issue->issue($this->input([$line], ['orderNumber' => str_repeat('č', 64), 'constantSymbol' => str_repeat('1', 10), 'typedNumber' => str_repeat('1', 40)]));
 
         self::assertSame(str_repeat('1', 40), $invoice->number());
-        self::assertSame(['invoice.problem.too_long'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 33), Money::of('10', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]))));
+        self::assertSame(['invoice.problem.too_long'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 33), Money::of('10', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]))));
     }
 
     public function testProblemsNameTheFieldAndTheLine(): void
     {
-        $bad = new LineInput(' ', Quantity::fromString('1'), str_repeat('u', 33), Money::of('10', Currency::EUR), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
+        $bad = new LineInput(' ', Quantity::fromString('1'), str_repeat('u', 33), Money::of('10', Currency::of('EUR')), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
         $reverse = $this->line(treatment: TaxTreatment::ReverseCharge, kind: null);
 
         try {

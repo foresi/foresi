@@ -26,6 +26,7 @@ use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Shared\Domain\Countries;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -94,7 +95,7 @@ final readonly class IsdocWriter
         if ('' !== $note) {
             $this->add($root, 'Note', $note);
         }
-        $this->add($root, 'LocalCurrencyCode', $document->currency->value);
+        $this->add($root, 'LocalCurrencyCode', $document->currency->code());
         $this->add($root, 'CurrRate', '1');
         $this->add($root, 'RefCurrRate', '1');
         $this->party($this->add($root, 'AccountingSupplierParty'), $document->issuer);
@@ -505,9 +506,6 @@ final readonly class IsdocWriter
 
     private function amount(Money $money): string
     {
-        $minor = $money->minor();
-        $absolute = abs($minor);
-
-        return \sprintf('%s%d.%02d', $minor < 0 ? '-' : '', intdiv($absolute, 100), $absolute % 100);
+        return MoneyFormat::decimal($money);
     }
 }

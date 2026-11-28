@@ -45,6 +45,6 @@ final class PaymentTest extends TestCase
 
     private function payment(string $amount): Payment
     {
-        return new Payment(new \DateTimeImmutable('2026-11-20'), Money::of($amount, Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'));
+        return new Payment(new \DateTimeImmutable('2026-11-20'), Money::of($amount, Currency::of('CZK')), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'));
     }
 }

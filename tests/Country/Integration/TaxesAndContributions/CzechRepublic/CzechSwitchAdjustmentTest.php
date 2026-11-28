@@ -246,7 +246,7 @@ final class CzechSwitchAdjustmentTest extends TestCase
 
     private function before(int $year, int $income, int $costs, int $receivables, int $payables): YearBefore
     {
-        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::CZK);
+        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::of('CZK'));
         $totals = static fn (int $czk): AmountTotals => new AmountTotals($money($czk), $money($czk), $money(0), $money($czk));
 
         return new YearBefore(
@@ -258,7 +258,7 @@ final class CzechSwitchAdjustmentTest extends TestCase
 
     private function amounts(int $year, int $income, int $costs): AmountsView
     {
-        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::CZK);
+        $money = static fn (int $czk): Money => Money::ofMinor($czk * 100, Currency::of('CZK'));
         $totals = static fn (int $czk): AmountTotals => new AmountTotals($money($czk), $money($czk), $money(0), $money($czk));
 
         return new AmountsView(new \DateTimeImmutable(\sprintf('%04d-01-01', $year)), new \DateTimeImmutable(\sprintf('%04d-12-31', $year)), [], [AmountKind::Income->value => $totals($income), AmountKind::Cost->value => $totals($costs)], [], [], [], [], [], []);

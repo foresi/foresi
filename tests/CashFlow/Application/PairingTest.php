@@ -169,7 +169,7 @@ final class PairingTest extends CashFlowTestCase
     {
         $item = $this->monthly('Cloud Host', '32.00', '2026-05-20');
 
-        $this->pairing->consider($this->document('doc-1', '32.00', '2026-05-18', Currency::EUR));
+        $this->pairing->consider($this->document('doc-1', '32.00', '2026-05-18', Currency::of('EUR')));
 
         self::assertSame(PairingState::Proposed, $this->row('doc-1')->state());
         self::assertSame($item->id(), $this->row('doc-1')->plannedItemId());
@@ -295,8 +295,10 @@ final class PairingTest extends CashFlowTestCase
         ));
     }
 
-    private function document(string $id, string $amount, string $on, Currency $currency = Currency::USD): PairableDocument
+    private function document(string $id, string $amount, string $on, ?Currency $currency = null): PairableDocument
     {
+        $currency ??= Currency::of('USD');
+
         return $this->documents->add(new PairableDocument(
             new FlowSubject('received_document', $id),
             $this->supplier->id(),
@@ -308,7 +310,7 @@ final class PairingTest extends CashFlowTestCase
 
     private function documentOn(string $id, \DateTimeImmutable $on): PairableDocument
     {
-        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $this->supplier->id(), FlowDirection::Out, Money::of('32.00', Currency::USD), $on));
+        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $this->supplier->id(), FlowDirection::Out, Money::of('32.00', Currency::of('USD')), $on));
     }
 
     public function testTheDocumentsOfSeveralPairingsComeFromOneLookupPerSource(): void

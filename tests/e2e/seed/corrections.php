@@ -45,8 +45,8 @@ $correctionsCustomer = $createParty->createFrom($party(PartyKind::Company, 'Exam
 $correctable = [];
 foreach (['Consulting', 'Workshop'] as $description) {
     $correctable[$description] = $issueInvoice->issue(new InvoiceInput($correctionsSeries->id(), null, $correctionsCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
-        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }
-$money = Money::of('1210.00', Currency::CZK);
+$money = Money::of('1210.00', Currency::of('CZK'));
 $recordPayment->record(new PaymentRequest($day, $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($correctable['Workshop']->id(), $money)]));

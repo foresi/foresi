@@ -24,6 +24,7 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyFormat;
 use Foresi\Ui\Format\MoneyText;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Service\ResetInterface;
@@ -262,7 +263,7 @@ final class DealScreen implements ResetInterface
             'unit' => $line?->unit() ?? '',
             'quantity' => $line instanceof DealLine ? $this->plainQuantity($line->quantity() ?? '') : '1',
             'unitPrice' => $price instanceof Money ? $this->decimal($price) : '',
-            'currency' => $price?->currency()->value ?? 'CZK',
+            'currency' => $price?->currency()->code() ?? 'CZK',
             'billingKind' => $line?->billingKind()->value ?? BillingKind::OneOff->value,
             'recurrenceUnit' => $line?->recurrenceUnit()->value ?? 'month',
             'interval' => (string) ($line?->interval() ?? 1),
@@ -279,7 +280,7 @@ final class DealScreen implements ResetInterface
         return [
             'billingKinds' => array_combine(DealLineRules::BILLING_KINDS, array_map(fn (string $kind): string => $this->trans('deals.billing_kind.'.$kind), DealLineRules::BILLING_KINDS)),
             'units' => array_combine(DealLineRules::UNITS, array_map(fn (string $unit): string => $this->trans('deals.line.unit_of_time.'.$unit), DealLineRules::UNITS)),
-            'currencies' => array_combine(DealLineRules::CURRENCIES, DealLineRules::CURRENCIES),
+            'currencies' => \Foresi\Shared\Domain\Currencies::choices(),
         ];
     }
 
@@ -343,8 +344,6 @@ final class DealScreen implements ResetInterface
 
     private function decimal(Money $money): string
     {
-        $minor = $money->minor();
-
-        return intdiv($minor, 100).'.'.str_pad((string) ($minor % 100), 2, '0', \STR_PAD_LEFT);
+        return MoneyFormat::decimal($money);
     }
 }

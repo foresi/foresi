@@ -245,7 +245,7 @@ final class TimeLinesTest extends TestCase
      */
     private function entry(string $key, string $projectId, string $project, ?string $taskId, ?string $task): BillableTime
     {
-        return new BillableTime($key, $projectId, $project, $taskId, $task, 'person-Jana', 'Jana', new \DateTimeImmutable(\sprintf('2026-10-%02d', (int) substr($key, 1))), 60, '', Money::of('1000', Currency::CZK));
+        return new BillableTime($key, $projectId, $project, $taskId, $task, 'person-Jana', 'Jana', new \DateTimeImmutable(\sprintf('2026-10-%02d', (int) substr($key, 1))), 60, '', Money::of('1000', Currency::of('CZK')));
     }
 
     /**
@@ -260,6 +260,6 @@ final class TimeLinesTest extends TestCase
 
     private static function money(Money $money): string
     {
-        return \sprintf('%d.%02d %s', intdiv($money->minor(), 100), $money->minor() % 100, $money->currency()->value);
+        return \sprintf('%d.%02d %s', intdiv($money->minor(), 100), $money->minor() % 100, $money->currency()->code());
     }
 }

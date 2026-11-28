@@ -353,7 +353,7 @@ final class PipelineStepsTest extends TestCase
      */
     private function calculation(YearInputsView $inputs, array $months, ExpenseMethod $method = ExpenseMethod::Actual, int $income = 0, int $costs = 0): Calculation
     {
-        $money = static fn (int $minor): Money => Money::ofMinor($minor, Currency::CZK);
+        $money = static fn (int $minor): Money => Money::ofMinor($minor, Currency::of('CZK'));
         $totals = static fn (int $minor): AmountTotals => new AmountTotals($money($minor), $money($minor), $money(0), $money($minor));
         $amounts = new AmountsView(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-12-31'), [], [AmountKind::Income->value => $totals($income), AmountKind::Cost->value => $totals($costs)], [], [], [], [], [], []);
         $end = new \DateTimeImmutable('2026-12-31');
@@ -382,7 +382,7 @@ final class PipelineStepsTest extends TestCase
 
     private function money(int $czk): Money
     {
-        return Money::ofMinor($this->minor($czk), Currency::CZK);
+        return Money::ofMinor($this->minor($czk), Currency::of('CZK'));
     }
 
     private function minor(int $czk): int

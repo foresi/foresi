@@ -29,7 +29,7 @@ final class TimeLines
         foreach ($times as $time) {
             [$order, $names] = self::group($time, $grouping);
             // What a line sorts by also tells it apart: it ends with the ids of what groups it.
-            $order = [...$order, $time->rate->currency()->value, $time->rate->minor()];
+            $order = [...$order, $time->rate->currency()->code(), $time->rate->minor()];
             $key = json_encode($order, \JSON_THROW_ON_ERROR);
             $groups[$key] ??= ['order' => $order, 'names' => $names, 'entries' => []];
             $groups[$key]['entries'][] = $time;

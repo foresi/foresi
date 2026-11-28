@@ -121,7 +121,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
 
     public function testASourceTheCallerMayNotReadGivesTheTotalsOnly(): void
     {
-        $flow = static fn (string $id, string $on, string $amount, FlowCategory $category): ExpectedFlow => new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id), FlowDirection::In, Money::of($amount, Currency::CZK), new \DateTimeImmutable($on, new \DateTimeZone(self::ZONE)), $category, FlowCertainty::Document, 'Invoice '.$id);
+        $flow = static fn (string $id, string $on, string $amount, FlowCategory $category): ExpectedFlow => new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id), FlowDirection::In, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable($on, new \DateTimeZone(self::ZONE)), $category, FlowCertainty::Document, 'Invoice '.$id);
         $hidden = new FakeSource('test.invoices', [$flow('a', '2026-11-18', '100.00', FlowCategory::Revenue), $flow('b', '2026-11-19', '50.00', FlowCategory::Revenue), $flow('c', '2026-11-19', '7.00', FlowCategory::Other)], details: false);
         $this->planned(on: '2026-11-20');
 
@@ -218,7 +218,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
 
     public function testTheTotalsOfARestrictedSourceAreGroupedAndOrderedBySourceDirectionAndCategory(): void
     {
-        $flow = static fn (string $source, string $id, FlowDirection $direction, FlowCategory $category, string $amount): ExpectedFlow => new ExpectedFlow($source, new FlowSubject('invoice', $id), $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-18', new \DateTimeZone(self::ZONE)), $category, FlowCertainty::Document, 'Invoice '.$id);
+        $flow = static fn (string $source, string $id, FlowDirection $direction, FlowCategory $category, string $amount): ExpectedFlow => new ExpectedFlow($source, new FlowSubject('invoice', $id), $direction, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable('2026-11-18', new \DateTimeZone(self::ZONE)), $category, FlowCertainty::Document, 'Invoice '.$id);
         $short = new FakeSource('x', [
             $flow('x', 'a', FlowDirection::Out, FlowCategory::Revenue, '2.00'),
             $flow('x', 'b', FlowDirection::In, FlowCategory::Revenue, '1.00'),
@@ -323,7 +323,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
 
     private function actual(string $on, string $amount, FlowDirection $direction, ?string $account = null, ?string $symbol = null, ?string $counterpartyId = null): ActualFlow
     {
-        return new ActualFlow('test.actuals', new FlowSubject('test', $on.$amount), $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable($on, new \DateTimeZone(self::ZONE)), $counterpartyId, $account, $symbol);
+        return new ActualFlow('test.actuals', new FlowSubject('test', $on.$amount), $direction, Money::of($amount, Currency::of('CZK')), new \DateTimeImmutable($on, new \DateTimeZone(self::ZONE)), $counterpartyId, $account, $symbol);
     }
 
     private function contact(string $name, string $number): Party

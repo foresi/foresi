@@ -1088,7 +1088,7 @@ final class IssueRulesTest extends TestCase
 
     private function deduction(string $document): LineInput
     {
-        return new LineInput('Deduction', Quantity::fromString('1'), '', Money::of('-500.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'), $document);
+        return new LineInput('Deduction', Quantity::fromString('1'), '', Money::of('-500.00', Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'), $document);
     }
 
     /**
@@ -1227,7 +1227,7 @@ final class IssueRulesTest extends TestCase
     {
         $series ??= $this->series;
         $input ??= $this->input();
-        $invoice = new Invoice($series, $number, $regime, $rounding, Currency::CZK, $this->issuer(), $input->change($this->customer, $customer ?? $this->copy(), $series->kind()), null, new \DateTimeImmutable('2026-11-01'));
+        $invoice = new Invoice($series, $number, $regime, $rounding, Currency::of('CZK'), $this->issuer(), $input->change($this->customer, $customer ?? $this->copy(), $series->kind()), null, new \DateTimeImmutable('2026-11-01'));
         $this->invoices[$invoice->id()] = $invoice;
 
         return $invoice;
@@ -1291,6 +1291,6 @@ final class IssueRulesTest extends TestCase
 
     private function line(string $price = '1000.00', TaxTreatment $treatment = TaxTreatment::Standard, ?VatRateKind $kind = VatRateKind::Base, ?string $supplyCode = null, string $text = 'Work', string $unit = 'h'): LineInput
     {
-        return new LineInput($text, Quantity::fromString('1'), $unit, Money::of($price, Currency::CZK), PriceType::WithoutVat, $treatment, $kind, $supplyCode, Percent::fromString('0'));
+        return new LineInput($text, Quantity::fromString('1'), $unit, Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, $treatment, $kind, $supplyCode, Percent::fromString('0'));
     }
 }

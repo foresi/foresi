@@ -457,7 +457,7 @@ final class IdokladImportControllerTest extends WebTestCase
             $customer = new Party(PartyKind::Person, 'Example Customer', null, null, '');
             $this->em()->persist($customer);
             $content = new RecurringContent(null, $customer, PaymentMethod::Cash, null, '', '', 'Hosting', '', '', DocumentLanguage::English, new Recurrence(new \DateTimeImmutable('2026-12-01'), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null), TaxPointRule::IssueDate, 14, RecurringDelivery::Review, 'Hosting '.$externalId);
-            $template = new RecurringInvoice(Currency::CZK, $content, null, new \DateTimeImmutable('2026-11-06 10:00:00'), true, 'idoklad:'.$externalId);
+            $template = new RecurringInvoice(Currency::of('CZK'), $content, null, new \DateTimeImmutable('2026-11-06 10:00:00'), true, 'idoklad:'.$externalId);
             if ($touched) {
                 $template->resume(new \DateTimeImmutable('2026-11-06'));
             }

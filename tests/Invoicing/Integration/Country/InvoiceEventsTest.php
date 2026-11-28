@@ -108,7 +108,7 @@ final class InvoiceEventsTest extends SendingTestCase
     {
         $first = $this->issue->issue($this->input());
         $second = $this->issue->issue($this->input());
-        $czk = static fn (string $amount): Money => Money::of($amount, Currency::CZK);
+        $czk = static fn (string $amount): Money => Money::of($amount, Currency::of('CZK'));
 
         $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $czk('100.00'), PaymentMethod::BankTransfer, PaymentSource::Manual, null, 'note', [
             new AllocationRequest($second->id(), $czk('40.00')),

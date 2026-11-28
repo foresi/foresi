@@ -250,7 +250,7 @@ abstract class InvoiceWorker extends KernelTestCase
     {
         $lines = [];
         for ($i = 0; $i < $count; ++$i) {
-            $lines[] = new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $lines[] = new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         }
 
         return $lines;

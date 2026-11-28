@@ -88,25 +88,25 @@ final class StatementContractTest extends TestCase
 
     public function testAStatementNetsItsEntriesAndIsChainedByANumberOrABalance(): void
     {
-        $statement = new BankStatement(self::IBAN, Currency::CZK, [self::entry('210.00'), self::entry('10.00', MovementDirection::Outgoing)]);
+        $statement = new BankStatement(self::IBAN, Currency::of('CZK'), [self::entry('210.00'), self::entry('10.00', MovementDirection::Outgoing)]);
 
-        self::assertTrue(Money::of('200.00', Currency::CZK)->equals($statement->net()));
+        self::assertTrue(Money::of('200.00', Currency::of('CZK'))->equals($statement->net()));
         self::assertFalse($statement->isChained());
-        self::assertTrue(new BankStatement(self::IBAN, Currency::CZK, [], sequence: StatementSequence::electronic(1))->isChained());
-        self::assertTrue(new BankStatement(self::IBAN, Currency::CZK, [], openingBalance: Money::of('1.00', Currency::CZK))->isChained());
-        self::assertTrue(new BankStatement(self::IBAN, Currency::CZK, [], closingBalance: Money::of('1.00', Currency::CZK))->isChained());
+        self::assertTrue(new BankStatement(self::IBAN, Currency::of('CZK'), [], sequence: StatementSequence::electronic(1))->isChained());
+        self::assertTrue(new BankStatement(self::IBAN, Currency::of('CZK'), [], openingBalance: Money::of('1.00', Currency::of('CZK')))->isChained());
+        self::assertTrue(new BankStatement(self::IBAN, Currency::of('CZK'), [], closingBalance: Money::of('1.00', Currency::of('CZK')))->isChained());
     }
 
     public function testAStatementWithoutBalancesLeavesEntriesOfAnotherCurrencyOutOfItsNet(): void
     {
-        $statement = new BankStatement(self::IBAN, Currency::CZK, [self::entry('210.00'), self::entry('5.00', currency: Currency::EUR)]);
+        $statement = new BankStatement(self::IBAN, Currency::of('CZK'), [self::entry('210.00'), self::entry('5.00', currency: Currency::of('EUR'))]);
 
-        self::assertTrue(Money::of('210.00', Currency::CZK)->equals($statement->net()));
+        self::assertTrue(Money::of('210.00', Currency::of('CZK'))->equals($statement->net()));
     }
 
     public function testAnEntryWrittenWithSpacesIsOfTheAccount(): void
     {
-        $statement = new BankStatement('cz65 0800 0000 1920 0014 5399', Currency::CZK, [self::entry('1.00')]);
+        $statement = new BankStatement('cz65 0800 0000 1920 0014 5399', Currency::of('CZK'), [self::entry('1.00')]);
 
         self::assertCount(1, $statement->entries);
     }
@@ -116,15 +116,15 @@ final class StatementContractTest extends TestCase
      */
     public static function wrongStatements(): iterable
     {
-        $czk = static fn (string $amount): Money => Money::of($amount, Currency::CZK);
-        yield 'no account' => [static fn (): BankStatement => new BankStatement(' ', Currency::CZK, [])];
-        yield 'an entry of another account' => [static fn (): BankStatement => new BankStatement('CZ5508000000001234567899', Currency::CZK, [self::entry('1.00')])];
-        yield 'an empty id' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::CZK, [], ' ')];
-        yield 'a long id' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::CZK, [], str_repeat('x', 65))];
-        yield 'a period backwards' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::CZK, [], from: new \DateTimeImmutable('2026-11-30'), to: new \DateTimeImmutable('2026-11-01'))];
-        yield 'an opening balance in another currency' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::CZK, [], openingBalance: Money::of('1.00', Currency::EUR))];
-        yield 'a closing balance in another currency' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::CZK, [], closingBalance: Money::of('1.00', Currency::EUR))];
-        yield 'an entry in another currency with balances' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::CZK, [self::entry('1.00', currency: Currency::EUR)], openingBalance: $czk('1.00'))];
+        $czk = static fn (string $amount): Money => Money::of($amount, Currency::of('CZK'));
+        yield 'no account' => [static fn (): BankStatement => new BankStatement(' ', Currency::of('CZK'), [])];
+        yield 'an entry of another account' => [static fn (): BankStatement => new BankStatement('CZ5508000000001234567899', Currency::of('CZK'), [self::entry('1.00')])];
+        yield 'an empty id' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::of('CZK'), [], ' ')];
+        yield 'a long id' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::of('CZK'), [], str_repeat('x', 65))];
+        yield 'a period backwards' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::of('CZK'), [], from: new \DateTimeImmutable('2026-11-30'), to: new \DateTimeImmutable('2026-11-01'))];
+        yield 'an opening balance in another currency' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::of('CZK'), [], openingBalance: Money::of('1.00', Currency::of('EUR')))];
+        yield 'a closing balance in another currency' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::of('CZK'), [], closingBalance: Money::of('1.00', Currency::of('EUR')))];
+        yield 'an entry in another currency with balances' => [static fn (): BankStatement => new BankStatement(self::IBAN, Currency::of('CZK'), [self::entry('1.00', currency: Currency::of('EUR'))], openingBalance: $czk('1.00'))];
     }
 
     #[DataProvider('wrongStatements')]
@@ -138,9 +138,9 @@ final class StatementContractTest extends TestCase
     {
         $id = str_repeat('x', 64);
 
-        self::assertSame($id, new BankStatement(self::IBAN, Currency::CZK, [], $id)->statementId);
+        self::assertSame($id, new BankStatement(self::IBAN, Currency::of('CZK'), [], $id)->statementId);
         $day = new \DateTimeImmutable('2026-11-01');
-        self::assertSame($day, new BankStatement(self::IBAN, Currency::CZK, [], from: $day, to: $day)->to);
+        self::assertSame($day, new BankStatement(self::IBAN, Currency::of('CZK'), [], from: $day, to: $day)->to);
     }
 
     public function testEachChannelVouchesAsItCan(): void
@@ -240,26 +240,28 @@ final class StatementContractTest extends TestCase
     {
         $id = str_repeat('ř', 64);
 
-        self::assertSame($id, new BankStatement(self::IBAN, Currency::CZK, [], $id)->statementId);
+        self::assertSame($id, new BankStatement(self::IBAN, Currency::of('CZK'), [], $id)->statementId);
     }
 
     public function testAPeriodMayBeOpenAtEitherEnd(): void
     {
         $day = new \DateTimeImmutable('2026-11-30');
 
-        self::assertSame($day, new BankStatement(self::IBAN, Currency::CZK, [], from: $day)->from);
-        self::assertSame($day, new BankStatement(self::IBAN, Currency::CZK, [], to: $day)->to);
+        self::assertSame($day, new BankStatement(self::IBAN, Currency::of('CZK'), [], from: $day)->from);
+        self::assertSame($day, new BankStatement(self::IBAN, Currency::of('CZK'), [], to: $day)->to);
     }
 
     public function testAnEntryOfAnotherCurrencyFirstLeavesTheRestInTheNet(): void
     {
-        $statement = new BankStatement(self::IBAN, Currency::CZK, [self::entry('5.00', currency: Currency::EUR), self::entry('210.00')]);
+        $statement = new BankStatement(self::IBAN, Currency::of('CZK'), [self::entry('5.00', currency: Currency::of('EUR')), self::entry('210.00')]);
 
-        self::assertTrue(Money::of('210.00', Currency::CZK)->equals($statement->net()));
+        self::assertTrue(Money::of('210.00', Currency::of('CZK'))->equals($statement->net()));
     }
 
-    private static function entry(string $amount, MovementDirection $direction = MovementDirection::Incoming, Currency $currency = Currency::CZK): ParsedMovement
+    private static function entry(string $amount, MovementDirection $direction = MovementDirection::Incoming, ?Currency $currency = null): ParsedMovement
     {
+        $currency ??= Currency::of('CZK');
+
         return new ParsedMovement($direction, Money::of($amount, $currency), self::IBAN, null, null, null, new \DateTimeImmutable('2026-11-20'), null, null, null, null, null);
     }
 }

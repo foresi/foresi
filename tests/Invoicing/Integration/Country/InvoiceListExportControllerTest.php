@@ -340,7 +340,7 @@ final class InvoiceListExportControllerTest extends WebTestCase
         foreach ($prices as $rate => $price) {
             $exempt = 'exempt' === $rate;
             $kind = '21' === (string) $rate ? VatRateKind::Base : VatRateKind::Reduced;
-            $lines[] = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, $exempt ? TaxTreatment::Exempt : TaxTreatment::Standard, $exempt ? null : $kind, null, Percent::fromString('0'));
+            $lines[] = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::of('CZK')), PriceType::WithoutVat, $exempt ? TaxTreatment::Exempt : TaxTreatment::Standard, $exempt ? null : $kind, null, Percent::fromString('0'));
         }
         $input = new InvoiceInput($world['series']->id(), null, $world['customer']->id(), null, new \DateTimeImmutable($issueDate), new \DateTimeImmutable($issueDate), new \DateTimeImmutable('2026-12-31'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Work', '', '', DocumentLanguage::Czech, $lines, true);
 

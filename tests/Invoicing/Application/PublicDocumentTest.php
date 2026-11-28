@@ -49,6 +49,6 @@ final class PublicDocumentTest extends TestCase
 
     private function document(DocumentKind $kind, int $amountMinor): PublicDocument
     {
-        return new PublicDocument('send-1', LinkAudience::Customer, 'Example Firm', '20260001', 'Example Customer', $amountMinor, Currency::CZK, new \DateTimeImmutable('2026-11-15'), DocumentLanguage::English, 'pdf/key', str_repeat('a', 64), PaymentMethod::BankTransfer, null, null, '20260001', null, PaymentState::Unpaid, 0, null, $kind, false, null, null, $amountMinor, 0, 0, false);
+        return new PublicDocument('send-1', LinkAudience::Customer, 'Example Firm', '20260001', 'Example Customer', $amountMinor, Currency::of('CZK'), new \DateTimeImmutable('2026-11-15'), DocumentLanguage::English, 'pdf/key', str_repeat('a', 64), PaymentMethod::BankTransfer, null, null, '20260001', null, PaymentState::Unpaid, 0, null, $kind, false, null, null, $amountMinor, 0, 0, false);
     }
 }

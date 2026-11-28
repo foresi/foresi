@@ -21,11 +21,12 @@ const SPACES = /[\s   ]/g;
  * Whole minor units throughout, never a float for the comparison.
  *
  *     <form data-controller="pair-sum" data-pair-sum-total-value="121000"
- *           data-pair-sum-unit-value="Kč" data-pair-sum-limit-value="99">
+ *           data-pair-sum-unit-value="Kč" data-pair-sum-limit-value="99"
+ *           data-pair-sum-minor-units-value="2">
  */
 export default class extends Controller {
     static targets = ['line', 'check', 'amount', 'sum', 'left', 'settle', 'search'];
-    static values = { total: Number, unit: String, limit: { type: Number, default: -1 }, fill: { type: Boolean, default: true } };
+    static values = { total: Number, unit: String, limit: { type: Number, default: -1 }, fill: { type: Boolean, default: true }, minorUnits: { type: Number, default: 2 } };
 
     connect() {
         this.check();
@@ -91,18 +92,36 @@ export default class extends Controller {
     minor(typed) {
         const group = new Intl.NumberFormat(document.documentElement.lang).formatToParts(1234.5).find((part) => part.type === 'group')?.value ?? ' ';
         const text = typed.replace(SPACES, '');
-        const match = /^(\d{1,13})(?:[.,](\d{0,2}))?$/.exec(group === ',' ? text.replaceAll(',', '') : text);
+        const match = this.pattern().exec(group === ',' ? text.replaceAll(',', '') : text);
         if (match === null) {
             return null;
         }
-        return Number(match[1]) * 100 + Number((match[2] || '').padEnd(2, '0'));
+        return Number(match[1]) * this.factor() + Number((match[2] || '').padEnd(this.minorUnitsValue, '0'));
     }
 
     written(minor, unit) {
-        const language = document.documentElement.lang;
-        const whole = new Intl.NumberFormat(language).format(Math.floor(minor / 100));
-        const decimal = new Intl.NumberFormat(language).formatToParts(1.5).find((part) => part.type === 'decimal')?.value ?? ',';
-        const number = `${whole}${decimal}${String(minor % 100).padStart(2, '0')}`;
+        const number = this.number(minor);
         return unit ? `${number} ${this.unitValue}` : number;
+    }
+
+    // One minor unit's worth of the currency: 100 for two decimals, 1 for none, 1000 for three.
+    factor() {
+        return 10 ** this.minorUnitsValue;
+    }
+
+    // Whole units, then as many decimals as the currency has and none when it has none.
+    pattern() {
+        return new RegExp(`^(\\d{1,13})(?:[.,](\\d{0,${this.minorUnitsValue}}))?$`);
+    }
+
+    // "1 210,50": the grouped whole units and the decimals of the currency.
+    number(minor) {
+        const language = document.documentElement.lang;
+        const whole = new Intl.NumberFormat(language).format(Math.floor(minor / this.factor()));
+        if (this.minorUnitsValue === 0) {
+            return whole;
+        }
+        const decimal = new Intl.NumberFormat(language).formatToParts(1.5).find((part) => part.type === 'decimal')?.value ?? ',';
+        return `${whole}${decimal}${String(minor % this.factor()).padStart(this.minorUnitsValue, '0')}`;
     }
 }

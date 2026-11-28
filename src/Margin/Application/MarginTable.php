@@ -50,7 +50,7 @@ final readonly class MarginTable
     {
         $this->access->denyUnlessStaff();
         $range = $this->ranges->range($fromMonth, $toMonth);
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
 
         /** @var array<string, array<string, Money>> $revenue client id => month => revenue */
         $revenue = [];
@@ -100,7 +100,7 @@ final readonly class MarginTable
      */
     private function row(string $key, string $kind, ?string $clientId, ?string $name, MarginRange $range, array $revenue, array $costs, array $unrebilled = []): MarginRowView
     {
-        $zero = Money::ofMinor(0, Currency::CZK);
+        $zero = Money::ofMinor(0, Currency::of('CZK'));
         $cells = [];
         $total = MarginFigures::none();
         foreach ($range->months as $month) {

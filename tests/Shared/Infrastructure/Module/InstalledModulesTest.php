@@ -178,7 +178,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame('Acme\\Garage\\', $manifest->namespace);
         self::assertSame('Acme\\Garage\\AcmeGarageBundle', $manifest->bundle);
         self::assertSame(['shared', 'party'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
-        self::assertSame('^2.0', $manifest->moduleApi);
+        self::assertSame('^3.0', $manifest->moduleApi);
     }
 
     public function testARequiredModuleIsFoundByItsPackageWhateverItsVendor(): void
@@ -198,7 +198,7 @@ final class InstalledModulesTest extends TestCase
     public function testEveryModuleRequiresTheModuleApi(): void
     {
         foreach ($this->modules()->graph()->all() as $module) {
-            self::assertSame('^2.0', $module->moduleApi, $module->id->value);
+            self::assertSame('^3.0', $module->moduleApi, $module->id->value);
         }
     }
 
@@ -261,7 +261,7 @@ final class InstalledModulesTest extends TestCase
         return array_replace_recursive([
             'name' => 'acme/garage',
             'type' => 'foresi-module',
-            'require' => ['foresi/module-api' => '^2.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
+            'require' => ['foresi/module-api' => '^3.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
             'autoload' => ['psr-4' => ['Acme\\Garage\\' => '']],
             'extra' => ['foresi' => [
                 'module' => 'acme-garage',

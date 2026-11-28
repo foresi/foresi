@@ -69,7 +69,7 @@ final class InvoiceListTest extends InvoicingReadTestCase
         self::assertSame('2026-11-30', $item->row->dueDate->format('Y-m-d'));
         self::assertSame('2026-11-02', $item->taxPointDate?->format('Y-m-d'));
         self::assertSame(242000, $item->row->payable->minor());
-        self::assertSame(Currency::CZK, $item->row->payable->currency());
+        self::assertSame(Currency::of('CZK'), $item->row->payable->currency());
         self::assertSame(0, $item->row->paid->minor());
         self::assertSame(242000, $item->row->remaining()->minor());
         self::assertSame(PaymentState::Unpaid, $item->row->payment);
@@ -268,7 +268,7 @@ final class InvoiceListTest extends InvoicingReadTestCase
 
     private function pay(Invoice $invoice, string $amount): void
     {
-        $money = Money::of($amount, Currency::CZK);
+        $money = Money::of($amount, Currency::of('CZK'));
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
     }
 }
