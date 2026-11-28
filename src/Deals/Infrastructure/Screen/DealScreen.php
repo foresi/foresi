@@ -22,6 +22,7 @@ use Foresi\Deals\Domain\LostReason;
 use Foresi\Deals\Domain\Stage;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
+use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\MoneyFormat;
@@ -51,6 +52,7 @@ final class DealScreen implements ResetInterface
         private readonly People $people,
         private readonly PartyDirectory $parties,
         private readonly LocaleSwitcher $locales,
+        private readonly PartyQuery $partyQuery,
     ) {
     }
 
@@ -85,6 +87,22 @@ final class DealScreen implements ResetInterface
     public function owner(string $userId): string
     {
         return $this->names()[$userId] ?? $this->trans('deals.deal.owner_unknown');
+    }
+
+    /**
+     * Reads the names of many clients at once, as a list of deals shows them: one query
+     * instead of one contact read per deal. Only for a screen that let staff in already.
+     *
+     * @param list<string> $partyIds
+     */
+    public function knowClients(array $partyIds): void
+    {
+        $unknown = array_values(array_diff(array_unique($partyIds), array_keys($this->clients)));
+        foreach (array_chunk($unknown, 1000) as $chunk) {
+            foreach ($this->partyQuery->findMany($chunk) as $party) {
+                $this->clients[$party->id()] = $party->displayName();
+            }
+        }
     }
 
     public function client(string $partyId): string

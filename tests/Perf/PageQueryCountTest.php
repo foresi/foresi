@@ -57,22 +57,11 @@ final class PageQueryCountTest extends WebTestCase
         'task' => 194,
         'time week' => 136,
         'time report' => 170,
-        'deals' => 205,
+        'deals' => 186,
         'cash flow' => 166,
         'api contacts' => 10,
         'api invoices' => 10,
         'api time entries' => 9,
-    ];
-
-    /**
-     * Pages known to run a query per record, with the queries they may run on the larger
-     * set until that is fixed. The deals board loads each deal's contact (its addresses,
-     * bank accounts, links and invoicing defaults) and lines one at a time.
-     *
-     * @var array<string, int>
-     */
-    private const array KNOWN_GROWTH = [
-        'deals' => 385,
     ];
 
     private KernelBrowser $client;
@@ -93,8 +82,7 @@ final class PageQueryCountTest extends WebTestCase
         foreach ($small as $page => $count) {
             $budget = self::BUDGETS[$page] ?? 0;
             $rows[] = ['page' => $page, 'small' => $count, 'scaled' => $scaled[$page], 'budget' => $budget];
-            $grown = self::KNOWN_GROWTH[$page] ?? $count;
-            if ($scaled[$page] > $grown) {
+            if ($scaled[$page] > $count) {
                 $problems[] = \sprintf('%s runs %d queries on the tiny set and %d on %d times as much data.', $page, $count, $scaled[$page], self::SCALE);
             }
             if ($count > $budget) {

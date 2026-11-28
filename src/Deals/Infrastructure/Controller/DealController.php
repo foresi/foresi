@@ -636,19 +636,22 @@ final class DealController extends AbstractController
                 $closed[$deal->status()->value][] = $deal;
             }
         }
+        // The clients and the lines of all the deals shown, each read once for the whole list.
+        $this->screen->knowClients(array_map(static fn (Deal $deal): string => $deal->clientPartyId(), $deals));
+        $lines = $this->store->linesOfDeals(array_map(static fn (Deal $deal): string => $deal->id(), $deals));
         $sections = [];
         foreach ($this->reads->stages(true) as $stage) {
             if (isset($byStage[$stage->id()])) {
-                $sections[] = $this->section($stage->id(), $this->screen->stage($stage), $byStage[$stage->id()], $working);
+                $sections[] = $this->section($stage->id(), $this->screen->stage($stage), $byStage[$stage->id()], $working, $lines);
                 unset($byStage[$stage->id()]);
             }
         }
         foreach ($byStage as $stageId => $rest) {
-            $sections[] = $this->section($stageId, $this->screen->stage(null), $rest, $working);
+            $sections[] = $this->section($stageId, $this->screen->stage(null), $rest, $working, $lines);
         }
         foreach ($closed as $status => $rest) {
             if ([] !== $rest) {
-                $sections[] = $this->section($status, $this->screen->trans('deals.deals.tab.'.$status), $rest, $working);
+                $sections[] = $this->section($status, $this->screen->trans('deals.deals.tab.'.$status), $rest, $working, $lines);
             }
         }
 
@@ -656,16 +659,17 @@ final class DealController extends AbstractController
     }
 
     /**
-     * @param list<Deal> $deals
+     * @param list<Deal>                    $deals
+     * @param array<string, list<DealLine>> $lines the lines of the deals, by deal id
      *
      * @return array<string, mixed>
      */
-    private function section(string $id, string $title, array $deals, WorkingState $working): array
+    private function section(string $id, string $title, array $deals, WorkingState $working, array $lines): array
     {
         $rows = [];
         $values = [];
         foreach ($deals as $deal) {
-            $value = DealValues::of($this->store->linesOf($deal->id()));
+            $value = DealValues::of($lines[$deal->id()] ?? []);
             $values[] = $value;
             $row = new DealRow($deal, $value);
             $rows[] = [
